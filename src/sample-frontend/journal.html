@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Plush Journal — Ponyo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<meta name="theme-color" content="#233D2E" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="journal-page">
+<div class="announce-bar"><p>Meet your next forever plush.</p></div>
+<header class="site-header">
+  <div class="container header-inner">
+    <button class="icon-btn mobile-only" id="menuToggle" aria-label="Open menu"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+    <a href="index.html" class="logo"><span class="logo-mark"><svg class="icon-jelly" viewBox="0 0 64 64" aria-hidden="true"><path d="M12 28C12 15 20 6 32 6C44 6 52 15 52 28C52 33 48 36 44 36H20C16 36 12 33 12 28Z" fill="var(--rose)"/><circle cx="26" cy="23" r="2.6" fill="var(--cocoa)"/><circle cx="38" cy="23" r="2.6" fill="var(--cocoa)"/><path d="M22 29c1.4 1.6 3 1.6 4.4 0M19 38c0 4-2 6-2 10M27 38c0 5 2 7 0 12M35 38c0 5-1 7 1 12M43 38c0 4 2 6 1 10" stroke="var(--cocoa)" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></span><span class="logo-word">PONYO</span></a>
+    <nav class="main-nav desktop-only"><a href="index.html">Trend</a><a href="shop.html">Shop All</a><a href="index.html#rare-finds">Rare Finds</a><a href="domina.html">Domina XL</a><a href="journal.html" class="is-active">Journal</a></nav>
+    <div class="header-actions">
+      <form class="search-pill desktop-only" action="search.html" method="get"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="20" y1="20" x2="15.2" y2="15.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><input type="text" name="q" placeholder="Search for plushies..." /></form>
+      <a href="account.html" class="icon-btn" aria-label="Account"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20c1.6-4 4.2-6 7.5-6s5.9 2 7.5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></a>
+      <a href="wishlist.html" class="icon-btn" id="wishlistToggle" aria-label="Wishlist"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-10-9.2C.3 7.8 2.3 4 6 4c2.1 0 3.8 1.2 6 3.7C14.2 5.2 15.9 4 18 4c3.7 0 5.7 3.8 4 7.3-2.5 4.6-10 9.2-10 9.2Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></a>
+      <button class="icon-btn bag-btn" id="bagToggle" aria-label="Bag"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="bag-count">2</span></button>
+    </div>
+  </div>
+  <nav class="mobile-nav" id="mobileNav"><a href="index.html">Trend</a><a href="shop.html">Shop All</a><a href="index.html#rare-finds">Rare Finds</a><a href="domina.html">Domina XL</a><a href="journal.html">Journal</a><a href="makers.html">Maker Profiles</a></nav>
+</header>
+<aside class="bag-drawer" id="bagDrawer"><div class="bag-drawer-head"><h3>Your Bag <span>(2)</span></h3><button class="icon-btn" id="bagClose" aria-label="Close bag">✕</button></div><div class="bag-drawer-foot"><p class="bag-note">Your saved finds are ready when you are.</p><a href="checkout.html" class="btn btn-primary btn-block">Checkout</a></div></aside>
+<div class="scrim" id="scrim"></div>
+<main>
+  <section class="journal-hero">
+    <div class="journal-hero-image"><img src="images/4.png" alt="A display of plush characters in different shapes, colors, and sizes" fetchpriority="high" /></div>
+    <div class="journal-hero-copy"><p class="eyebrow">A closer look at plush</p><h1>The Plush Journal</h1><p>Ideas, details, and little guides for finding, choosing, and caring for the plush you love.</p><a href="#journal-guides" class="btn btn-primary">Explore the stories ↓</a></div>
+  </section>
+  <section class="journal-index container" id="journal-guides">
+    <div class="section-head"><div><p class="eyebrow">Product notes</p><h2 class="section-title">Made for plush people</h2></div><a href="shop.html" class="view-all">Browse plush →</a></div>
+    <div class="journal-guide-grid">
+      <a href="#choosing-xl" class="journal-guide-card"><img src="images/3.png" alt="An oversized plush held beside a person for a sense of scale" loading="lazy" /><span>SIZE &amp; SPACE</span><h3>Choosing an XL plush for your space</h3><p>Think about height, footprint, and where your plush will live.</p><b>Read the guide →</b></a>
+      <a href="#plush-details" class="journal-guide-card"><img src="images/5.png" alt="A close-up view of soft plush fabric and stitched details" loading="lazy" /><span>LOOK CLOSER</span><h3>The little details that make a plush</h3><p>A closer look at texture, shape, seams, and finishing.</p><b>Explore the details →</b></a>
+      <a href="#plush-care" class="journal-guide-card"><img src="images/2.png" alt="A group of plush characters arranged together" loading="lazy" /><span>CARE NOTES</span><h3>Simple ways to care for a favorite</h3><p>Gentle, practical reminders for keeping plush looking its best.</p><b>Read care notes →</b></a>
+    </div>
+  </section>
+  <section class="journal-articles container">
+    <article class="journal-article" id="choosing-xl"><div class="journal-article-image"><img src="images/3.png" alt="A person holding a large cream bunny plush" loading="lazy" /></div><div><p class="eyebrow">Size &amp; space</p><h2>Choosing an XL plush for your space</h2><p>Start with the spot where your plush will sit. Measure the available height and floor or shelf space, then compare those dimensions with the product measurements. A lifestyle photo can help you imagine scale, but listed measurements are the best reference.</p><p>For a floor piece, leave room to walk around it and consider how it will look beside nearby furniture. For a bed or chair, check the width as well as the height so your plush feels at home without crowding the space.</p><a href="domina.html" class="text-link">Explore Domina XL →</a></div></article>
+    <article class="journal-article journal-article-reverse" id="plush-details"><div class="journal-article-image"><img src="images/5.png" alt="A teddy bear plush showing its fabric, face, and finishing" loading="lazy" /></div><div><p class="eyebrow">Look closer</p><h2>The little details that make a plush</h2><p>Notice the overall silhouette first, then look at the details that give a plush its character: the pile and texture of the fabric, the placement of its features, and the way seams and trims are finished.</p><p>Product pages should make these details easy to understand with clear photos and straightforward descriptions. If a material, finish, or construction detail matters to you, check the listing for specifics rather than guessing from an image.</p><a href="shop.html" class="text-link">Find a plush to love →</a></div></article>
+    <article class="journal-article" id="plush-care"><div class="journal-article-image"><img src="images/2.png" alt="A collection of plush toys displayed together" loading="lazy" /></div><div><p class="eyebrow">Care notes</p><h2>Simple ways to care for a favorite</h2><p>Care varies by fabric, filling, and construction, so start with the care instructions supplied with the specific product. When those instructions allow, spot-clean gently with a soft cloth and let the plush air-dry fully.</p><p>Avoid machine washing or soaking unless the product’s care label explicitly says it is suitable. For oversized plush, check that you have enough room to clean and dry it safely before bringing it home.</p><a href="shop.html" class="text-link">Browse the collection →</a></div></article>
+  </section>
+</main>
+<footer class="site-footer"><div class="container footer-grid"><div class="footer-brand"><a href="index.html" class="logo logo-light"><span class="logo-mark">✦</span><span class="logo-word">PONYO</span></a><p>A curated destination for plush with personality.</p></div><div class="footer-col"><h5>Shop</h5><a href="shop.html">Shop All</a><a href="domina.html">Domina XL</a><a href="makers.html">Maker Profiles</a></div><div class="footer-col"><h5>Explore</h5><a href="journal.html">The Plush Journal</a><a href="about.html">About Ponyo</a><a href="become-a-maker.html">Become a Maker</a></div><div class="footer-col"><h5>Support</h5><a href="faq.html">FAQ &amp; Shipping</a><a href="faq.html#returns">Returns &amp; Refunds</a><a href="faq.html#contact">Contact Us</a></div></div><div class="footer-bottom-bar"><p>© 2026 Ponyo. All rights reserved.</p><p class="footer-legal"><a href="#">Privacy Policy</a> · <a href="#">Terms of Service</a> · <a href="#">Shipping Policy</a></p></div></footer>
+<script src="script.js"></script>
+</body>
+</html>

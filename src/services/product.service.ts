@@ -1,18 +1,21 @@
-import { getSupabaseServerClient } from "@/lib/supabase/server";
-import type { Product, SupplierAvailability } from "@/types/product";
-import bearImage from "@/sample-frontend/images/crop/maker-bear.jpg";
-import bunnyImage from "@/sample-frontend/images/crop/maker-bunny.jpg";
-import dinosaurImage from "@/sample-frontend/images/crop/maker-dinosaur.jpg";
-import penguinImage from "@/sample-frontend/images/crop/maker-penguin.jpg";
-import catImage from "@/sample-frontend/images/11.png";
-import pandaImage from "@/sample-frontend/images/12.png";
-import dogImage from "@/sample-frontend/images/crop/maker-dog.jpg";
-import cloudImage from "@/sample-frontend/images/crop/maker-cloud.jpg";
-import giantBunnyImage from "@/sample-frontend/images/3.png";
-import chickImage from "@/sample-frontend/images/crop/maker-chick.jpg";
-import pinkBunnyImage from "@/sample-frontend/images/crop/maker-pink-bunny.jpg";
-import elephantImage from "@/sample-frontend/images/6.png";
-import foxImage from "@/sample-frontend/images/7.png";
+import type { Product } from "@/types/product";
+import { PONYO_API_BASE_URL, ponyoApi } from "@/services/ponyo-api.client";
+
+const themeFiles = "https://ponyo-plushies.myshopify.com/cdn/shop/files";
+const cdnFiles = "https://cdn.shopify.com/s/files/1/0821/0690/8783/files";
+const bearImage = `${themeFiles}/maker-bear.jpg?v=1793843383`;
+const bunnyImage = `${themeFiles}/maker-bunny.jpg?v=1793843383`;
+const dinosaurImage = `${themeFiles}/maker-dinosaur.jpg?v=1793843384`;
+const penguinImage = `${themeFiles}/maker-penguin.jpg?v=1793843384`;
+const catImage = `${cdnFiles}/ponyo-11.png?v=1793843380`;
+const pandaImage = `${cdnFiles}/ponyo-12.png?v=1793843385`;
+const dogImage = `${themeFiles}/maker-dog.jpg?v=1793843384`;
+const cloudImage = `${themeFiles}/maker-cloud.jpg?v=1793843384`;
+const giantBunnyImage = `${themeFiles}/ponyo-3.png?v=1793843376`;
+const chickImage = `${themeFiles}/maker-chick.jpg?v=1793843383`;
+const pinkBunnyImage = `${themeFiles}/maker-pink-bunny.jpg?v=1793843384`;
+const elephantImage = `${themeFiles}/ponyo-6.png?v=1793843378`;
+const foxImage = `${themeFiles}/ponyo-7.png?v=1793843379`;
 
 // Catalog-only wireframe data. Replace these examples with supplier-approved records.
 const sampleProducts: Product[] = [
@@ -20,8 +23,7 @@ const sampleProducts: Product[] = [
 		id: "sample-hoshi-cloud-bear",
 		slug: "hoshi-cloud-bear",
 		name: "Hoshi Cloud Bear",
-		description:
-			"A warm, cuddly bear with a classic little bow, selected from the Ponyo wireframe collection.",
+		description: "A warm, squishy cream teddy bear with a classic gingham bow.",
 		priceAmount: 18800,
 		currency: "JPY",
 		availability: "available",
@@ -35,8 +37,7 @@ const sampleProducts: Product[] = [
 		id: "sample-haneul-bunny",
 		slug: "haneul-bunny",
 		name: "Haneul Bunny",
-		description:
-			"A floppy-eared friend in soft cream, selected from the Ponyo wireframe collection.",
+		description: "A soft, long-eared bunny in cream with a blue bow.",
 		priceAmount: 17800,
 		currency: "JPY",
 		availability: "needs_confirmation",
@@ -51,7 +52,7 @@ const sampleProducts: Product[] = [
 		slug: "mint-dino",
 		name: "Mint Dino",
 		description:
-			"A minty-green dinosaur with a friendly, curious look, selected from the Ponyo wireframe collection.",
+			"A mint-green dinosaur with soft spikes and a friendly, curious face.",
 		priceAmount: 21200,
 		currency: "JPY",
 		availability: "available",
@@ -65,12 +66,11 @@ const sampleProducts: Product[] = [
 		id: "sample-bluebell-penguin",
 		slug: "bluebell-penguin",
 		name: "Bluebell Penguin",
-		description:
-			"A round little penguin in soft blue and snowy white, selected from the Ponyo wireframe collection.",
+		description: "A tiny round penguin in soft blue and snowy white.",
 		priceAmount: 27500,
 		currency: "JPY",
 		availability: "available",
-		categoryName: "Characters",
+		categoryName: "Penguins",
 		supplierName: "Nordkind Studio · Germany",
 		image: penguinImage,
 		imageAlt: "Round blue and white penguin plush",
@@ -80,8 +80,7 @@ const sampleProducts: Product[] = [
 		id: "sample-good-things-kitty",
 		slug: "good-things-ahead-kitty",
 		name: "Good Things Ahead Kitty",
-		description:
-			"A cozy kitty with a soft pink bow, selected from the Ponyo wireframe collection.",
+		description: "A cozy kitty with a soft pink bow.",
 		priceAmount: 22900,
 		currency: "JPY",
 		availability: "needs_confirmation",
@@ -95,12 +94,11 @@ const sampleProducts: Product[] = [
 		id: "sample-better-days-panda",
 		slug: "better-days-panda",
 		name: "Better Days Panda",
-		description:
-			"A classic panda look with a sweet bow, selected from the Ponyo wireframe collection.",
+		description: "A classic panda look with a sweet bow.",
 		priceAmount: 25600,
 		currency: "JPY",
 		availability: "needs_confirmation",
-		categoryName: "Characters",
+		categoryName: "Pandas",
 		supplierName: "Ponyo selected maker",
 		image: pandaImage,
 		imageAlt: "Cream and charcoal panda plush with a rose-colored bow",
@@ -110,12 +108,11 @@ const sampleProducts: Product[] = [
 		id: "sample-biscuit-bow-pup",
 		slug: "biscuit-bow-pup",
 		name: "Biscuit Bow Pup",
-		description:
-			"A sweet pup with floppy ears and gingham, selected from the Ponyo wireframe collection.",
+		description: "A sweet pup with floppy ears and a gingham bow.",
 		priceAmount: 24500,
 		currency: "JPY",
 		availability: "needs_confirmation",
-		categoryName: "Characters",
+		categoryName: "Puppies",
 		supplierName: "Ponyo selected maker",
 		image: dogImage,
 		imageAlt: "Cream puppy plush with floppy caramel ears and a bow",
@@ -125,8 +122,7 @@ const sampleProducts: Product[] = [
 		id: "sample-cloud-cat",
 		slug: "cloud-cat",
 		name: "Cloud Cat",
-		description:
-			"A sleepy little cat in cream and caramel tones, selected from the Ponyo wireframe collection.",
+		description: "A sleepy little cat in soft cream and caramel tones.",
 		priceAmount: 19600,
 		currency: "JPY",
 		availability: "needs_confirmation",
@@ -167,9 +163,9 @@ const sampleProducts: Product[] = [
 	{
 		id: "sample-hoshi-cloud-bear-xl",
 		slug: "hoshi-cloud-bear-xl",
-		name: "Hoshi Cloud Bear XL — 90cm",
+		name: "Hoshi Cloud Bear XL",
 		description:
-			"An oversized 90cm version of the Hoshi Cloud Bear from the Ponyo wireframe collection.",
+			"The 90 cm giant version of Hoshi Cloud Bear. An extra-big cuddle buddy from Domina.",
 		priceAmount: 68000,
 		currency: "JPY",
 		availability: "needs_confirmation",
@@ -182,9 +178,8 @@ const sampleProducts: Product[] = [
 	{
 		id: "sample-haneul-bunny-xl",
 		slug: "haneul-bunny-xl",
-		name: "Haneul Bunny XL — 100cm",
-		description:
-			"An oversized 100cm Haneul Bunny from the Ponyo wireframe collection.",
+		name: "Haneul Bunny XL",
+		description: "A giant cream bunny standing 100 cm tall, from Domina.",
 		priceAmount: 74500,
 		currency: "JPY",
 		availability: "needs_confirmation",
@@ -197,8 +192,9 @@ const sampleProducts: Product[] = [
 	{
 		id: "sample-baluran-elephant-xl",
 		slug: "baluran-elephant-xl",
-		name: "Baluran Elephant XL — 120cm",
-		description: "An oversized elephant plush with a memorable 120cm presence.",
+		name: "Baluran Elephant XL",
+		description:
+			"An extra-large 120 cm elephant plush from Domina, the centrepiece of any room.",
 		priceAmount: 89000,
 		currency: "JPY",
 		availability: "needs_confirmation",
@@ -210,9 +206,10 @@ const sampleProducts: Product[] = [
 	},
 	{
 		id: "sample-clement-fox-xl",
-		slug: "clement-fox-xl",
-		name: "Clément the Fox XL — 70cm",
-		description: "A distinctive oversized fox plush in a compact 70cm XL size.",
+		slug: "clement-the-fox-xl",
+		name: "Clément the Fox XL",
+		description:
+			"A 70 cm fox plush from Domina: big, squishy and full of character.",
 		priceAmount: 71200,
 		currency: "JPY",
 		availability: "needs_confirmation",
@@ -224,69 +221,215 @@ const sampleProducts: Product[] = [
 	},
 ];
 
-type ProductRow = {
-	id: string;
-	slug: string;
-	name: string;
-	description: string | null;
-	price_amount: number;
-	currency: string;
-	availability: SupplierAvailability;
-	categories: { name: string; slug: string } | null;
-	product_images: {
-		image_url: string;
-		alt_text: string | null;
-		sort_order: number;
-	}[];
+const storefrontPreviewMetadata: Record<
+	string,
+	Pick<
+		Product,
+		| "shopifyProductId"
+		| "variantId"
+		| "productType"
+		| "tags"
+		| "size"
+		| "sizeTier"
+		| "dimensions"
+		| "availabilityStatus"
+		| "supplierName"
+		| "image"
+	>
+> = {
+	"cherry-blossom-bunny": {
+		shopifyProductId: 15723438178415,
+		variantId: "68204276121711",
+		productType: "Bunny",
+		tags: ["bunny", "rare"],
+		supplierName: "Ponyo",
+		size: "Bunny",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-pink-bunny.jpg?v=1793843384",
+	},
+	"biscuit-bow-pup": {
+		shopifyProductId: 15723437719663,
+		variantId: "68204273926255",
+		productType: "Puppy",
+		tags: ["new-arrival", "puppy"],
+		supplierName: "Ponyo",
+		size: "Puppy",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-dog.jpg?v=1793843384",
+	},
+	"cloud-cat": {
+		shopifyProductId: 15723437031535,
+		variantId: "68204270485615",
+		productType: "Cat",
+		tags: ["cat"],
+		supplierName: "Ponyo",
+		size: "Cat",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-cloud.jpg?v=1793843384",
+	},
+	"sunny-chick": {
+		shopifyProductId: 15723436572783,
+		variantId: "68204268028015",
+		productType: "Character",
+		tags: ["character"],
+		supplierName: "Ponyo",
+		size: "Small",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-chick.jpg?v=1793843383",
+	},
+	"good-things-ahead-kitty": {
+		shopifyProductId: 15723436212335,
+		variantId: "68204266389615",
+		productType: "Cat",
+		tags: ["cat", "new-arrival"],
+		supplierName: "Ponyo",
+		size: "Cat",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-11.png?v=1793843380",
+	},
+	"better-days-panda": {
+		shopifyProductId: 15723435884655,
+		variantId: "68204264554607",
+		productType: "Panda",
+		tags: ["panda", "premium"],
+		supplierName: "Ponyo",
+		size: "Panda",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-12.png?v=1793843385",
+	},
+	"clement-the-fox-xl": {
+		shopifyProductId: 15723316150383,
+		variantId: "68203761762415",
+		productType: "XL Plush",
+		tags: ["character", "domina-xl"],
+		size: "XL · 70 cm",
+		sizeTier: "XL",
+		dimensions: "70 cm",
+		supplierName: "Domina",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-7.png?v=1793843379",
+	},
+	"baluran-elephant-xl": {
+		shopifyProductId: 15723316052079,
+		variantId: "68203761664111",
+		productType: "XL Plush",
+		tags: ["character", "domina-xl"],
+		size: "XL · 120 cm",
+		sizeTier: "XL",
+		dimensions: "120 cm",
+		supplierName: "Domina",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-6.png?v=1793843378",
+	},
+	"haneul-bunny-xl": {
+		shopifyProductId: 15723315986543,
+		variantId: "68203761598575",
+		productType: "XL Plush",
+		tags: ["bunny", "domina-xl"],
+		size: "XL · 100 cm",
+		sizeTier: "XL",
+		dimensions: "100 cm",
+		availabilityStatus: "Limited",
+		supplierName: "Domina",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-bunny.jpg?v=1793843383",
+	},
+	"hoshi-cloud-bear-xl": {
+		shopifyProductId: 15723315855471,
+		variantId: "68203761467503",
+		productType: "XL Plush",
+		tags: ["bear", "domina-xl"],
+		size: "XL · 90 cm",
+		sizeTier: "XL",
+		dimensions: "90 cm",
+		supplierName: "Domina",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-bear.jpg?v=1793843383",
+	},
+	"bluebell-penguin": {
+		shopifyProductId: 15723315724399,
+		variantId: "68203761303663",
+		productType: "Plush",
+		tags: ["new-arrival", "penguin", "premium"],
+		size: "Small · 25 cm",
+		sizeTier: "Small",
+		dimensions: "25 cm",
+		supplierName: "Ponyo",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-penguin.jpg?v=1793843384",
+	},
+	"mint-dino": {
+		shopifyProductId: 15723315658863,
+		variantId: "68203761238127",
+		productType: "Plush",
+		tags: ["character", "new-arrival", "rare"],
+		size: "Small · 28 cm",
+		sizeTier: "Small",
+		dimensions: "28 cm",
+		supplierName: "Ponyo",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-dinosaur.jpg?v=1793843384",
+	},
+	"haneul-bunny": {
+		shopifyProductId: 15723315560559,
+		variantId: "68203761107055",
+		productType: "Plush",
+		tags: ["bunny", "new-arrival", "premium"],
+		size: "Medium · 35 cm",
+		sizeTier: "Medium",
+		dimensions: "35 cm",
+		supplierName: "Ponyo",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-bunny.jpg?v=1793843383",
+	},
+	"hoshi-cloud-bear": {
+		shopifyProductId: 15723315462255,
+		variantId: "68203761008751",
+		productType: "Plush",
+		tags: ["bear", "new-arrival", "rare"],
+		size: "Medium · 30 cm",
+		sizeTier: "Medium",
+		dimensions: "30 cm",
+		supplierName: "Ponyo",
+		image:
+			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-bear.jpg?v=1793843383",
+	},
 };
 
-function mapProduct(row: ProductRow, index: number): Product {
-	const defaults = sampleProducts[index % sampleProducts.length];
-	const image = [...(row.product_images ?? [])].sort(
-		(a, b) => a.sort_order - b.sort_order,
-	)[0];
-	return {
-		id: row.id,
-		slug: row.slug,
-		name: row.name,
-		description: row.description ?? "Product details will be added soon.",
-		priceAmount: Number(row.price_amount),
-		currency: row.currency,
-		availability: row.availability,
-		categoryName: row.categories?.name ?? "Plushie",
-		supplierName: "Selected supplier",
-		image: image?.image_url ?? defaults.image,
-		imageAlt: image?.alt_text ?? defaults.imageAlt,
-		artTone: defaults.artTone,
-	};
-}
+export const storefrontPreviewProducts = sampleProducts.map((product) => ({
+	...product,
+	...storefrontPreviewMetadata[product.slug],
+	publishedAt: "2026-11-05T15:00:00+09:00",
+	isNew: true,
+	galleryImages: [
+		{
+			src:
+				typeof storefrontPreviewMetadata[product.slug]?.image === "string"
+					? (storefrontPreviewMetadata[product.slug].image as string)
+					: product.image instanceof Object
+						? product.image.src
+						: String(product.image),
+			alt: product.imageAlt,
+		},
+	],
+	availability: "available" as const,
+}));
 
 export async function getProducts(): Promise<Product[]> {
-	const supabase = getSupabaseServerClient();
-	if (!supabase) return sampleProducts;
-
-	const { data, error } = await supabase
-		.from("products")
-		.select(
-			"id, slug, name, description, price_amount, currency, availability, categories(name, slug), product_images(image_url, alt_text, sort_order)",
-		)
-		.eq("published", true)
-		.order("created_at", { ascending: false });
-
-	if (error) {
-		console.error(
-			"Unable to load products from Supabase; using sample catalog.",
-			error.message,
-		);
-		return sampleProducts;
-	}
-
-	return ((data ?? []) as unknown as ProductRow[]).map(mapProduct);
+	if (PONYO_API_BASE_URL) return ponyoApi.listProducts();
+	return storefrontPreviewProducts;
 }
 
 export async function getProductBySlug(
 	slug: string,
 ): Promise<Product | undefined> {
+	if (PONYO_API_BASE_URL) {
+		try {
+			return await ponyoApi.getProduct(slug);
+		} catch {
+			return undefined;
+		}
+	}
 	const products = await getProducts();
 	return products.find((product) => product.slug === slug);
 }

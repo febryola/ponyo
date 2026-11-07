@@ -1,0 +1,61 @@
+{% doc %}
+  Ponyo mobile tab bar: five app-style tabs fixed to the bottom of the screen on
+  phones (Home, Categories, Top Picks, For You, Me), like big marketplace apps.
+  Categories opens the existing mobile menu drawer. Hidden from md up.
+
+  @example
+  {% render 'mobile-tab-bar' %}
+{% enddoc %}
+{%- liquid
+  assign tab_top_url = collections['premium'].url | default: routes.all_products_collection_url
+  assign tab_new_url = collections['new-arrivals'].url | default: routes.all_products_collection_url
+  assign tab_active = ''
+  if template.name == 'index'
+    assign tab_active = 'home'
+  elsif template.name == 'collection' and collection.handle == 'premium'
+    assign tab_active = 'top'
+  elsif template.name == 'collection' and collection.handle == 'new-arrivals'
+    assign tab_active = 'foryou'
+  elsif template.name == 'list-collections'
+    assign tab_active = 'categories'
+  elsif request.page_type contains 'customers'
+    assign tab_active = 'me'
+  endif
+  assign tab_base = 'relative flex flex-1 flex-col items-center justify-center gap-1 pt-2.5 pb-2 text-[10px] font-medium uppercase tracking-[0.08em] no-underline motion-safe:transition-colors'
+  assign tab_on = 'text-[#2e211d] font-semibold before:absolute before:top-0 before:h-[2px] before:w-6 before:rounded-full before:bg-[#a04f2e] before:content-[""]'
+  assign tab_off = 'text-[#9a857c] hover:text-[#4a3530]'
+-%}
+<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-[#efe6e0] bg-[#fffdfb]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_18px_rgba(46,33,29,.08)] backdrop-blur md:hidden" aria-label="{{ 'tabbar.label' | t }}">
+  <ul role="list" class="m-0 flex list-none items-stretch p-0">
+    <li class="flex flex-1">
+      <a href="{{ routes.root_url }}" class="{{ tab_base }} {% if tab_active == 'home' %}{{ tab_on }}{% else %}{{ tab_off }}{% endif %}"{% if tab_active == 'home' %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9"/><path d="M10 20v-5.5h4V20"/></svg>
+        {{ 'tabbar.home' | t }}
+      </a>
+    </li>
+    <li class="flex flex-1">
+      <button type="button" commandfor="mobile-nav-drawer" command="show-modal" class="{{ tab_base }} cursor-pointer border-0 bg-transparent {% if tab_active == 'categories' %}{{ tab_on }}{% else %}{{ tab_off }}{% endif %}">
+        <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><circle cx="17" cy="17" r="3.5"/></svg>
+        {{ 'tabbar.categories' | t }}
+      </button>
+    </li>
+    <li class="flex flex-1">
+      <a href="{{ tab_top_url }}" class="{{ tab_base }} {% if tab_active == 'top' %}{{ tab_on }}{% else %}{{ tab_off }}{% endif %}"{% if tab_active == 'top' %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>
+        {{ 'tabbar.top' | t }}
+      </a>
+    </li>
+    <li class="flex flex-1">
+      <a href="{{ tab_new_url }}" class="{{ tab_base }} {% if tab_active == 'foryou' %}{{ tab_on }}{% else %}{{ tab_off }}{% endif %}"{% if tab_active == 'foryou' %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 64 64" class="size-[22px]" aria-hidden="true"><path d="M12 28C12 15 20 6 32 6C44 6 52 15 52 28C52 33 48 36 44 36H20C16 36 12 33 12 28Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M20 40c0 4 -2 6 -2 10M28 40c0 5 2 7 0 12M36 40c0 5 -1 7 1 12M44 40c0 4 2 6 1 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/></svg>
+        {{ 'tabbar.for_you' | t }}
+      </a>
+    </li>
+    <li class="flex flex-1">
+      <a href="{{ routes.account_url }}" class="{{ tab_base }} {% if tab_active == 'me' %}{{ tab_on }}{% else %}{{ tab_off }}{% endif %}"{% if tab_active == 'me' %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.4-3.6 4.2-5.5 7.5-5.5s6.1 1.9 7.5 5.5"/></svg>
+        {{ 'tabbar.me' | t }}
+      </a>
+    </li>
+  </ul>
+</nav>

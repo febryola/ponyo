@@ -1,0 +1,888 @@
+{%- comment -%} Ponyo homepage, matched to the merchant's reference design. {%- endcomment -%}
+{%- liquid
+  assign hero_image = images['ponyo-2.png']
+  assign domina_url = '/pages/domina-xl'
+  assign domina_image = images['ponyo-3.png']
+  assign tile_sizes = '(min-width: 1024px) 280px, 45vw'
+  assign all_url = routes.all_products_collection_url
+  assign panda_url = collections['pandas'].url | default: all_url
+  assign puppy_url = collections['puppies'].url | default: all_url
+  assign penguin_url = collections['penguins'].url | default: all_url
+  assign url_bears = collections['bears'].url | default: all_url
+  assign url_bunnies = collections['bunnies'].url | default: all_url
+  assign url_cats = collections['cats'].url | default: all_url
+  assign url_characters = collections['characters'].url | default: all_url
+  assign url_mini = all_url | append: '?filter.p.m.ponyo.size_tier=Small'
+  assign url_classic = all_url | append: '?filter.p.m.ponyo.size_tier=Medium'
+  assign url_big = all_url | append: '?filter.p.m.ponyo.size_tier=Large'
+  assign url_xl = all_url | append: '?filter.p.m.ponyo.size_tier=XL'
+
+  comment
+    Shelves read from real collections and fall back to all products while a collection is missing or empty.
+  endcomment
+  assign shelf_trending = collections['rare-finds']
+  if shelf_trending == blank or shelf_trending.products_count == 0
+    assign shelf_trending = collections.all
+  endif
+  assign shelf_domina = collections['domina-xl']
+  if shelf_domina == blank or shelf_domina.products_count == 0
+    assign shelf_domina = collections.all
+  endif
+  assign shelf_new = collections['new-arrivals']
+  if shelf_new == blank or shelf_new.products_count == 0
+    assign shelf_new = collections.all
+  endif
+  comment
+    Premium Picks always reads the Premium Plushies collection. Collectibles gets its own spots only once it has products, so no link leads to an empty page.
+  endcomment
+  assign shelf_loved = collections['premium']
+  if shelf_loved == blank or shelf_loved.products_count == 0
+    assign shelf_loved = collections.all
+  endif
+  assign shelf_collectibles = collections['collectibles']
+  assign has_collectibles = false
+  if shelf_collectibles != blank and shelf_collectibles.products_count > 0
+    assign has_collectibles = true
+  endif
+  assign shelf_hot = collections.all
+  assign url_premium = collections['premium'].url | default: all_url
+-%}
+
+{% style %}
+  @keyframes ponyo-float { 0%, 100% { transform: translateY(0) rotate(0deg); opacity: .9; } 50% { transform: translateY(-8px) rotate(12deg); opacity: 1; } }
+{% endstyle %}
+
+{%- comment -%} Hero: marketplace headline and shop buttons over a wide plush lineup; search lives in the header. {%- endcomment -%}
+{%- liquid
+  assign domina_url = '/pages/domina-xl'
+-%}
+{% block 'container', class: 'relative w-full', padding: '', attributes: 'aria-labelledby="home-hero-heading"' %}
+  {%- liquid
+    assign all_slide_specs = 'rare|ponyo-2.png|rare-finds|A lineup of soft plush toys sitting together^^xl|ponyo-3.png|domina-xl|A person holding an oversized cream bunny plush^^premium|ponyo-5.png|premium|A grid of soft premium plush friends^^collectibles|ponyo-7.png|collectibles|A grid of collectible plush friends^^new|ponyo-6.png|new-arrivals|A pile of new plush friends on a cosy bed' | split: '^^'
+    assign slide_list = ''
+    for spec in all_slide_specs
+      assign spec_handle = spec | split: '|' | slice: 2 | first
+      if collections[spec_handle] == blank or collections[spec_handle].products_count == 0
+        continue
+      endif
+      if slide_list != ''
+        assign slide_list = slide_list | append: '^^'
+      endif
+      assign slide_list = slide_list | append: spec
+    endfor
+    assign slide_specs = slide_list | split: '^^'
+  -%}
+  <div>
+    <div class="group/hero relative w-full overflow-hidden bg-[#f0dfd5]" data-hero-slider>
+      <div class="flex h-[340px] snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] md:h-[min(40vw,520px)] [&::-webkit-scrollbar]:hidden" data-hero-track aria-roledescription="carousel" aria-label="{{ 'home.slides.label' | t }}">
+        {%- for spec in slide_specs -%}
+          {%- liquid
+            assign s = spec | split: '|'
+            assign s_key = s[0]
+            assign s_url = collections[s[2]].url | default: all_url
+            assign s_eyebrow_key = 'home.slides.' | append: s_key | append: '_eyebrow'
+            assign s_title_key = 'home.pillars.' | append: s_key | append: '_title'
+            assign s_body_key = 'home.pillars.' | append: s_key | append: '_body'
+            assign s_cta_key = 'home.slides.' | append: s_key | append: '_cta'
+            assign s_image = images[s[1]]
+            if forloop.first
+              assign s_loading = 'eager'
+              assign s_attrs = 'fetchpriority="high"'
+            else
+              assign s_loading = 'lazy'
+              assign s_attrs = ''
+            endif
+          -%}
+          <div class="relative h-full w-full shrink-0 snap-start" role="group" aria-roledescription="slide" aria-label="{{ forloop.index }} / {{ forloop.length }}" data-hero-slide>
+            <div class="absolute inset-0 [&_img]:size-full [&_img]:object-cover">
+              {% block 'image', fallback_image: s_image, alt: s[3], class: 'absolute inset-0', loading: s_loading, sizes: '(min-width: 1400px) 1400px, 100vw', attributes: s_attrs %}{% endblock %}
+            </div>
+            <div class="absolute inset-0 bg-linear-to-r from-[#2e211d]/70 via-[#2e211d]/30 to-transparent md:from-[#2e211d]/60 md:via-[#2e211d]/20" aria-hidden="true"></div>
+            <div class="relative flex h-full max-w-[640px] flex-col items-start justify-center gap-2 px-6 pb-14 md:gap-3 md:ps-24 md:pe-14 md:pb-16">
+              {% block 'text', variant: 'sm', class: 'inline-flex whitespace-nowrap rounded-full bg-[#f6c453] px-3.5 py-1.5 font-heading text-[12px]! leading-none! font-bold uppercase tracking-[0.08em] text-[#2e211d] md:text-[13px]!' %}{{ s_eyebrow_key | t }}{% endblock %}
+              {% block 'heading', tag: 'h2', variant: 'xl', class: 'font-extrabold leading-[1.05] tracking-tight text-white text-[34px]! md:text-[56px]! [text-shadow:0_2px_14px_rgba(0,0,0,.25)]' %}{{ s_title_key | t }}{% endblock %}
+              {% block 'text', class: 'max-w-[380px] text-[14.5px]! leading-relaxed text-[#fbeee7] md:text-[17px]!' %}{{ s_body_key | t }}{% endblock %}
+              {% block 'button', url: s_url, variant: 'custom', class: 'mt-1 h-11 rounded-full bg-tangerine! px-6 font-heading text-[14.5px] font-bold text-[#3f2418]! shadow-[0_4px_0_#b7612f] hover:bg-[#f39a62]! md:h-12 md:px-7 md:text-[15px]' %}{{ s_cta_key | t }}{% endblock %}
+            </div>
+          </div>
+        {%- endfor -%}
+      </div>
+
+      <button type="button" class="absolute top-1/2 start-4 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#2e211d] shadow-md hover:bg-white md:inline-flex" data-hero-prev aria-label="{{ 'home.slides.previous' | t }}">
+        <span class="inline-flex size-4 rotate-180 rtl:rotate-0 [&_svg]:size-full" aria-hidden="true">{{- 'icon-chevron-right.svg' | inline_asset_content -}}</span>
+      </button>
+      <button type="button" class="absolute top-1/2 end-4 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#2e211d] shadow-md hover:bg-white md:inline-flex" data-hero-next aria-label="{{ 'home.slides.next' | t }}">
+        <span class="inline-flex size-4 rtl:rotate-180 [&_svg]:size-full" aria-hidden="true">{{- 'icon-chevron-right.svg' | inline_asset_content -}}</span>
+      </button>
+      <div class="absolute inset-x-0 bottom-14 flex justify-center gap-2 md:bottom-16" data-hero-dots>
+        {%- for spec in slide_specs -%}
+          <button type="button" class="h-2.5 w-2.5 rounded-full bg-white/60 motion-safe:transition-all data-[active]:w-7 data-[active]:bg-white" data-hero-dot="{{ forloop.index0 }}" aria-label="{{ 'home.slides.go_to' | t: number: forloop.index }}"{% if forloop.first %} data-active aria-current="true"{% endif %}></button>
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const root = document.currentScript.previousElementSibling.querySelector('[data-hero-slider]');
+      if (!root) return;
+      const track = root.querySelector('[data-hero-track]');
+      const slides = [...root.querySelectorAll('[data-hero-slide]')];
+      const dots = [...root.querySelectorAll('[data-hero-dot]')];
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let index = 0;
+      let timer = null;
+      const go = (i, smooth = true) => {
+        index = (i + slides.length) % slides.length;
+        track.scrollTo({ left: track.clientWidth * index * (document.dir === 'rtl' ? -1 : 1), behavior: smooth && !reduce ? 'smooth' : 'auto' });
+      };
+      const mark = () => {
+        const i = Math.round(Math.abs(track.scrollLeft) / track.clientWidth);
+        index = i;
+        dots.forEach((d, n) => {
+          d.toggleAttribute('data-active', n === i);
+          if (n === i) d.setAttribute('aria-current', 'true'); else d.removeAttribute('aria-current');
+        });
+      };
+      const stop = () => { clearInterval(timer); timer = null; };
+      const start = () => { if (timer || slides.length < 2) return; timer = setInterval(() => go(index + 1), 7000); };
+      const restart = () => { stop(); start(); };
+      let raf = 0;
+      track.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(mark); }, { passive: true });
+      dots.forEach((d) => d.addEventListener('click', () => { go(Number(d.dataset.heroDot)); restart(); }));
+      root.querySelector('[data-hero-prev]')?.addEventListener('click', () => { go(index - 1); restart(); });
+      root.querySelector('[data-hero-next]')?.addEventListener('click', () => { go(index + 1); restart(); });
+      track.addEventListener('touchstart', stop, { passive: true });
+      track.addEventListener('touchend', restart, { passive: true });
+      document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+      start();
+    })();
+  </script>
+  <div class="relative z-10 mx-4 -mt-10 flex max-w-[960px] md:mx-auto md:w-[calc(100%-4rem)] flex-col items-center rounded-[28px] bg-white px-5 pt-8 pb-7 text-center shadow-[0_6px_0_#efdcd2,0_18px_40px_rgba(110,74,62,.1)] md:-mt-16 md:px-12 md:pt-10">
+    {% block 'text', variant: 'sm', class: 'mb-3 rounded-full bg-sky-soft px-4 py-1 text-[12px]! font-bold uppercase tracking-[0.14em] text-[#4a3530]' %}{{ 'mp.hero_eyebrow' | t }}{% endblock %}
+    {% block 'heading', tag: 'h1', variant: 'xl', class: 'font-extrabold leading-[1.05] tracking-tight text-balance text-[#4a3530] text-[34px]! md:text-[clamp(40px,4.4vw,60px)]!', attributes: 'id="home-hero-heading"' %}{{ 'mp.hero_heading' | t }} <span class="italic text-accent">{{ 'mp.hero_heading_accent' | t }}</span>{% endblock %}
+    {% block 'text', class: 'mt-4 mb-6 max-w-[620px] leading-[1.7] text-on-surface-secondary' %}{{ 'mp.hero_body' | t }}{% endblock %}
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      {% block 'button', url: all_url, variant: 'button-primary', class: 'h-12 rounded-full px-8 font-heading text-[15px] font-bold shadow-[0_4px_0_#7f4a38] motion-safe:hover:-translate-y-0.5' %}{{ 'mp.hero_cta_shop' | t }}{% endblock %}
+      {% block 'button', url: domina_url, variant: 'button-secondary', class: 'h-12 rounded-full border-2 border-[#e9d3c8] bg-white px-8 font-heading text-[15px] font-bold text-[#4a3530] hover:bg-sage' %}{{ 'mp.hero_cta_domina' | t }}{% endblock %}
+    </div>
+  </div>
+{% endblock %}
+
+{%- comment -%} Marquee: a moving ribbon of what Ponyo offers. {%- endcomment -%}
+{% style %}
+  @keyframes ponyo-wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+{% endstyle %}
+{%- comment -%} Marks where the falling stars fade out (the old marquee band sat here). {%- endcomment -%}
+{%- comment -%} Store-at-a-glance numbers between the hero and the category bar. Counts come live from the catalog. {%- endcomment -%}
+{%- liquid
+  assign stat_all = collections.all.products_count
+  assign stat_rare = collections['rare-finds'].products_count | default: 0
+  assign stat_xl = collections['domina-xl'].products_count | default: 0
+  assign stat_premium = collections['premium'].products_count | default: 0
+-%}
+<div data-sparkle-end class="mx-auto mt-8 w-full max-w-[960px] px-4 md:mt-10" data-stats>
+  <ul role="list" class="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
+    {%- capture stat_items -%}{{ stat_all }}|{{ routes.all_products_collection_url }}|home.stats.all|bg-[#fdf0f2]|🧸^^{{ stat_rare }}|{{ collections['rare-finds'].url }}|home.stats.rare|bg-[#2e211d] text-white|💎^^{{ stat_premium }}|{{ collections['premium'].url }}|home.stats.premium|bg-[#dbe9f5]|✨^^120|{{ pages['domina-xl'].url | default: collections['domina-xl'].url }}|home.stats.xl|bg-[#f6c453]|📏{%- endcapture -%}
+    {%- assign stat_list = stat_items | split: '^^' -%}
+    {%- for item in stat_list -%}
+      {%- assign st = item | split: '|' -%}
+      {%- if st[0] == '0' -%}{%- continue -%}{%- endif -%}
+      <li>
+        <a href="{{ st[1] }}" class="group/stat flex h-full items-center gap-3 rounded-[20px] {{ st[3] }} px-4 py-3.5 no-underline text-[#3a2b26]{% if st[3] contains 'text-white' %} text-white!{% endif %} motion-safe:transition motion-safe:hover:-translate-y-1 hover:shadow-[0_10px_22px_rgba(110,74,62,.16)] md:px-5 md:py-4">
+          <span class="grid size-10 shrink-0 place-items-center rounded-full bg-white/70 text-[20px] motion-safe:group-hover/stat:animate-[ponyo-wiggle_.8s_ease-in-out]{% if st[3] contains 'text-white' %} bg-white/15{% endif %}" aria-hidden="true">{{ st[4] }}</span>
+          <span class="flex min-w-0 flex-col leading-tight">
+            <span class="font-heading text-[24px] font-extrabold md:text-[28px]"><span data-count-to="{{ st[0] }}">{{ st[0] }}</span>{% if forloop.last %}<span class="text-[15px]"> cm</span>{% endif %}</span>
+            <span class="text-[12px] font-semibold opacity-80 md:text-[13px]">{{ st[2] | t }}</span>
+          </span>
+        </a>
+      </li>
+    {%- endfor -%}
+  </ul>
+</div>
+<script>
+  (() => {
+    const root = document.querySelector('[data-stats]');
+    if (!root || matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) return;
+    const nums = root.querySelectorAll('[data-count-to]');
+    const run = () => nums.forEach((el) => {
+      const to = parseInt(el.dataset.countTo, 10) || 0;
+      const t0 = performance.now();
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / 1100);
+        el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) requestAnimationFrame(step);
+      };
+      el.textContent = '0';
+      requestAnimationFrame(step);
+    });
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { run(); io.disconnect(); }
+    }, { threshold: 0.4 });
+    io.observe(root);
+  })();
+</script>
+
+{%- comment -%} Floating category bar overlapping the hero edge. {%- endcomment -%}
+{% block 'container', class: 'relative z-20 mt-8 w-full max-w-page mx-auto px-margin', attributes: 'aria-label="Shop by type"' %}
+  <div class="flex items-center gap-5 rounded-[22px] bg-white px-5 py-3.5 shadow-[0_6px_0_#efdcd2,0_12px_26px_rgba(110,74,62,.07)]">
+    {% block 'text', variant: 'sm', class: 'hidden min-w-[100px] max-w-[110px] font-heading font-bold leading-tight text-on-surface md:block' %}{{ 'home.categories.label' | t }}{% endblock %}
+    <ul role="list" class="flex flex-1 gap-2.5 overflow-x-auto [scrollbar-width:none] md:justify-between">
+      {%- assign cat_image = images['ponyo-3.png'] -%}
+      {%- assign cat_label = 'home.categories.giant' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: domina_url, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- assign cat_image = images['maker-bear.jpg'] -%}
+      {%- assign cat_label = 'home.categories.bears' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: url_bears, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- assign cat_image = images['maker-bunny.jpg'] -%}
+      {%- assign cat_label = 'home.categories.bunnies' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: url_bunnies, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- assign cat_image = images['maker-cat.jpg'] -%}
+      {%- assign cat_label = 'home.categories.cats' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: url_cats, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- assign cat_image = images['maker-dinosaur.jpg'] -%}
+      {%- assign cat_label = 'home.categories.characters' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: url_characters, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- assign cat_image = images['ponyo-5.png'] -%}
+      {%- assign cat_label = 'home.categories.premium' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: url_premium, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- if has_collectibles -%}
+      {%- assign cat_image = images['ponyo-7.png'] -%}
+      {%- assign cat_label = 'home.categories.collectibles' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: shelf_collectibles.url, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- endif -%}
+      {%- assign cat_image = images['ponyo-12.png'] -%}
+      {%- assign cat_label = 'home.categories.pandas' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: panda_url, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- assign cat_image = images['maker-dog.jpg'] -%}
+      {%- assign cat_label = 'home.categories.puppies' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: puppy_url, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- assign cat_image = images['maker-penguin.jpg'] -%}
+      {%- assign cat_label = 'home.categories.penguins' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: penguin_url, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+      {%- assign cat_image = images['maker-chick.jpg'] -%}
+      {%- assign cat_label = 'home.categories.more' | t -%}
+      <li class="shrink-0">
+        {% block 'card', url: all_url, aria_label: cat_label, link_mode: 'card', class: 'items-center gap-1.5! px-1.5 py-1 motion-safe:transition hover:-translate-y-0.5', alignment: 'text-center' %}
+          <span class="block size-14 overflow-hidden rounded-full bg-sage shadow-[0_4px_16px_rgba(110,74,62,.08)]">
+            {% block 'image', fallback_image: cat_image, aspect_ratio: 'aspect-square', alt: '', sizes: '56px', widths: '112,168', attributes: 'loading="lazy"' %}{% endblock %}
+          </span>
+          {% block 'text', variant: 'sm', class: 'text-[12.5px]! font-bold text-on-surface whitespace-nowrap' %}{{ cat_label }}{% endblock %}
+        {% endblock %}
+      </li>
+    </ul>
+  </div>
+{% endblock %}
+
+{%- comment -%} Marketplace aisles: Amazon-style quad cards so shoppers see every kind of plush at a glance. Each card shows up to four real products from its collection; a short collection ends with a See all tile. {%- endcomment -%}
+{%- liquid
+  assign aisle_handles = 'rare-finds|home.aisles.rare_title|home.aisles.rare_sub^^premium|home.aisles.premium_title|home.aisles.premium_sub^^domina-xl|home.aisles.xl_title|home.aisles.xl_sub' | split: '^^'
+  assign aisle_animals = 'bears|home.categories.bears^^bunnies|home.categories.bunnies^^cats|home.categories.cats^^pandas|home.categories.pandas' | split: '^^'
+-%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'pt-8 pb-2 md:pt-12', attributes: 'aria-labelledby="aisles-title"' %}
+  <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+    <div class="flex flex-col gap-1">
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[24px]! md:text-[32px]!', attributes: 'id="aisles-title"' %}{{ 'home.aisles.title' | t }}{% endblock %}
+      {% block 'text', class: 'text-[14px]! md:text-[15px]! text-on-surface-secondary' %}{{ 'home.aisles.sub' | t }}{% endblock %}
+    </div>
+  </div>
+  <ul role="list" class="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4">
+    {%- for entry in aisle_handles -%}
+      {%- assign a = entry | split: '|' -%}
+      {%- assign aisle = collections[a[0]] -%}
+      {%- if aisle == blank or aisle.products_count == 0 -%}{%- continue -%}{%- endif -%}
+      <li class="flex flex-col rounded-[10px] border border-[#e8ded8] bg-white p-4">
+        <h3 class="m-0 font-heading text-[19px] font-bold leading-tight text-[#2e211d]">{{ a[1] | t }}</h3>
+        <p class="m-0 mt-0.5 mb-3 text-[12.5px] text-on-surface-secondary">{{ a[2] | t }}</p>
+        <div class="grid flex-1 grid-cols-2 gap-2.5">
+          {%- for product in aisle.products limit: 4 -%}
+            <a href="{{ product.url | escape }}" class="group/aisle flex flex-col gap-1 text-[#3f302b] no-underline">
+              <span class="block aspect-square overflow-hidden bg-[#fbf3ec]">
+                {%- if product.featured_image != blank -%}
+                  {{ product.featured_image | image_url: width: 300 | image_tag: alt: product.title, loading: 'lazy', widths: '150,220,300', sizes: '(min-width: 1024px) 130px, 42vw', class: 'size-full object-cover motion-safe:transition-transform motion-safe:duration-500 group-hover/aisle:scale-105' }}
+                {%- else -%}
+                  {{ 'product-1' | placeholder_svg_tag: 'size-full' }}
+                {%- endif -%}
+              </span>
+              <span class="line-clamp-1 text-[12px] font-medium leading-snug">{{ product.title | escape }}</span>
+              <span class="text-[12.5px] font-bold">{{ product.price | money_without_trailing_zeros }}</span>
+            </a>
+          {%- endfor -%}
+          {%- if aisle.products.size < 4 -%}
+            <a href="{{ aisle.url }}" class="flex aspect-square flex-col items-center justify-center gap-1 bg-[#f3ece7] text-center text-[13px] font-bold text-[#4a3530] no-underline hover:bg-[#ecdcd0]">
+              <span class="text-[20px]" aria-hidden="true">→</span>{{ 'home.aisles.see_all' | t }}
+            </a>
+          {%- endif -%}
+        </div>
+        <a href="{{ aisle.url }}" class="mt-3 text-[13px] font-bold text-[#a04f2e] no-underline hover:underline">{%- assign aisle_name = a[1] | t -%}{{ 'home.aisles.see_more' | t: title: aisle_name }}</a>
+      </li>
+    {%- endfor -%}
+    <li class="flex flex-col rounded-[10px] border border-[#e8ded8] bg-white p-4">
+      <h3 class="m-0 font-heading text-[19px] font-bold leading-tight text-[#2e211d]">{{ 'home.aisles.animal_title' | t }}</h3>
+      <p class="m-0 mt-0.5 mb-3 text-[12.5px] text-on-surface-secondary">{{ 'home.aisles.animal_sub' | t }}</p>
+      <div class="grid flex-1 grid-cols-2 gap-2.5">
+        {%- for entry in aisle_animals -%}
+          {%- assign an = entry | split: '|' -%}
+          {%- assign animal = collections[an[0]] -%}
+          {%- if animal == blank or animal.products_count == 0 -%}{%- continue -%}{%- endif -%}
+          {%- assign animal_image = animal.featured_image | default: animal.products.first.featured_image -%}
+          <a href="{{ animal.url }}" class="group/aisle flex flex-col gap-1 text-[#3f302b] no-underline">
+            <span class="block aspect-square overflow-hidden bg-[#fbf3ec]">
+              {%- if animal_image != blank -%}
+                {{ animal_image | image_url: width: 300 | image_tag: alt: '', loading: 'lazy', widths: '150,220,300', sizes: '(min-width: 1024px) 130px, 42vw', class: 'size-full object-cover motion-safe:transition-transform motion-safe:duration-500 group-hover/aisle:scale-105' }}
+              {%- endif -%}
+            </span>
+            <span class="text-[12.5px] font-bold">{{ an[1] | t }}</span>
+          </a>
+        {%- endfor -%}
+      </div>
+      <a href="{{ routes.collections_url }}" class="mt-3 text-[13px] font-bold text-[#a04f2e] no-underline hover:underline">{{ 'home.aisles.animal_more' | t }}</a>
+    </li>
+  </ul>
+{% endblock %}
+
+
+{%- comment -%} Shop by budget: price bands matched to the catalog, linking to the price filter on all products. {%- endcomment -%}
+{%- liquid
+  assign budget_base = routes.all_products_collection_url | append: '?filter.v.price.'
+  assign b20 = 2000000 | money_without_trailing_zeros
+  assign b30 = 3000000 | money_without_trailing_zeros
+  assign b60 = 6000000 | money_without_trailing_zeros
+-%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'pt-10 pb-2 md:pt-14', attributes: 'aria-labelledby="budget-title"' %}
+  <div class="mb-5 flex flex-col gap-1">
+    {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[26px]! md:text-[36px]!', attributes: 'id="budget-title"' %}{{ 'home.v2.budget_title' | t }}{% endblock %}
+    {% block 'text', class: 'text-[14px]! md:text-[15.5px]! text-on-surface-secondary' %}{{ 'home.v2.budget_sub' | t }}{% endblock %}
+  </div>
+  <ul role="list" class="grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-5">
+    <li><a href="{{ budget_base }}lte=20000" class="group/b flex h-full items-center justify-between gap-4 rounded-[24px] bg-[#dbe9f5] p-5 text-[#22384b] no-underline motion-safe:transition motion-safe:hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(34,56,75,.16)] md:flex-col md:items-start md:p-7">
+      <span class="flex flex-col gap-1"><span class="text-[13px] font-bold uppercase tracking-[0.08em] opacity-75">{{ 'home.v2.budget_1_label' | t }}</span><span class="font-heading text-[30px] font-extrabold leading-none md:text-[40px]">{{ 'home.v2.under' | t: price: b20 }}</span></span>
+      <span class="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white font-bold motion-safe:transition-transform group-hover/b:translate-x-1 md:self-end" aria-hidden="true">→</span>
+    </a></li>
+    <li><a href="{{ budget_base }}gte=20000&filter.v.price.lte=30000" class="group/b flex h-full items-center justify-between gap-4 rounded-[24px] bg-[#fde4e8] p-5 text-[#5c2330] no-underline motion-safe:transition motion-safe:hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(92,35,48,.16)] md:flex-col md:items-start md:p-7">
+      <span class="flex flex-col gap-1"><span class="text-[13px] font-bold uppercase tracking-[0.08em] opacity-75">{{ 'home.v2.budget_2_label' | t }}</span><span class="font-heading text-[30px] font-extrabold leading-none md:text-[40px]">{{ b20 }}–{{ b30 }}</span></span>
+      <span class="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white font-bold motion-safe:transition-transform group-hover/b:translate-x-1 md:self-end" aria-hidden="true">→</span>
+    </a></li>
+    <li><a href="{{ budget_base }}gte=60000" class="group/b flex h-full items-center justify-between gap-4 rounded-[24px] bg-[#f6c453] p-5 text-[#2e211d] no-underline motion-safe:transition motion-safe:hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(46,33,29,.18)] md:flex-col md:items-start md:p-7">
+      <span class="flex flex-col gap-1"><span class="text-[13px] font-bold uppercase tracking-[0.08em] opacity-75">{{ 'home.v2.budget_3_label' | t }}</span><span class="font-heading text-[30px] font-extrabold leading-none md:text-[40px]">{{ b60 }}+</span></span>
+      <span class="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white font-bold motion-safe:transition-transform group-hover/b:translate-x-1 md:self-end" aria-hidden="true">→</span>
+    </a></li>
+  </ul>
+{% endblock %}
+
+{%- comment -%} Rare Finds spotlight: one big featured plush plus four more, on a dark panel. {%- endcomment -%}
+<div class="w-full px-margin md:px-6">
+  {% block 'container', class: 'relative isolate mx-auto my-12 w-full max-w-[1400px] overflow-hidden rounded-[28px] bg-[#2e211d] px-5 md:my-16 md:px-12', padding: 'py-10 md:py-14', attributes: 'id="rare-finds" aria-labelledby="rare-finds-title"' %}
+    <div class="pointer-events-none absolute -end-20 -top-24 -z-10 size-[340px] rounded-full bg-[#f6c453]/10 blur-2xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -bottom-28 -start-16 -z-10 size-[300px] rounded-full bg-[#e0566b]/10 blur-2xl" aria-hidden="true"></div>
+    
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-3 md:mb-8">
+    <div class="flex flex-col gap-1">
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-white text-[26px]! md:text-[36px]!', attributes: 'id="rare-finds-title"' %}{{ 'home.trending.title' | t }}{% endblock %}
+      {% block 'text', class: 'max-w-[520px] text-[14px]! md:text-[15.5px]! text-[#e8d6cd]' %}{{ 'home.trending.sub' | t }}{% endblock %}
+    </div>
+    {% block 'link', url: shelf_trending.url, class: 'min-h-0! rounded-full border-2 border-white/25 text-white! hover:bg-white/10! px-4 py-2 font-heading text-[13.5px]! font-bold no-underline!' %}{{ 'home.v2.see_all' | t }} →{% endblock %}
+  </div>
+    {%- assign spotlight = shelf_trending.products.first -%}
+    {%- if spotlight != blank -%}
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-6">
+        <a href="{{ spotlight.url }}" class="group/spot relative flex min-h-[340px] flex-col justify-end overflow-hidden rounded-[22px] bg-[#3a2b26] p-5 text-white no-underline md:min-h-[460px] md:p-8">
+          {%- if spotlight.featured_image != blank -%}
+            {{ spotlight.featured_image | image_url: width: 1200 | image_tag: alt: spotlight.title, loading: 'lazy', widths: '500,800,1000,1200', sizes: '(min-width: 1024px) 680px, 100vw', class: 'absolute inset-0 -z-0 size-full object-cover motion-safe:transition-transform motion-safe:duration-700 group-hover/spot:scale-[1.04]' }}
+          {%- endif -%}
+          <span class="absolute inset-0 bg-linear-to-t from-[#2e211d]/90 via-[#2e211d]/20 to-transparent" aria-hidden="true"></span>
+          <span class="absolute start-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-[#f6c453] px-3.5 py-1.5 font-heading text-[12px] font-bold uppercase tracking-[0.08em] text-[#2e211d] md:start-8 md:top-8">✦ {{ 'home.v2.spotlight' | t }}</span>
+          <span class="relative flex flex-col gap-1.5">
+            <span class="font-heading text-[28px] font-extrabold leading-tight md:text-[40px]">{{ spotlight.title | escape }}</span>
+            {%- if spotlight.metafields.ponyo.size_tier != blank -%}<span class="text-[14px] font-semibold text-[#f6c453]">{{ spotlight.metafields.ponyo.size_tier.value | escape }}{% if spotlight.metafields.ponyo.dimensions != blank %} · {{ spotlight.metafields.ponyo.dimensions.value | escape }}{% endif %}</span>{%- endif -%}
+            <span class="mt-2 flex items-center gap-3"><span class="font-heading text-[22px] font-bold">{{ spotlight.price | money_without_trailing_zeros }}</span><span class="inline-flex h-10 items-center rounded-full bg-white px-5 font-heading text-[14px] font-bold text-[#2e211d] motion-safe:transition group-hover/spot:bg-[#f6c453]">{{ 'home.v2.view_plush' | t }} →</span></span>
+          </span>
+        </a>
+        <ul role="list" class="grid grid-cols-2 gap-2 md:gap-2.5">
+          {%- for product in shelf_trending.products offset: 1 limit: 4 -%}
+            <li>{% render 'ponyo-product-card', product: product, tone: 'dark', sizes: '(min-width: 1024px) 300px, 45vw' %}</li>
+          {%- endfor -%}
+          {%- assign fill_n = shelf_trending.products_count | minus: 1 | at_least: 0 | at_most: 4 -%}
+          {% render 'ponyo-fill-tiles', count: fill_n, cols_sm: 2, cols_md: 2, cols_lg: 2, offset: 0 %}
+        </ul>
+      </div>
+    {%- endif -%}
+  {% endblock %}
+</div>
+
+{%- comment -%} Just landed: horizontal scroller of the newest plush. {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-6 md:py-8', attributes: 'id="new-arrivals" aria-labelledby="new-arrivals-title"' %}
+  
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-3 md:mb-8">
+    <div class="flex flex-col gap-1">
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[26px]! md:text-[36px]!', attributes: 'id="new-arrivals-title"' %}{{ 'home.v2.new_title' | t }}{% endblock %}
+      {% block 'text', class: 'max-w-[520px] text-[14px]! md:text-[15.5px]! text-on-surface-secondary' %}{{ 'home.v2.new_sub' | t }}{% endblock %}
+    </div>
+    {% block 'link', url: shelf_new.url, class: 'min-h-0! rounded-full border-2 border-[#e9d3c8] bg-white text-[#4a3530]! hover:bg-[#f3ece7]! px-4 py-2 font-heading text-[13.5px]! font-bold no-underline!' %}{{ 'home.v2.see_all' | t }} →{% endblock %}
+  </div>
+  <div class="relative" data-scroller>
+    <ul role="list" class="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-3 [scrollbar-width:none] md:gap-2.5 [&::-webkit-scrollbar]:hidden" data-scroller-track>
+      {%- for product in shelf_new.products limit: 10 -%}
+        <li class="w-[46%] shrink-0 snap-start sm:w-[31%] md:w-[23.5%] lg:w-[15.8%]">{% render 'ponyo-product-card', product: product, sizes: '(min-width: 1024px) 200px, 46vw' %}</li>
+      {%- endfor -%}
+    </ul>
+    <button type="button" class="absolute -start-4 top-[38%] hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#2e211d] shadow-[0_6px_18px_rgba(46,33,29,.18)] hover:bg-[#f3ece7] md:inline-flex" data-scroller-prev aria-label="{{ 'home.slides.previous' | t }}"><span class="inline-flex size-4 rotate-180 rtl:rotate-0 [&_svg]:size-full" aria-hidden="true">{{- 'icon-chevron-right.svg' | inline_asset_content -}}</span></button>
+    <button type="button" class="absolute -end-4 top-[38%] hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#2e211d] shadow-[0_6px_18px_rgba(46,33,29,.18)] hover:bg-[#f3ece7] md:inline-flex" data-scroller-next aria-label="{{ 'home.slides.next' | t }}"><span class="inline-flex size-4 rtl:rotate-180 [&_svg]:size-full" aria-hidden="true">{{- 'icon-chevron-right.svg' | inline_asset_content -}}</span></button>
+  </div>
+  <script>
+    (() => {
+      const root = document.currentScript.previousElementSibling;
+      const track = root.querySelector('[data-scroller-track]');
+      const step = () => track.clientWidth * 0.8 * (document.dir === 'rtl' ? -1 : 1);
+      root.querySelector('[data-scroller-prev]')?.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
+      root.querySelector('[data-scroller-next]')?.addEventListener('click', () => track.scrollBy({ left: step(), behavior: 'smooth' }));
+    })();
+  </script>
+{% endblock %}
+
+{%- comment -%} Trending now: best-selling plush from the Trending collection (all plush until it exists). {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-6 md:py-8', attributes: 'id="more-plush" aria-labelledby="more-plush-title"' %}
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-3 md:mb-8">
+    <div class="flex flex-col gap-1">
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[26px]! md:text-[36px]!', attributes: 'id="more-plush-title"' %}{{ 'home.more_plush.title' | t }}{% endblock %}
+      {% block 'text', class: 'max-w-[520px] text-[14px]! md:text-[15.5px]! text-on-surface-secondary' %}{{ 'home.more_plush.sub' | t }}{% endblock %}
+    </div>
+    {% block 'link', url: shelf_hot.url, class: 'min-h-0! rounded-full border-2 border-[#e9d3c8] bg-white text-[#4a3530]! hover:bg-[#f3ece7]! px-4 py-2 font-heading text-[13.5px]! font-bold no-underline!' %}{{ 'home.v2.see_all' | t }} →{% endblock %}
+  </div>
+  <ul role="list" class="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6 md:gap-2.5">
+    {%- assign more_shown = 0 -%}
+    {%- for product in shelf_hot.products limit: 40 -%}
+      {%- if more_shown >= 12 -%}{%- break -%}{%- endif -%}
+      {%- if product.tags contains 'new-arrival' -%}{%- continue -%}{%- endif -%}
+      <li>{% render 'ponyo-product-card', product: product, sizes: '(min-width: 1024px) 200px, 46vw' %}</li>
+      {%- assign more_shown = more_shown | plus: 1 -%}
+    {%- endfor -%}
+    {% render 'ponyo-fill-tiles', count: more_shown, cols_sm: 2, cols_md: 4, cols_lg: 6, offset: 1 %}
+  </ul>
+{% endblock %}
+
+{% render 'recently-viewed' %}
+
+{%- comment -%} Shop by animal: tabs that switch between the animal collections, each showing its own plush. {%- endcomment -%}
+{%- assign animal_handles = 'bears,bunnies,cats,puppies,pandas,penguins,characters' | split: ',' -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-10 md:py-14', attributes: 'aria-labelledby="animals-title"' %}
+  <div class="mb-5 flex flex-col gap-1 md:mb-6">
+    {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[26px]! md:text-[36px]!', attributes: 'id="animals-title"' %}{{ 'home.v2.animals_title' | t }}{% endblock %}
+    {% block 'text', class: 'text-[14px]! md:text-[15.5px]! text-on-surface-secondary' %}{{ 'home.v2.animals_sub' | t }}{% endblock %}
+  </div>
+  <div data-tabs>
+    <div role="tablist" aria-labelledby="animals-title" class="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {%- assign tab_index = 0 -%}
+      {%- for handle in animal_handles -%}
+        {%- assign ac = collections[handle] -%}
+        {%- if ac == blank or ac.products_count == 0 -%}{%- continue -%}{%- endif -%}
+        <button type="button" role="tab" id="animal-tab-{{ handle }}" aria-controls="animal-panel-{{ handle }}" aria-selected="{% if tab_index == 0 %}true{% else %}false{% endif %}" tabindex="{% if tab_index == 0 %}0{% else %}-1{% endif %}" class="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border-2 border-[#e9d3c8] bg-white ps-1.5 pe-4 font-heading text-[14.5px] font-bold text-[#4a3530] hover:bg-[#f3ece7] aria-selected:border-[#4a3530] aria-selected:bg-[#4a3530] aria-selected:text-white">
+          <span class="block size-8 overflow-hidden rounded-full bg-[#fbf3ec]">{%- assign tab_img = ac.image | default: ac.products.first.featured_image -%}{%- if tab_img != blank -%}{{ tab_img | image_url: width: 80 | image_tag: alt: '', loading: 'lazy', class: 'size-full object-cover' }}{%- endif -%}</span>
+          {{ ac.title | escape }}
+        </button>
+        {%- assign tab_index = tab_index | plus: 1 -%}
+      {%- endfor -%}
+    </div>
+    {%- assign tab_index = 0 -%}
+    {%- for handle in animal_handles -%}
+      {%- assign ac = collections[handle] -%}
+      {%- if ac == blank or ac.products_count == 0 -%}{%- continue -%}{%- endif -%}
+      <div role="tabpanel" id="animal-panel-{{ handle }}" aria-labelledby="animal-tab-{{ handle }}"{% if tab_index > 0 %} hidden{% endif %}>
+        <ul role="list" class="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-3 [scrollbar-width:none] md:grid md:grid-cols-4 lg:grid-cols-6 md:gap-2.5 md:overflow-visible [&::-webkit-scrollbar]:hidden">
+          {%- for product in ac.products limit: 6 -%}
+            <li class="w-[46%] shrink-0 snap-start md:w-auto">{% render 'ponyo-product-card', product: product, sizes: '(min-width: 1024px) 200px, 46vw' %}</li>
+          {%- endfor -%}
+          {%- assign fill_n = ac.products_count | at_most: 6 -%}
+          {% render 'ponyo-fill-tiles', count: fill_n, cols_sm: 1, cols_md: 4, cols_lg: 6, offset: 2 %}
+        </ul>
+        <a href="{{ ac.url }}" class="mt-3 inline-flex h-11 items-center rounded-full border-2 border-[#e9d3c8] bg-white px-5 font-heading text-[14px] font-bold text-[#4a3530] no-underline hover:bg-[#f3ece7]">{{ 'home.v2.shop_all_in' | t: name: ac.title }} →</a>
+      </div>
+      {%- assign tab_index = tab_index | plus: 1 -%}
+    {%- endfor -%}
+  </div>
+  <script>
+    (() => {
+      const root = document.currentScript.previousElementSibling;
+      const tabs = [...root.querySelectorAll('[role="tab"]')];
+      const select = (tab) => {
+        tabs.forEach((t) => {
+          const on = t === tab;
+          t.setAttribute('aria-selected', on);
+          t.tabIndex = on ? 0 : -1;
+          document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+        });
+      };
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => select(tab));
+        tab.addEventListener('keydown', (e) => {
+          const dir = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+          if (!dir) return;
+          const next = tabs[(i + dir + tabs.length) % tabs.length];
+          next.focus();
+          select(next);
+        });
+      });
+    })();
+  </script>
+{% endblock %}
+
+{%- comment -%} Lifestyle break: one wide photo and a short line between shelves. {%- endcomment -%}
+<div class="w-full">
+  {% block 'container', class: 'relative isolate my-10 flex min-h-[380px] w-full items-center justify-center overflow-hidden text-center md:my-14 md:min-h-[480px]', attributes: 'aria-labelledby="lifestyle-title"' %}
+    <div class="absolute inset-0 -z-20 [&_img]:size-full [&_img]:object-cover">
+      {% block 'image', fallback_image: images['ponyo-6.png'], alt: 'A pile of plush friends on a cosy pastel bed', class: 'absolute inset-0', sizes: '(min-width: 1400px) 1400px, 100vw', attributes: 'loading="lazy"' %}{% endblock %}
+    </div>
+    <div class="absolute inset-0 -z-10 bg-[#2e211d]/35" aria-hidden="true"></div>
+    <div class="flex max-w-[640px] flex-col items-center gap-4 px-6">
+      <span class="inline-flex size-12 items-center justify-center rounded-full bg-white/90 text-[22px] motion-safe:animate-[ponyo-wiggle_2.4s_ease-in-out_infinite]" aria-hidden="true">🧸</span>
+      {% block 'heading', tag: 'h2', variant: 'xl', class: 'font-extrabold leading-[1.08] tracking-tight text-white text-[32px]! md:text-[54px]! [text-shadow:0_2px_18px_rgba(0,0,0,.3)]', attributes: 'id="lifestyle-title"' %}{{ 'home.v2.lifestyle_title' | t }}{% endblock %}
+      {% block 'button', url: all_url, variant: 'custom', class: 'h-12 rounded-full bg-white! px-7 font-heading text-[15px] font-bold text-[#2e211d]! shadow-[0_4px_0_rgba(0,0,0,.18)] hover:bg-[#f6c453]! motion-safe:hover:-translate-y-0.5' %}{{ 'home.v2.lifestyle_cta' | t }}{% endblock %}
+    </div>
+  {% endblock %}
+</div>
+
+
+{%- comment -%} How big is big: size tiers shown side by side at growing heights. {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-8 md:py-10', attributes: 'id="sizes" aria-labelledby="sizes-title"' %}
+  <div class="mb-8 flex flex-col items-center gap-1 text-center">
+    {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[26px]! md:text-[36px]!', attributes: 'id="sizes-title"' %}{{ 'home.v2.size_title' | t }}{% endblock %}
+    {% block 'text', class: 'text-[14px]! md:text-[15.5px]! text-on-surface-secondary' %}{{ 'home.v2.size_sub' | t }}{% endblock %}
+  </div>
+  {%- liquid
+    assign size_specs = 'mini|maker-chick.jpg|url_mini|h-[96px] md:h-[130px]|w-[22%] md:w-[150px]^^classic|maker-bear.jpg|url_classic|h-[128px] md:h-[180px]|w-[24%] md:w-[170px]^^big|maker-dog.jpg|url_big|h-[160px] md:h-[240px]|w-[25%] md:w-[190px]^^xl|ponyo-11.png|url_xl|h-[210px] md:h-[320px]|w-[29%] md:w-[230px]' | split: '^^'
+  -%}
+  <div class="relative rounded-[28px] bg-linear-to-b from-[#fbf3ec] to-[#f3e4da] px-3 pt-8 md:px-10 md:pt-12">
+    <ul role="list" class="flex items-end justify-center gap-2 md:gap-8">
+      {%- for spec in size_specs -%}
+        {%- liquid
+          assign s = spec | split: '|'
+          case s[2]
+            when 'url_mini'
+              assign s_url = url_mini
+            when 'url_classic'
+              assign s_url = url_classic
+            when 'url_big'
+              assign s_url = url_big
+            else
+              assign s_url = url_xl
+          endcase
+          assign s_label_key = 'mp.size_' | append: s[0]
+          assign s_range_key = 'mp.size_' | append: s[0] | append: '_range'
+        -%}
+        <li class="{{ s[4] }}">
+          <a href="{{ s_url }}" class="group/size flex flex-col items-center gap-2 text-center no-underline">
+            <span class="block w-full overflow-hidden rounded-t-[999px] rounded-b-[18px] {{ s[3] }} {% if s[0] == 'xl' %}ring-4 ring-[#f6c453]{% endif %} shadow-[0_10px_24px_rgba(110,74,62,.15)] motion-safe:transition-transform motion-safe:duration-300 group-hover/size:-translate-y-2">
+              {{ images[s[1]] | image_url: width: 460 | image_tag: alt: '', loading: 'lazy', widths: '200,300,460', sizes: '(min-width: 768px) 230px, 30vw', class: 'size-full object-cover object-[center_30%]' }}
+            </span>
+            <span class="font-heading text-[14px] font-bold text-[#4a3530] md:text-[17px]">{{ s_label_key | t }}</span>
+            <span class="mb-4 text-[11.5px] font-semibold text-accent md:text-[13px]">{{ s_range_key | t }}</span>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+{% endblock %}
+
+{%- comment -%} Domina XL band: deep forest panel with room-scale visual. {%- endcomment -%}
+<div class="w-full px-margin md:px-8">
+  {% block 'container', class: 'relative isolate my-10 mx-auto w-full max-w-[1320px] overflow-hidden rounded-3xl bg-linear-135 from-forest via-[#a87272] to-[#c99192] shadow-[0_14px_36px_rgba(110,74,62,.13)]', padding: 'py-16', attributes: 'id="domina" aria-labelledby="domina-title"' %}
+    <div class="pointer-events-none absolute inset-0 text-gold" aria-hidden="true">
+      <span class="absolute top-10 left-[46%] size-5 motion-safe:animate-[ponyo-float_6s_ease-in-out_infinite]"><svg viewBox="0 0 32 32" class="size-full"><path d="M16 1.5 19.7 12l10.8 4-10.8 3.8L16 30.5l-3.8-10.7L1.5 16l10.7-4L16 1.5Z" fill="currentColor"/></svg></span>
+      <span class="absolute bottom-12 left-8 size-4 [animation-delay:-2s] motion-safe:animate-[ponyo-float_6s_ease-in-out_infinite]"><svg viewBox="0 0 32 32" class="size-full"><path d="M16 1.5 19.7 12l10.8 4-10.8 3.8L16 30.5l-3.8-10.7L1.5 16l10.7-4L16 1.5Z" fill="currentColor"/></svg></span>
+      <span class="absolute top-8 right-10 size-6 [animation-delay:-3.5s] motion-safe:animate-[ponyo-float_6s_ease-in-out_infinite]"><svg viewBox="0 0 32 32" class="size-full"><path d="M16 1.5 19.7 12l10.8 4-10.8 3.8L16 30.5l-3.8-10.7L1.5 16l10.7-4L16 1.5Z" fill="currentColor"/></svg></span>
+    </div>
+    <div class="relative grid items-center gap-10 px-6 md:grid-cols-2 md:gap-12 md:px-14 md:py-6">
+      <div class="flex flex-col items-start">
+        {% block 'text', variant: 'sm', class: 'mb-4 inline-flex items-center whitespace-nowrap rounded-full bg-white/15 px-4 py-1.5 font-heading text-[12px]! leading-none! font-bold uppercase tracking-[0.08em] text-white md:text-[13px]! md:tracking-[0.16em]' %}{{ 'mp.domina_badge' | t }}{% endblock %}
+        {% block 'heading', tag: 'h2', variant: 'xl', class: 'mb-3.5 font-extrabold leading-[1.05] tracking-tight text-balance text-white text-4xl! md:text-[52px]!', attributes: 'id="domina-title"' %}{{ 'home.domina.title' | t }}{% endblock %}
+        {% block 'text', class: 'mb-7 max-w-[420px] text-[15.5px]! text-[#f8ebe5]' %}{{ 'home.domina.body' | t }}{% endblock %}
+        {% block 'button', url: domina_url, variant: 'custom', class: 'h-12 rounded-button bg-white! px-7 font-heading text-[15px] font-extrabold text-forest! hover:bg-[#f6d6c8]! motion-safe:hover:-translate-y-0.5' %}{{ 'home.domina.cta' | t }}{% endblock %}
+      </div>
+      <figure class="mx-auto flex w-full max-w-[560px] flex-col gap-3">
+        <div class="aspect-square overflow-hidden rounded-xl bg-[#fbf1ea] shadow-[0_14px_36px_rgba(0,0,0,.18)] [&_img]:size-full [&_img]:object-cover">
+          {% block 'image', fallback_image: domina_image, aspect_ratio: 'aspect-square', alt: 'A person holding an oversized cream bunny plush to show its real-world scale', sizes: '(min-width: 768px) 560px, 90vw', attributes: 'loading="lazy"' %}{% endblock %}
+        </div>
+        <figcaption>{% block 'text', variant: 'sm', class: 'text-center font-heading font-bold text-[#f8ebe5]' %}{{ 'home.domina.caption' | t }}{% endblock %}</figcaption>
+      </figure>
+    </div>
+  {% endblock %}
+</div>
+
+
+{%- comment -%} XL Goodies products, right under the Domina band. {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'pb-8', attributes: 'id="domina-products" aria-labelledby="domina-products-title"' %}
+  
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-3 md:mb-8">
+    <div class="flex flex-col gap-1">
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[26px]! md:text-[36px]!', attributes: 'id="domina-products-title"' %}{{ 'home.domina_shelf.title' | t }}{% endblock %}
+      {% block 'text', class: 'max-w-[520px] text-[14px]! md:text-[15.5px]! text-on-surface-secondary' %}{{ 'home.domina_shelf.eyebrow' | t }}{% endblock %}
+    </div>
+    {% block 'link', url: shelf_domina.url, class: 'min-h-0! rounded-full border-2 border-[#e9d3c8] bg-white text-[#4a3530]! hover:bg-[#f3ece7]! px-4 py-2 font-heading text-[13.5px]! font-bold no-underline!' %}{{ 'home.v2.see_all' | t }} →{% endblock %}
+  </div>
+  <ul role="list" class="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6 md:gap-2.5">
+    {%- for product in shelf_domina.products limit: 6 -%}
+      <li>{% render 'ponyo-product-card', product: product %}</li>
+    {%- endfor -%}
+    {%- assign fill_n = shelf_domina.products_count | at_most: 6 -%}
+    {% render 'ponyo-fill-tiles', count: fill_n, cols_sm: 2, cols_md: 4, cols_lg: 6, offset: 3 %}
+  </ul>
+{% endblock %}
+
+{%- comment -%} Premium Picks: classic grid from the Premium Plushies collection. {%- endcomment -%}
+<div class="w-full bg-[#fbf3ec]">
+  {% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-12 md:py-16', attributes: 'id="most-loved" aria-labelledby="most-loved-title"' %}
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-3 md:mb-8">
+    <div class="flex flex-col gap-1">
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[26px]! md:text-[36px]!', attributes: 'id="most-loved-title"' %}{{ 'home.most_loved.title' | t }}{% endblock %}
+      {% block 'text', class: 'max-w-[520px] text-[14px]! md:text-[15.5px]! text-on-surface-secondary' %}{{ 'home.most_loved.sub' | t }}{% endblock %}
+    </div>
+    {% block 'link', url: shelf_loved.url, class: 'min-h-0! rounded-full border-2 border-[#e9d3c8] bg-white text-[#4a3530]! hover:bg-[#f3ece7]! px-4 py-2 font-heading text-[13.5px]! font-bold no-underline!' %}{{ 'home.v2.see_all' | t }} →{% endblock %}
+  </div>
+    <ul role="list" class="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6 md:gap-2.5">
+      {%- for product in shelf_loved.products limit: 12 -%}
+        <li>{% render 'ponyo-product-card', product: product %}</li>
+      {%- endfor -%}
+      {%- assign fill_n = shelf_loved.products_count | at_most: 12 -%}
+      {% render 'ponyo-fill-tiles', count: fill_n, cols_sm: 2, cols_md: 4, cols_lg: 6, offset: 0 %}
+    </ul>
+  {% endblock %}
+</div>
+
+
+{%- comment -%} Quick answers: the three questions new shoppers ask most, from the FAQ page. {%- endcomment -%}
+{%- assign faq_page_url = pages.faq.url | default: '/pages/faq' -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'pt-12 md:pt-16', attributes: 'aria-labelledby="quick-faq-title"' %}
+  <div class="grid gap-6 rounded-[28px] bg-[#dbe9f5] p-6 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:gap-10 md:p-10">
+    <div class="flex flex-col items-start gap-3">
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#22384b] text-[26px]! md:text-[36px]!', attributes: 'id="quick-faq-title"' %}{{ 'home.v2.faq_title' | t }}{% endblock %}
+      {% block 'text', class: 'text-[14.5px]! text-[#3c5468]' %}{{ 'home.v2.faq_sub' | t }}{% endblock %}
+      <a href="{{ faq_page_url }}" class="mt-1 inline-flex h-11 items-center rounded-full bg-[#22384b] px-5 font-heading text-[14px] font-bold text-white no-underline hover:bg-[#2c4256]">{{ 'home.v2.faq_cta' | t }} →</a>
+    </div>
+    <div class="flex flex-col gap-2.5">
+      {%- assign faq_keys = 'ordering_q1|ordering_a1,shipping_q2|shipping_a2,sizes_q1|sizes_a1' | split: ',' -%}
+      {%- for pair in faq_keys -%}
+        {%- assign k = pair | split: '|' -%}
+        {%- assign q_key = 'pg.faq.' | append: k[0] -%}
+        {%- assign a_key = 'pg.faq.' | append: k[1] -%}
+        <details class="group rounded-[18px] bg-white px-5 open:pb-4"{% if forloop.first %} open{% endif %}>
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 py-4 font-heading text-[15.5px] font-bold text-[#22384b] [&::-webkit-details-marker]:hidden">
+            {{ q_key | t }}
+            <span class="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-[#dbe9f5] text-[18px] leading-none motion-safe:transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+          </summary>
+          <p class="m-0 text-[14.5px] leading-relaxed text-[#3c5468]">{{ a_key | t }}</p>
+        </details>
+      {%- endfor -%}
+    </div>
+  </div>
+{% endblock %}
+
+{%- comment -%} Phase 0 demand collection: rare drop alerts (email signup) and plush requests (contact form). {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-12 md:py-16', attributes: 'id="drops" aria-label="Rare drop alerts and plush requests"' %}
+  <div class="grid gap-4 md:grid-cols-2 md:gap-6">
+    <div class="relative isolate flex flex-col gap-3 overflow-hidden rounded-[28px] bg-[#f6c453] p-6 text-[#2e211d] md:p-10">
+      <span class="absolute -end-6 -top-6 -z-10 text-[120px] leading-none opacity-20 motion-safe:animate-[ponyo-wiggle_3s_ease-in-out_infinite]" aria-hidden="true">✦</span>
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#2e211d] text-[26px]! md:text-[34px]!' %}{{ 'home.v2.drops_title' | t }}{% endblock %}
+      {% block 'text', class: 'max-w-[420px] text-[14.5px]! text-[#4a3520]' %}{{ 'home.v2.drops_body' | t }}{% endblock %}
+      {%- form 'customer', id: 'rare-drop-alerts', class: 'mt-2' -%}
+        <input type="hidden" name="contact[tags]" value="rare-drop-alerts,newsletter">
+        {%- if form.posted_successfully? -%}
+          <p class="m-0 rounded-[16px] bg-white/70 px-4 py-3 font-semibold" role="status">{{ 'home.v2.drops_success' | t }}</p>
+        {%- else -%}
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <label for="drops-email" class="sr-only">{{ 'home.v2.email_label' | t }}</label>
+            <input id="drops-email" type="email" name="contact[email]" required autocomplete="email" placeholder="{{ 'home.v2.email_placeholder' | t }}" class="h-12 min-w-0 flex-1 rounded-full border-0 bg-white px-5 text-[15px] text-[#2e211d] placeholder:text-[#8a7a72] focus-visible:outline-2 focus-visible:outline-[#2e211d]">
+            <button type="submit" class="h-12 shrink-0 rounded-full bg-[#2e211d] px-6 font-heading text-[15px] font-bold text-white hover:bg-[#4a3530]">{{ 'home.v2.drops_cta' | t }}</button>
+          </div>
+          {%- if form.errors -%}<p class="m-0 mt-2 text-[13px] font-semibold text-[#8a1f1f]" role="alert">{{ form.errors | default_errors }}</p>{%- endif -%}
+        {%- endif -%}
+      {%- endform -%}
+    </div>
+    <div class="flex flex-col gap-3 rounded-[28px] border-2 border-[#efe1d8] bg-white p-6 md:p-10">
+      {% block 'heading', tag: 'h2', variant: 'md', class: 'font-extrabold leading-tight tracking-tight text-[#4a3530] text-[26px]! md:text-[34px]!' %}{{ 'home.v2.request_title' | t }}{% endblock %}
+      {% block 'text', class: 'max-w-[420px] text-[14.5px]! text-on-surface-secondary' %}{{ 'home.v2.request_body' | t }}{% endblock %}
+      {%- form 'contact', id: 'plush-request', class: 'mt-2 flex flex-col gap-2' -%}
+        {%- if form.posted_successfully? -%}
+          <p class="m-0 rounded-[16px] bg-sage px-4 py-3 font-semibold text-[#2f4a32]" role="status">{{ 'home.v2.request_success' | t }}</p>
+        {%- else -%}
+          <input type="hidden" name="contact[Request type]" value="Plush request">
+          <div class="grid gap-2 sm:grid-cols-2">
+            <label for="request-name" class="sr-only">{{ 'home.v2.name_label' | t }}</label>
+            <input id="request-name" type="text" name="contact[name]" autocomplete="name" placeholder="{{ 'home.v2.name_label' | t }}" class="h-12 rounded-full border-2 border-[#efe1d8] bg-[#fffaf5] px-5 text-[15px] focus-visible:border-accent focus-visible:outline-none">
+            <label for="request-email" class="sr-only">{{ 'home.v2.email_label' | t }}</label>
+            <input id="request-email" type="email" name="contact[email]" required autocomplete="email" placeholder="{{ 'home.v2.email_placeholder' | t }}" class="h-12 rounded-full border-2 border-[#efe1d8] bg-[#fffaf5] px-5 text-[15px] focus-visible:border-accent focus-visible:outline-none">
+          </div>
+          <label for="request-body" class="sr-only">{{ 'home.v2.request_label' | t }}</label>
+          <textarea id="request-body" name="contact[body]" required rows="3" placeholder="{{ 'home.v2.request_placeholder' | t }}" class="rounded-[20px] border-2 border-[#efe1d8] bg-[#fffaf5] px-5 py-3 text-[15px] focus-visible:border-accent focus-visible:outline-none"></textarea>
+          <button type="submit" class="h-12 self-start rounded-full bg-[#4a3530] px-7 font-heading text-[15px] font-bold text-white shadow-[0_4px_0_#2e211d] hover:bg-[#5a3e38]">{{ 'home.v2.request_cta' | t }}</button>
+          {%- if form.errors -%}<p class="m-0 text-[13px] font-semibold text-[#8a1f1f]" role="alert">{{ form.errors | default_errors }}</p>{%- endif -%}
+        {%- endif -%}
+      {%- endform -%}
+    </div>
+  </div>
+{% endblock %}
+
+{%- comment -%} Falling stars and snow over the top of the homepage only: fades out as shoppers scroll past the hero to the products. Skips reduced-motion users and pauses in background tabs. {%- endcomment -%}
+<canvas class="pointer-events-none fixed inset-0 z-30 size-full" data-ponyo-sparkles aria-hidden="true"></canvas>
+<script>
+  (() => {
+    const canvas = document.querySelector('[data-ponyo-sparkles]');
+    if (!canvas || matchMedia('(prefers-reduced-motion: reduce)').matches) { canvas?.remove(); return; }
+    const ctx = canvas.getContext('2d');
+    const colors = ['#f6c453', '#f6c453', '#f4a6b4', '#a9c8e6', '#ee8a4c', '#ffffff'];
+    let w = 0, h = 0, dpr = 1, particles = [], raf = 0, last = 0;
+    const make = (fromTop) => {
+      const star = Math.random() < 0.45;
+      return {
+        x: Math.random() * w,
+        y: fromTop ? -20 - Math.random() * h * 0.3 : Math.random() * h,
+        r: star ? 4 + Math.random() * 5 : 1.6 + Math.random() * 2.6,
+        star,
+        color: colors[(Math.random() * colors.length) | 0],
+        vy: 18 + Math.random() * 34,
+        sway: 10 + Math.random() * 22,
+        phase: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 1.6,
+        angle: Math.random() * Math.PI,
+        alpha: 0.45 + Math.random() * 0.45,
+        twinkle: 1.5 + Math.random() * 2.5,
+      };
+    };
+    const resize = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = window.innerWidth; h = window.innerHeight;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const target = 20;
+      while (particles.length < target) particles.push(make(false));
+      particles.length = target;
+    };
+    const drawStar = (p, t) => {
+      const s = p.r;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.globalAlpha = p.alpha * (0.6 + 0.4 * Math.sin(t * p.twinkle + p.phase));
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        ctx.rotate(Math.PI / 2);
+        ctx.quadraticCurveTo(s * 0.18, s * 0.18, 0, s);
+        ctx.quadraticCurveTo(-s * 0.18, s * 0.18, 0, 0);
+      }
+      ctx.fill();
+      ctx.restore();
+    };
+    const drawSnow = (p) => {
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color === '#ffffff' ? 'rgba(169,200,230,.9)' : 'transparent';
+      ctx.shadowBlur = p.color === '#ffffff' ? 4 : 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    };
+    const frame = (now) => {
+      const dt = Math.min(0.05, (now - (last || now)) / 1000);
+      last = now;
+      const t = now / 1000;
+      ctx.clearRect(0, 0, w, h);
+      for (const p of particles) {
+        p.y += p.vy * dt;
+        p.x += Math.sin(t * 0.8 + p.phase) * p.sway * dt;
+        p.angle += p.spin * dt;
+        if (p.y > h + 20) Object.assign(p, make(true));
+        if (p.star) drawStar(p, t); else drawSnow(p);
+      }
+      ctx.globalAlpha = 1;
+      raf = requestAnimationFrame(frame);
+    };
+    const start = () => { if (!raf) { last = 0; raf = requestAnimationFrame(frame); } };
+    const stop = () => { cancelAnimationFrame(raf); raf = 0; ctx.clearRect(0, 0, w, h); };
+    const endMarker = document.querySelector('[data-sparkle-end]');
+    let visible = 1;
+    const update = () => {
+      const end = endMarker ? endMarker.getBoundingClientRect().top + window.scrollY : h;
+      const fadeFrom = end * 0.45;
+      const y = window.scrollY;
+      visible = y <= fadeFrom ? 1 : Math.max(0, 1 - (y - fadeFrom) / Math.max(1, end - fadeFrom));
+      canvas.style.opacity = visible;
+      if (visible === 0 || document.hidden) stop(); else start();
+    };
+    resize();
+    window.addEventListener('resize', () => { resize(); update(); }, { passive: true });
+    window.addEventListener('scroll', update, { passive: true });
+    document.addEventListener('visibilitychange', update);
+    update();
+  })();
+</script>
+

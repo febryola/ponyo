@@ -1,0 +1,94 @@
+{% doc %}
+  Compact header bar that slides in when the shopper scrolls up after the main
+  header has scrolled away, and hides again when they scroll down. Holds the
+  menu (mobile), logo, search and cart so they stay one flick away without a
+  permanently sticky header. The cart badge is copied from the main header's
+  cart trigger each time the bar appears, so it stays in sync after cart updates.
+
+  @example
+  {% render 'smart-header' %}
+{% enddoc %}
+
+<div
+  id="smart-header"
+  class="fixed inset-x-0 top-0 z-50 -translate-y-full bg-[#2e211d] shadow-[0_4px_18px_rgba(0,0,0,.22)] motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out data-[shown]:translate-y-0"
+  aria-hidden="true"
+  inert
+>
+  <div class="mx-auto flex h-14 w-full max-w-page items-center gap-2 px-margin md:h-16 md:gap-4">
+    <button type="button" commandfor="mobile-nav-drawer" command="show-modal" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/10 md:hidden" aria-label="{{ 'header.menu' | t | escape }}">
+      <span class="inline-flex size-5 [&_svg]:size-full" aria-hidden="true">{{- 'icon-menu.svg' | inline_asset_content -}}</span>
+    </button>
+
+    <a href="{{ routes.root_url }}" class="flex shrink-0 items-center gap-2 text-white no-underline">
+      <span class="inline-flex size-8 items-center justify-center rounded-full bg-white" aria-hidden="true">
+        <svg viewBox="0 0 64 64" class="size-6"><path d="M12 28C12 15 20 6 32 6C44 6 52 15 52 28C52 33 48 36 44 36H20C16 36 12 33 12 28Z" fill="var(--color-accent)"/><circle cx="26" cy="23" r="2.6" fill="#3f302b"/><circle cx="38" cy="23" r="2.6" fill="#3f302b"/><path d="M22 29c1.4 1.6 3 1.6 4.4 0" stroke="#3f302b" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M19 38c0 4 -2 6 -2 10M27 38c0 5 2 7 0 12M35 38c0 5 -1 7 1 12M43 38c0 4 2 6 1 10" stroke="var(--color-accent)" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"/></svg>
+      </span>
+      <span class="hidden font-heading text-lg font-extrabold uppercase tracking-[0.12em] min-[400px]:inline">{{ shop.name | escape }}</span>
+    </a>
+
+    <button type="button" commandfor="predictive-search" command="show-modal" class="flex h-10 min-w-0 flex-1 items-center justify-between gap-2 rounded-full bg-white ps-4 pe-1 text-[#6b5a53] md:mx-auto md:max-w-[620px]" aria-label="{{ 'general.search' | t | escape }}">
+      <span class="min-w-0 truncate text-start text-[13.5px]" aria-hidden="true">{{ 'mp.search_placeholder' | t }}</span>
+      <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-tangerine text-[#2e211d]" aria-hidden="true"><span class="inline-flex size-4 [&_svg]:size-full">{{- 'icon-search.svg' | inline_asset_content -}}</span></span>
+    </button>
+
+    <button type="button" commandfor="cart-drawer" command="show-modal" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20" aria-label="{{ 'cart.title' | t | escape }}">
+      <span class="relative inline-flex size-5 [&_svg]:size-full [&_svg]:stroke-[1.6]" data-smart-cart-icon aria-hidden="true">{{- 'icon-cart.svg' | inline_asset_content -}}</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const bar = document.getElementById('smart-header');
+    const header = document.getElementById('site-header');
+    if (!bar || !header) return;
+    let lastY = window.scrollY;
+    let ticking = false;
+    const show = (on) => {
+      if (on === bar.hasAttribute('data-shown')) return;
+      if (on) {
+        const source = document.querySelector('#header-cart-trigger > span');
+        const target = bar.querySelector('[data-smart-cart-icon]');
+        if (source && target) target.innerHTML = source.innerHTML;
+        bar.setAttribute('data-shown', '');
+        bar.removeAttribute('inert');
+        bar.setAttribute('aria-hidden', 'false');
+      } else {
+        bar.removeAttribute('data-shown');
+        bar.setAttribute('inert', '');
+        bar.setAttribute('aria-hidden', 'true');
+      }
+    };
+    /* Desktop: keep the category strip pinned to the top once it scrolls away,
+       and slide it under the compact bar whenever that bar is showing. */
+    const strip = document.getElementById('category-strip');
+    const slot = document.getElementById('category-strip-slot');
+    const desktop = matchMedia('(min-width: 768px)');
+    const pinStrip = (y) => {
+      if (!strip || !slot) return;
+      const pin = desktop.matches && y > slot.getBoundingClientRect().top + y;
+      if (pin !== strip.hasAttribute('data-pinned')) {
+        slot.style.height = pin ? strip.offsetHeight + 'px' : '';
+        strip.toggleAttribute('data-pinned', pin);
+      }
+      strip.style.top = pin && bar.hasAttribute('data-shown') ? bar.offsetHeight + 'px' : '';
+    };
+    const update = () => {
+      const y = window.scrollY;
+      const headerBottom = header.offsetTop + header.offsetHeight;
+      if (y <= headerBottom) show(false);
+      else if (y < lastY - 6) show(true);
+      else if (y > lastY + 6) show(false);
+      pinStrip(y);
+      lastY = y;
+      ticking = false;
+    };
+    desktop.addEventListener('change', () => pinStrip(window.scrollY));
+    window.addEventListener('resize', () => pinStrip(window.scrollY), { passive: true });
+    pinStrip(window.scrollY);
+    window.addEventListener('scroll', () => {
+      if (!ticking) { requestAnimationFrame(update); ticking = true; }
+    }, { passive: true });
+  })();
+</script>

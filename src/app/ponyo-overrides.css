@@ -1,0 +1,63 @@
+/* Next.js adapters for the original static Ponyo homepage stylesheet. */
+
+body:has(.home-page) .site-header {
+    display: block;
+    width: 100%;
+}
+
+body:has(.home-page) .site-header .header-inner {
+    width: 100%;
+    max-width: 1240px;
+    height: 80px;
+    margin-inline: auto;
+    padding-inline: 32px;
+}
+
+body:has(.home-page) .home-journal {
+    display: block !important;
+}
+
+body:has(.home-page) .detail-art {
+    min-height: 450px;
+}
+
+body:has(.home-page) .product-info {
+    flex-direction: column;
+}
+
+body:has(.home-page) .promise-banner {
+    grid-template-columns: 1fr 1fr;
+}
+
+body:has(.home-page) .promise-banner>p {
+    grid-column: auto;
+}
+
+@media (max-width: 980px) {
+    body:has(.home-page) .site-header .header-inner {
+        height: 72px;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        gap: 12px;
+    }
+    body:has(.home-page) .site-header .logo {
+        justify-self: center;
+    }
+}
+
+@media (max-width: 860px) {
+    body:has(.home-page) .site-header .header-inner {
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+    }
+}
+
+@media (max-width: 560px) {
+    body:has(.home-page) .site-header .header-inner {
+        padding-inline: 20px;
+    }
+    body:has(.home-page) .promise-banner {
+        grid-template-columns: 45px 1fr;
+    }
+    body:has(.home-page) .promise-banner>p {
+        grid-column: 2;
+    }
+}

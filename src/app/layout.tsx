@@ -1,23 +1,27 @@
 import type { Metadata } from "next";
+import { Libre_Baskerville, Nunito_Sans } from "next/font/google";
 import "./globals.css";
-import "@/sample-frontend/styles.css";
+import "@/ponyo-shopify/assets/styles.min.css";
+import "./storefront.css";
+import "./theme-parity.css";
+import "./theme-parity-polish.css";
+import "./collection-theme.css";
+
+const bodyFont = Nunito_Sans({ subsets: ["latin"], variable: "--font-nunito", display: "swap" });
+const headingFont = Libre_Baskerville({ subsets: ["latin"], weight: ["700"], variable: "--font-libre-baskerville", display: "swap" });
 
 export const metadata: Metadata = {
   title: {
-    default: "Ponyo — teman kecil untuk hari-hari besar",
+    default: "Ponyo — Rare, premium & giant plush",
     template: "%s | Ponyo",
   },
-  description: "Temukan plushie pilihan dari supplier terpercaya, dikurasi dengan penuh perhatian.",
+  description: "Rare finds, premium favorites, and giant plush companions—hand-picked for you.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id" className="h-full antialiased">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body className="min-h-full">{children}</body>
+    <html lang="en" className="h-full antialiased">
+      <body className={`min-h-full ${bodyFont.variable} ${headingFont.variable}`}>{children}</body>
     </html>
   );
 }

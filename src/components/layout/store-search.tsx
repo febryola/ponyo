@@ -1,0 +1,101 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { formatPrice } from "@/lib/utils/format-price";
+import type { Product } from "@/types/product";
+import { storefrontPreviewProducts } from "@/services/product.service";
+import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
+
+export function StoreSearch() {
+  const router = useRouter();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [query, setQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>(storefrontPreviewProducts);
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  function openSearch() {
+    if (!dialogRef.current?.open) dialogRef.current?.showModal();
+  }
+
+  function closeSearch() {
+    dialogRef.current?.close();
+    setQuery("");
+    setActiveIndex(-1);
+  }
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const restoreTriggerFocus = () => window.requestAnimationFrame(() => triggerRef.current?.focus());
+    const openFromCompactHeader = () => openSearch();
+    dialog.addEventListener("close", restoreTriggerFocus);
+    window.addEventListener("ponyo:open-search", openFromCompactHeader);
+    return () => {
+      dialog.removeEventListener("close", restoreTriggerFocus);
+      window.removeEventListener("ponyo:open-search", openFromCompactHeader);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!PONYO_API_BASE_URL) return;
+    let active = true;
+    ponyoApi.listProducts()
+      .then((catalog) => { if (active) setProducts(catalog); })
+      .catch(() => { if (active) setProducts([]); })
+    return () => { active = false; };
+  }, []);
+
+  const normalized = query.trim().toLocaleLowerCase();
+  const results = normalized
+    ? products.filter((product) => `${product.name} ${product.description} ${product.productType ?? ""} ${(product.tags ?? []).join(" ")}`.toLocaleLowerCase().includes(normalized)).slice(0, 8)
+    : products.slice(0, 4);
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" && results.length) {
+      event.preventDefault();
+      setActiveIndex((index) => (index + 1) % results.length);
+    } else if (event.key === "ArrowUp" && results.length) {
+      event.preventDefault();
+      setActiveIndex((index) => index <= 0 ? results.length - 1 : index - 1);
+    } else if (event.key === "Escape" && activeIndex >= 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      setActiveIndex(-1);
+    } else if (event.key === "Enter" && activeIndex >= 0 && results[activeIndex]) {
+      event.preventDefault();
+      router.push(`/products/${results[activeIndex].slug}`);
+    }
+  }
+
+  return (
+    <>
+      <button ref={triggerRef} className="store-search-trigger" type="button" onClick={openSearch} aria-label="Search products">
+        <span>Search bunnies, bears, giant plush...</span><span className="store-search-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.7"/><path d="m15.2 15.2 4.8 4.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg></span>
+      </button>
+      <dialog ref={dialogRef} className="predictive-search-dialog" aria-label="Search Ponyo" onClick={(event) => { if (event.target === dialogRef.current) closeSearch(); }}>
+        <div className="predictive-search-panel">
+          <form action="/search" method="get" className="predictive-search-form" role="search" onSubmit={(event) => { event.preventDefault(); router.push(`/search?q=${encodeURIComponent(query)}`); closeSearch(); }}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="m15.2 15.2 4.8 4.8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            <label className="sr-only" htmlFor="ponyo-search-input">Search products</label>
+            <input id="ponyo-search-input" ref={inputRef} type="search" name="q" value={query} onChange={(event) => { setQuery(event.target.value); setActiveIndex(-1); }} onKeyDown={onKeyDown} placeholder="Search bunnies, bears, giant plush, gifts..." autoComplete="off" role="combobox" aria-autocomplete="list" aria-controls="ponyo-search-listbox" aria-expanded={results.length > 0} aria-activedescendant={activeIndex >= 0 ? `ponyo-search-option-${activeIndex}` : undefined} />
+            {query && <button type="button" className="predictive-clear" onClick={() => { setQuery(""); inputRef.current?.focus(); }}>Clear</button>}
+            <button type="button" className="predictive-close" aria-label="Close search" onClick={closeSearch}>×</button>
+          </form>
+          <div className="predictive-results" id="ponyo-search-listbox" role="listbox" aria-label="Search suggestions">
+            <p className="predictive-results-heading">{normalized ? `${results.length} ${results.length === 1 ? "result" : "results"}` : "Popular plush"}</p>
+            {results.length ? <ul>{results.map((product, index) => {
+              const source = typeof product.image === "string" ? product.image : product.image.src;
+              return <li key={product.id} role="option" aria-selected={index === activeIndex} id={`ponyo-search-option-${index}`} data-search-active={index === activeIndex || undefined}><Link href={`/products/${product.slug}`} tabIndex={-1} onClick={closeSearch}><Image src={source} alt={product.imageAlt} width={68} height={68} /><span><strong>{product.name}</strong><small>{product.size ?? product.categoryName}</small><b>{formatPrice(product.priceAmount, product.currency)}</b></span></Link></li>;
+            })}</ul> : <p className="predictive-no-results">{normalized ? `No plush found for “${query}”.` : "No suggestions yet."}</p>}
+            {normalized && <Link className="predictive-view-all" href={`/search?q=${encodeURIComponent(query)}`} onClick={closeSearch}>View all results for “{query}” →</Link>}
+          </div>
+        </div>
+      </dialog>
+    </>
+  );
+}

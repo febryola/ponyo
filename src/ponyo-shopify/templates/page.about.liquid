@@ -1,0 +1,111 @@
+{%- comment -%} About Ponyo: customer-facing story, promises, sizes, and shop links. Assign this template to the About page. {%- endcomment -%}
+{%- liquid
+  assign page_heading = 'pg.about.title' | t
+  if page.title != blank
+    assign page_heading = page.title
+  endif
+  assign domina_url = '/pages/domina-xl'
+-%}
+
+{%- comment -%} Hero: story headline beside a plush lineup image. {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'pt-6 pb-8 md:pt-10', attributes: 'aria-labelledby="about-title"' %}
+    <nav aria-label="{{ 'mp.breadcrumb' | t | escape }}" class="mb-3 text-[13px] text-on-surface-secondary">
+      <ol role="list" class="flex flex-wrap items-center justify-center md:justify-start gap-1.5">
+        <li>{% block 'link', url: routes.root_url, class: 'min-h-0! text-[13px]! text-on-surface-secondary! no-underline! hover:underline!' %}{{ 'mp.home' | t }}{% endblock %}</li>
+        <li aria-hidden="true">›</li>
+        <li aria-current="page" class="font-semibold text-[#4a3530]">{{ page_heading | escape }}</li>
+      </ol>
+    </nav>
+  <div class="grid items-center gap-8 overflow-hidden rounded-[28px] bg-white p-6 shadow-[0_6px_0_#efdcd2,0_18px_40px_rgba(110,74,62,.08)] md:grid-cols-2 md:gap-12 md:p-12">
+    <div class="flex flex-col items-start gap-4">
+      {% block 'text', variant: 'sm', class: 'rounded-full bg-sky-soft px-4 py-1 text-[12px]! font-bold uppercase tracking-[0.14em] text-[#4a3530]' %}{{ 'pg.about.eyebrow' | t }}{% endblock %}
+      {% block 'heading', tag: 'h1', variant: 'xl', class: 'font-bold leading-[1.15] tracking-normal text-balance text-[#4a3530] text-[32px]! md:text-[46px]!', attributes: 'id="about-title"' %}{{ 'pg.about.heading' | t }} <span class="italic text-accent">{{ 'pg.about.heading_accent' | t }}</span>{% endblock %}
+      {% block 'text', class: 'leading-[1.75] text-[#5b463f]' %}{{ 'pg.about.intro' | t }}{% endblock %}
+      {% block 'text', class: 'leading-[1.75] text-[#5b463f]' %}{{ 'pg.about.intro2' | t }}{% endblock %}
+      <div class="mt-2 flex flex-wrap gap-3">
+        {% block 'button', url: routes.all_products_collection_url, variant: 'button-primary', class: 'h-12 rounded-button px-8 font-heading text-[15px] font-bold shadow-[0_4px_0_#7f4a38] motion-safe:hover:-translate-y-0.5' %}{{ 'pg.about.cta_shop' | t }}{% endblock %}
+        {% block 'button', url: domina_url, variant: 'button-outline', class: 'h-12 rounded-button border-2 border-[#e9d3c8] bg-white px-8 font-heading text-[15px] font-bold text-[#4a3530]' %}{{ 'pg.about.cta_domina' | t }}{% endblock %}
+      </div>
+    </div>
+    <div class="overflow-hidden rounded-t-full rounded-b-[24px] border-4 border-[#fbf3ec] bg-[#fbf3ec]">
+      {% block 'image', fallback_image: images['ponyo-5.png'], aspect_ratio: 'aspect-[4/5]', alt: 'Soft plush toys gathered together', sizes: '(min-width: 768px) 520px, 90vw', attributes: 'loading="eager" fetchpriority="high"' %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}
+
+{%- comment -%} Promises to shoppers. {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-8', attributes: 'aria-labelledby="about-promise"' %}
+  <div class="mb-8 flex justify-center">
+    <div class="inline-flex items-center gap-2.5 rounded-full border-2 border-[#e9d3c8] bg-[#fffaf5] px-6 py-2.5 shadow-[0_4px_0_#ecd8cd]">
+      <svg viewBox="0 0 24 24" class="size-6 shrink-0 text-sky" aria-hidden="true"><g fill="currentColor"><circle cx="12" cy="6" r="4"/><circle cx="18" cy="11" r="4"/><circle cx="15.5" cy="18" r="4"/><circle cx="8.5" cy="18" r="4"/><circle cx="6" cy="11" r="4"/></g><circle cx="12" cy="13" r="3" fill="#f6d36b"/></svg>
+      {% block 'heading', tag: 'h2', variant: 'sm', class: 'font-bold italic leading-tight tracking-normal text-[#4a3530] text-[19px]! md:text-[23px]!', attributes: 'id="about-promise"' %}{{ 'pg.about.promise_title' | t }}{% endblock %}
+    </div>
+  </div>
+  <ul role="list" class="grid gap-4 md:grid-cols-3 md:gap-5">
+    <li class="flex flex-col items-center gap-3 rounded-[22px] bg-white px-6 py-8 text-center shadow-[0_6px_0_#efdcd2]">
+      <span class="flex size-14 items-center justify-center rounded-full bg-sky-soft font-heading text-2xl text-[#4a3530]" aria-hidden="true">♡</span>
+      {% block 'text', tag: 'h3', class: 'font-heading text-[18px]! font-bold text-[#4a3530]' %}{{ 'pg.about.v1_title' | t }}{% endblock %}
+      {% block 'text', variant: 'sm', class: 'max-w-[300px] text-[14px]! leading-relaxed text-on-surface-secondary' %}{{ 'pg.about.v1_body' | t }}{% endblock %}
+    </li>
+    <li class="flex flex-col items-center gap-3 rounded-[22px] bg-white px-6 py-8 text-center shadow-[0_6px_0_#efdcd2]">
+      <span class="flex size-14 items-center justify-center rounded-full bg-sky-soft font-heading text-2xl text-[#4a3530]" aria-hidden="true">⌕</span>
+      {% block 'text', tag: 'h3', class: 'font-heading text-[18px]! font-bold text-[#4a3530]' %}{{ 'pg.about.v2_title' | t }}{% endblock %}
+      {% block 'text', variant: 'sm', class: 'max-w-[300px] text-[14px]! leading-relaxed text-on-surface-secondary' %}{{ 'pg.about.v2_body' | t }}{% endblock %}
+    </li>
+    <li class="flex flex-col items-center gap-3 rounded-[22px] bg-white px-6 py-8 text-center shadow-[0_6px_0_#efdcd2]">
+      <span class="flex size-14 items-center justify-center rounded-full bg-sky-soft font-heading text-2xl text-[#4a3530]" aria-hidden="true">↕</span>
+      {% block 'text', tag: 'h3', class: 'font-heading text-[18px]! font-bold text-[#4a3530]' %}{{ 'pg.about.v3_title' | t }}{% endblock %}
+      {% block 'text', variant: 'sm', class: 'max-w-[300px] text-[14px]! leading-relaxed text-on-surface-secondary' %}{{ 'pg.about.v3_body' | t }}{% endblock %}
+    </li>
+  </ul>
+{% endblock %}
+
+{%- comment -%} Size guide strip linking into the shop. {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-8', attributes: 'aria-labelledby="about-sizes"' %}
+  <div class="mb-8 flex justify-center">
+    <div class="inline-flex items-center gap-2.5 rounded-full border-2 border-[#e9d3c8] bg-[#fffaf5] px-6 py-2.5 shadow-[0_4px_0_#ecd8cd]">
+      <svg viewBox="0 0 24 24" class="size-6 shrink-0 text-sky" aria-hidden="true"><g fill="currentColor"><circle cx="12" cy="6" r="4"/><circle cx="18" cy="11" r="4"/><circle cx="15.5" cy="18" r="4"/><circle cx="8.5" cy="18" r="4"/><circle cx="6" cy="11" r="4"/></g><circle cx="12" cy="13" r="3" fill="#f6d36b"/></svg>
+      {% block 'heading', tag: 'h2', variant: 'sm', class: 'font-bold italic leading-tight tracking-normal text-[#4a3530] text-[19px]! md:text-[23px]!', attributes: 'id="about-sizes"' %}{{ 'mp.sizes_title' | t }}{% endblock %}
+    </div>
+  </div>
+  <ul role="list" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <li class="rounded-[18px] bg-white shadow-[0_6px_0_#efdcd2] px-4 py-5 text-center">
+      {% block 'text', tag: 'h3', class: 'font-heading text-[17px]! font-bold text-[#4a3530]' %}{{ 'mp.size_mini' | t }}{% endblock %}
+      {% block 'text', variant: 'sm', class: 'text-[13px]! font-semibold text-accent' %}{{ 'mp.size_mini_range' | t }}{% endblock %}
+    </li>
+    <li class="rounded-[18px] bg-white shadow-[0_6px_0_#efdcd2] px-4 py-5 text-center">
+      {% block 'text', tag: 'h3', class: 'font-heading text-[17px]! font-bold text-[#4a3530]' %}{{ 'mp.size_classic' | t }}{% endblock %}
+      {% block 'text', variant: 'sm', class: 'text-[13px]! font-semibold text-accent' %}{{ 'mp.size_classic_range' | t }}{% endblock %}
+    </li>
+    <li class="rounded-[18px] bg-white shadow-[0_6px_0_#efdcd2] px-4 py-5 text-center">
+      {% block 'text', tag: 'h3', class: 'font-heading text-[17px]! font-bold text-[#4a3530]' %}{{ 'mp.size_big' | t }}{% endblock %}
+      {% block 'text', variant: 'sm', class: 'text-[13px]! font-semibold text-accent' %}{{ 'mp.size_big_range' | t }}{% endblock %}
+    </li>
+    <li class="rounded-[18px] bg-[#7a524b] text-white shadow-[0_6px_0_#5a3e38] px-4 py-5 text-center">
+      {% block 'text', tag: 'h3', class: 'font-heading text-[17px]! font-bold text-white' %}{{ 'mp.size_xl' | t }}{% endblock %}
+      {% block 'text', variant: 'sm', class: 'text-[13px]! font-semibold text-[#f6d6c8]' %}{{ 'mp.size_xl_range' | t }}{% endblock %}
+    </li>
+    <li class="col-span-2 sm:col-span-1 rounded-[18px] bg-[#7a524b] text-white shadow-[0_6px_0_#5a3e38] px-4 py-5 text-center">
+      {% block 'text', tag: 'h3', class: 'font-heading text-[17px]! font-bold text-white' %}{{ 'mp.size_giant' | t }}{% endblock %}
+      {% block 'text', variant: 'sm', class: 'text-[13px]! font-semibold text-[#f6d6c8]' %}{{ 'mp.size_giant_range' | t }}{% endblock %}
+    </li>
+  </ul>
+{% endblock %}
+
+{%- if page.content != blank -%}
+{% block 'container', class: 'w-full max-w-[760px] mx-auto px-margin', padding: 'py-6' %}
+  <div class="richtext rounded-[24px] bg-white p-6 text-[#4a3530] md:p-10">{{ page.content }}</div>
+{% endblock %}
+{%- endif -%}
+
+{%- comment -%} Closing call to action. {%- endcomment -%}
+{% block 'container', class: 'w-full max-w-page mx-auto px-margin', padding: 'py-8 pb-14' %}
+  <div class="flex flex-col items-center gap-4 rounded-[28px] bg-blush/35 px-6 py-12 text-center">
+    {% block 'heading', tag: 'h2', variant: 'sm', class: 'font-bold tracking-normal text-[#4a3530] text-[26px]! md:text-[34px]!' %}{{ 'pg.about.closing_title' | t }}{% endblock %}
+    {% block 'text', class: 'max-w-[520px] text-[#5b463f]' %}{{ 'pg.about.closing_body' | t }}{% endblock %}
+    {% block 'button', url: routes.all_products_collection_url, variant: 'button-primary', class: 'h-12 rounded-button px-8 font-heading text-[15px] font-bold shadow-[0_4px_0_#7f4a38] motion-safe:hover:-translate-y-0.5' %}{{ 'pg.about.cta_shop' | t }}{% endblock %}
+  </div>
+{% endblock %}
+
+{% render 'recently-viewed' %}
+{% render 'explore-strip' %}

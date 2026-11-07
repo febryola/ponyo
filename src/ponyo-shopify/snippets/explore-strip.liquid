@@ -1,0 +1,42 @@
+{% doc %}
+  "Keep exploring" strip: colorful, swipeable tiles for the store's main
+  collections, so shoppers always have somewhere new to go next. Tiles use the
+  collection image when set, otherwise a store photo. Empty or missing
+  collections are skipped; the current collection is skipped too.
+
+  @param {string} [exclude] - Collection handle to leave out (the current one).
+  @param {string} [class] - Extra classes on the wrapper.
+
+  @example
+  {% render 'explore-strip', exclude: collection.handle %}
+{% enddoc %}
+{%- liquid
+  assign tiles = 'rare-finds|maker-penguin.jpg|bg-[#2e211d] text-white^^domina-xl|ponyo-3.png|bg-[#f6c453] text-[#2e211d]^^new-arrivals|ponyo-6.png|bg-[#dbe9f5] text-[#2c4256]^^premium|ponyo-5.png|bg-[#fde4e8] text-[#7a2e3b]^^bears|maker-bear.jpg|bg-[#f3e4da] text-[#4a3530]^^bunnies|maker-bunny.jpg|bg-[#e7f0e2] text-[#2f4a32]^^cats|maker-cat.jpg|bg-[#fdebd8] text-[#7a3d14]^^characters|maker-dinosaur.jpg|bg-[#e8e3f6] text-[#40336b]^^pandas|ponyo-12.png|bg-[#f1ece8] text-[#3f302b]^^puppies|maker-dog.jpg|bg-[#fbf0d9] text-[#6b4f1d]^^penguins|maker-penguin.jpg|bg-[#dfeef0] text-[#22494e]^^collectibles|ponyo-7.png|bg-[#fde4e8] text-[#7a2e3b]' | split: '^^'
+-%}
+<section class="w-full max-w-page mx-auto px-margin py-8 md:py-10 {{ class }}" aria-labelledby="explore-strip-title">
+  <div class="mb-5 flex items-end justify-between gap-3">
+    <h2 id="explore-strip-title" class="m-0 font-heading text-[24px] font-extrabold leading-tight tracking-tight text-[#4a3530] md:text-[32px]">{{ 'explore.title' | t }}</h2>
+    <a href="{{ routes.collections_url }}" class="rounded-full border-2 border-[#e9d3c8] bg-white px-4 py-2 font-heading text-[13.5px] font-bold text-[#4a3530] no-underline hover:bg-[#f3ece7]">{{ 'explore.all' | t }} →</a>
+  </div>
+  <ul role="list" class="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-3 [scrollbar-width:none] md:gap-4 [&::-webkit-scrollbar]:hidden">
+    {%- for tile in tiles -%}
+      {%- liquid
+        assign t = tile | split: '|'
+        assign c = collections[t[0]]
+        if c == blank or c.products_count == 0 or t[0] == exclude
+          continue
+        endif
+        assign tile_image = c.image | default: images[t[1]]
+      -%}
+      <li class="w-[150px] shrink-0 snap-start md:w-[180px]">
+        <a href="{{ c.url }}" class="group/tile flex h-full flex-col items-center gap-2.5 rounded-[22px] px-3 pt-4 pb-4 text-center no-underline motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1 hover:shadow-[0_12px_26px_rgba(46,33,29,.14)] {{ t[2] }}">
+          <span class="block size-[96px] overflow-hidden rounded-full bg-white/60 ring-4 ring-white/50 md:size-[116px]">
+            {%- if tile_image != blank -%}{{ tile_image | image_url: width: 240 | image_tag: alt: '', loading: 'lazy', widths: '120,180,240', sizes: '116px', class: 'size-full object-cover motion-safe:transition-transform motion-safe:duration-500 group-hover/tile:scale-110' }}{%- endif -%}
+          </span>
+          <span class="font-heading text-[15px] font-bold leading-tight">{{ c.title | escape }}</span>
+          <span class="text-[12px] font-semibold opacity-75">{{ 'explore.count' | t: count: c.products_count }}</span>
+        </a>
+      </li>
+    {%- endfor -%}
+  </ul>
+</section>

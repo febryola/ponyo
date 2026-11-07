@@ -1,0 +1,284 @@
+.collection-page .collection-heading {
+    width: min(1072px, calc(100% - 80px));
+    min-height: 260px;
+    margin: 24px auto;
+    padding: 0;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0;
+    overflow: hidden;
+    border-radius: 28px;
+}
+
+.collection-heading-copy {
+    min-width: 0;
+    grid-column: 1;
+    grid-row: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+}
+
+.collection-page .collection-heading .store-breadcrumb {
+    width: auto;
+    min-height: 27.5px;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 13px;
+}
+
+.collection-page .collection-heading h1 {
+    margin: 0;
+    color: inherit;
+    font-family: var(--font-heading);
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -.025em;
+}
+
+.collection-heading-copy>p {
+    max-width: 100%;
+    margin: 0;
+    color: inherit;
+    font-size: 15px;
+    line-height: 1.6;
+    opacity: .8;
+}
+
+.collection-heading-image {
+    min-height: 260px;
+    position: relative;
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.collection-heading-image img {
+    object-fit: cover;
+}
+
+.collection-heading::after {
+    content: "";
+    width: 80px;
+    position: absolute;
+    inset: 0 auto 0 54.5%;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgb(0 0 0 / 10%), transparent);
+}
+
+.collection-tone-rare-finds {
+    background: #2e211d !important;
+    color: white;
+}
+
+.collection-tone-rare-finds .store-breadcrumb,
+.collection-tone-rare-finds .collection-heading-copy>p {
+    color: #e8d6cd;
+}
+
+.collection-tone-domina-xl,
+.collection-tone-giant-plush {
+    background: #f6c453 !important;
+    color: #2e211d;
+}
+
+.collection-tone-new-arrivals,
+.collection-tone-new-arrival {
+    background: #dbe9f5 !important;
+    color: #22384b;
+}
+
+.collection-tone-premium {
+    background: #fde4e8 !important;
+    color: #5c2330;
+}
+
+.collection-tone-collectibles,
+.collection-tone-characters {
+    background: #e8e3f6 !important;
+    color: #2e2550;
+}
+
+.collection-tone-all {
+    background: #f3e4da !important;
+    color: #4a3530;
+}
+
+.collection-page .collection-heading .collection-size-chips {
+    margin-top: 4px;
+    gap: 8px;
+}
+
+.collection-page .collection-heading .collection-size-chips>span {
+    height: 31.5px;
+    min-height: 0;
+    padding: 6px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #ffffffcc;
+    color: #2e211d;
+    font-size: 13px;
+    line-height: 19.5px;
+}
+
+.collection-page .collection-heading .collection-size-chips a {
+    height: 31.5px;
+    min-height: 0;
+    padding: 4px 14px;
+    border-color: currentColor;
+    border-width: 2px;
+    border-radius: 999px;
+    color: inherit;
+    font-size: 13px;
+    line-height: 19.5px;
+}
+
+.collection-page .collection-mobile-chips {
+    display: none;
+}
+
+.collection-page .collection-layout {
+    width: min(1072px, calc(100% - 80px));
+    margin-inline: auto;
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 32px;
+}
+
+@media (max-width: 767px) {
+    .collection-page .collection-heading {
+        width: calc(100% - 32px);
+        min-height: 0;
+        margin: 16px auto 22px;
+        display: block;
+        border-radius: 22px;
+    }
+    .collection-page .collection-heading::after {
+        display: none;
+    }
+    .collection-page .collection-heading-image {
+        display: none;
+    }
+    .collection-heading-copy {
+        padding: 28px 24px;
+        display: block;
+    }
+    .collection-page .collection-heading h1 {
+        font-size: 34px;
+    }
+    .collection-page .collection-heading .store-breadcrumb {
+        margin-bottom: 14px;
+    }
+    .collection-heading-copy>p {
+        margin-top: 12px;
+    }
+    .collection-page .collection-heading .collection-size-chips {
+        margin-top: 17px;
+    }
+    .collection-page .collection-mobile-chips {
+        width: 100%;
+        margin: 0 auto 16px;
+        padding: 0 16px 4px;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .collection-page .collection-mobile-chips::-webkit-scrollbar {
+        display: none;
+    }
+    .collection-page .collection-mobile-chips>a {
+        min-height: 40px;
+        padding: 0 16px;
+        border: 2px solid #e9d3c8;
+        border-radius: 999px;
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 6px;
+        background: white;
+        color: #4a3530;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .collection-page .collection-mobile-chips>a[aria-current="page"] {
+        border-color: #4a3530;
+        background: #4a3530;
+        color: white;
+    }
+    .collection-page .collection-mobile-chips>a[href*="domina-xl"] {
+        border-color: #f6c453;
+        background: #f6c453;
+        color: #2e211d;
+    }
+    .collection-page .collection-layout {
+        width: calc(100% - 32px);
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+    }
+    .collection-page .collection-toolbar {
+        width: 100%;
+        min-height: 44px;
+        margin: 0 0 54px;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: center;
+        gap: 10px;
+    }
+    .collection-page .all-filters {
+        min-width: 0;
+    }
+    .collection-page .all-filters>summary {
+        width: 100%;
+        min-height: 44px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 999px;
+        justify-content: center;
+        background: #4a3530;
+        color: white;
+        font-family: var(--font-heading);
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .collection-page .all-filters>summary b {
+        display: none;
+    }
+    .collection-page .collection-count,
+    .collection-page .mobile-product-count {
+        display: none;
+    }
+    .collection-page .sort-select-form,
+    .collection-page .sort-filter {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+    }
+    .collection-page .sort-filter>span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+    .collection-page .sort-filter select {
+        width: 100%;
+        min-width: 0;
+        height: 44px;
+        padding: 0 12px;
+        border: 2px solid #e9d3c8;
+        border-radius: 999px;
+        background: white;
+        font-size: 13px;
+    }
+}

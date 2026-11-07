@@ -1,0 +1,257 @@
+{% block 'container' %}
+  <s-view-event class="block pb-14" view-event-trigger="connect" view-event-payload="{{ collection | standard_event_data: 'view' | escape }}">
+  {%- liquid
+    assign collection_heading = collection.title
+    if collection.handle == 'all' or collection_heading == blank
+      assign collection_heading = 'home.pages.shop_title' | t
+    endif
+    assign domina_url = '/pages/domina-xl'
+  -%}
+  {%- comment -%} Collection banner: tinted per collection, photo, count, and quick size and category chips. {%- endcomment -%}
+  {%- liquid
+    case collection.handle
+      when 'rare-finds'
+        assign hero_tone = 'bg-[#2e211d] text-white'
+        assign hero_sub = 'text-[#e8d6cd]'
+        assign hero_img = images['maker-penguin.jpg']
+      when 'domina-xl'
+        assign hero_tone = 'bg-[#f6c453] text-[#2e211d]'
+        assign hero_sub = 'text-[#4a3520]'
+        assign hero_img = images['ponyo-3.png']
+      when 'new-arrivals'
+        assign hero_tone = 'bg-[#dbe9f5] text-[#22384b]'
+        assign hero_sub = 'text-[#3c5468]'
+        assign hero_img = images['ponyo-6.png']
+      when 'premium'
+        assign hero_tone = 'bg-[#fde4e8] text-[#5c2330]'
+        assign hero_sub = 'text-[#7a3b48]'
+        assign hero_img = images['ponyo-5.png']
+      when 'collectibles', 'designer-plushies'
+        assign hero_tone = 'bg-[#e8e3f6] text-[#2e2550]'
+        assign hero_sub = 'text-[#4b4073]'
+        assign hero_img = images['ponyo-7.png']
+      else
+        assign hero_tone = 'bg-[#f3e4da] text-[#4a3530]'
+        assign hero_sub = 'text-[#6b5048]'
+        assign hero_img = images['ponyo-2.png']
+    endcase
+    if collection.image != blank
+      assign hero_img = collection.image
+    elsif collection.products.first.featured_image != blank and collection.handle != 'all'
+      assign hero_img = collection.products.first.featured_image
+    endif
+    assign hero_count = collection.products_count | default: collection.all_products_count
+  -%}
+  <div class="mx-auto max-w-page px-margin pt-4 pb-6 md:pt-6">
+    <div class="relative isolate grid overflow-hidden rounded-[28px] {{ hero_tone }} md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div class="flex flex-col justify-center gap-3 px-6 py-7 md:px-10 md:py-10">
+        <nav aria-label="{{ 'mp.breadcrumb' | t | escape }}" class="text-[13px] opacity-80">
+          <ol role="list" class="flex flex-wrap items-center gap-1.5">
+            <li><a href="{{ routes.root_url }}" class="text-inherit no-underline hover:underline">{{ 'mp.home' | t }}</a></li>
+            <li aria-hidden="true">›</li>
+            <li aria-current="page" class="font-semibold">{{ collection_heading | escape }}</li>
+          </ol>
+        </nav>
+        {% block 'heading', tag: 'h1', variant: 'lg', class: 'font-extrabold leading-[1.05] tracking-tight text-inherit text-[34px]! md:text-[52px]!' %}{{ collection_heading | escape }}{% endblock %}
+        {%- if collection.description != blank -%}<div class="richtext max-w-xl text-[15px] {{ hero_sub }}">{{ collection.description }}</div>{%- else -%}<p class="m-0 max-w-xl text-[15px] {{ hero_sub }}">{{ 'home.pages.shop_sub' | t }}</p>{%- endif -%}
+        <div class="mt-1 flex flex-wrap items-center gap-2">
+          {%- if hero_count > 0 -%}<span class="rounded-full bg-white/80 px-3.5 py-1.5 text-[13px] font-bold text-[#2e211d]">{{ 'explore.count' | t: count: hero_count }}</span>{%- endif -%}
+          {%- assign size_base = collection.url | append: '?filter.p.m.ponyo.size_tier=' -%}
+          <a href="{{ size_base }}Small" class="rounded-full border-2 border-current/25 px-3.5 py-1 text-[13px] font-bold text-inherit no-underline hover:bg-white/30">{{ 'mp.size_mini' | t }}</a>
+          <a href="{{ size_base }}Medium" class="rounded-full border-2 border-current/25 px-3.5 py-1 text-[13px] font-bold text-inherit no-underline hover:bg-white/30">{{ 'mp.size_classic' | t }}</a>
+          <a href="{{ size_base }}Large" class="rounded-full border-2 border-current/25 px-3.5 py-1 text-[13px] font-bold text-inherit no-underline hover:bg-white/30">{{ 'mp.size_big' | t }}</a>
+          <a href="{{ size_base }}XL" class="rounded-full border-2 border-current/25 px-3.5 py-1 text-[13px] font-bold text-inherit no-underline hover:bg-white/30">{{ 'mp.size_xl' | t }}</a>
+        </div>
+      </div>
+      <div class="relative hidden min-h-[260px] md:block">
+        {%- if hero_img != blank -%}{{ hero_img | image_url: width: 900 | image_tag: alt: '', loading: 'eager', widths: '450,700,900', sizes: '(min-width: 768px) 45vw, 100vw', class: 'absolute inset-0 size-full object-cover' }}{%- endif -%}
+        <span class="absolute inset-y-0 start-0 w-24 bg-linear-to-r from-black/10 to-transparent" aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+
+{%- comment -%} Mobile category chips: the desktop sidebar categories as a swipeable row. {%- endcomment -%}
+<nav class="mx-auto mb-4 max-w-page lg:hidden" aria-label="{{ 'mp.category' | t | escape }}">
+  <ul role="list" class="flex gap-2 overflow-x-auto px-margin pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <li class="shrink-0"><a href="{{ routes.all_products_collection_url }}" class="inline-flex h-10 items-center rounded-full border-2 px-4 text-[14px] font-bold no-underline {% if collection.handle == 'all' %}border-[#4a3530] bg-[#4a3530] text-white{% else %}border-[#e9d3c8] bg-white text-[#4a3530]{% endif %}">{{ 'mp.all_plush' | t }}</a></li>
+    {%- for chip_collection in collections limit: 24 -%}
+      {%- if chip_collection.handle == 'all' or chip_collection.handle == 'frontpage' or chip_collection.products_count == 0 -%}{%- continue -%}{%- endif -%}
+      <li class="shrink-0"><a href="{{ chip_collection.url }}" class="inline-flex h-10 items-center gap-1.5 rounded-full border-2 px-4 text-[14px] font-bold no-underline {% if chip_collection.handle == collection.handle %}border-[#4a3530] bg-[#4a3530] text-white{% elsif chip_collection.handle == 'domina-xl' %}border-[#f6c453] bg-[#f6c453] text-[#2e211d]{% else %}border-[#e9d3c8] bg-white text-[#4a3530]{% endif %}"{% if chip_collection.handle == collection.handle %} aria-current="page"{% endif %}>{{ chip_collection.title | escape }}<span class="text-[12px] font-semibold opacity-60">{{ chip_collection.products_count }}</span></a></li>
+    {%- endfor -%}
+  </ul>
+</nav>
+
+<s-live-form class="block" partial="collection-count,collection-chips,collection-filters,collection-grid" debounce="300" data-collection-id="{{ collection.id }}" data-collection-handle="{{ collection.handle | escape }}" data-updated-message="{{ 'accessibility.results_updated' | t }}" data-error-message="{{ 'accessibility.update_error' | t }}">
+  <form action="{{ collection.url }}" method="get" role="search" aria-label="{{ 'collections.filter' | t }}">
+    {% capture collection_filter_trigger %}
+      {% block 'button', commandfor: 'collection-filter-drawer', command: 'show-modal', variant: 'button-outline', class: 'h-11 justify-center gap-2 rounded-full border-2 border-[#4a3530] bg-[#4a3530] px-5 font-heading text-[14px] font-bold text-white hover:bg-[#5a3e38]' %}<svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>{{ 'mp.all_filters' | t }}</span>{% endblock %}
+    {% endcapture %}
+    {% capture collection_toolbar_submit %}
+      {% block 'button', type: 'submit', class: 'h-11 px-4 rounded-button' %}{{ 'collections.show_results' | t }}{% endblock %}
+    {% endcapture %}
+
+    {% capture collection_filter_close_button %}
+      {%- capture close_attrs -%}aria-label="{{ 'general.close' | t }}"{%- endcapture -%}
+      {% block 'button', commandfor: 'collection-filter-drawer', command: 'close', variant: 'button-ghost', class: 'size-touch-target rounded', autofocus: true, attributes: close_attrs %}<span class="inline-flex items-center justify-center size-5" aria-hidden="true">{{- 'icon-x.svg' | inline_asset_content -}}</span>{% endblock %}
+    {% endcapture %}
+    {% capture collection_results_button %}
+      {% block 'button', commandfor: 'collection-filter-drawer', command: 'close', variant: 'button-primary', class: 'h-12 w-full rounded-full font-heading text-[15px] font-bold shadow-[0_4px_0_#7f4a38]' %}{{ 'collections.show_results' | t }}{% endblock %}
+    {% endcapture %}
+    {% capture collection_drawer_submit %}
+      {% block 'button', type: 'submit', class: 'h-11 w-full rounded-button' %}{{ 'collections.show_results' | t }}{% endblock %}
+    {% endcapture %}
+    {% render 'filters', page_type: 'collection', resource: collection, drawer_id: 'collection-filter-drawer', filter_trigger: collection_filter_trigger, toolbar_submit: collection_toolbar_submit, close_button: collection_filter_close_button, show_results_button: collection_results_button, drawer_submit: collection_drawer_submit %}
+
+    {% partial 'collection-grid' %}
+{% paginate collection.products by 24 %}
+    <div class="mx-auto grid max-w-page gap-6 px-margin lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-8">
+      {%- comment -%} Sidebar: categories and the store's own filters as links. {%- endcomment -%}
+      <aside class="hidden lg:block" aria-label="{{ 'mp.refine' | t | escape }}">
+        <div class="sticky top-20 md:top-32 flex flex-col gap-6 rounded-[20px] border border-[#efe1d8] bg-white p-5">
+          <section aria-labelledby="side-cat">
+            <h2 id="side-cat" class="mb-2.5 font-heading text-[15px] font-bold text-[#4a3530]">{{ 'mp.category' | t }}</h2>
+            <ul role="list" class="flex flex-col gap-1 text-[14px]">
+              <li><a href="{{ routes.all_products_collection_url }}" class="block rounded-lg px-2 py-1.5 no-underline hover:bg-sage {% if collection.handle == 'all' %}bg-sage font-bold text-[#4a3530]{% else %}text-[#5b463f]{% endif %}">{{ 'mp.all_plush' | t }}</a></li>
+              <li><a href="{{ domina_url }}" class="flex items-center justify-between rounded-lg px-2 py-1.5 text-[#5b463f] no-underline hover:bg-sage">{{ 'home.categories.giant' | t }} <span class="rounded-full bg-[#7a524b] px-2 py-0.5 text-[10px] font-bold text-white">XL</span></a></li>
+              {%- for side_collection in collections limit: 24 -%}
+                {%- if side_collection.handle == 'all' or side_collection.handle == 'frontpage' or side_collection.handle == 'domina-xl' or side_collection.products_count == 0 -%}{%- continue -%}{%- endif -%}
+                <li><a href="{{ side_collection.url }}" class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 no-underline hover:bg-sage {% if side_collection.handle == collection.handle %}bg-sage font-bold text-[#4a3530]{% else %}text-[#5b463f]{% endif %}"><span class="truncate">{{ side_collection.title | escape }}</span><span class="text-[12px] text-on-surface-secondary">{{ side_collection.products_count }}</span></a></li>
+              {%- endfor -%}
+            </ul>
+          </section>
+          {%- for filter in collection.filters -%}
+            {%- if filter.type == 'list' or filter.type == 'boolean' -%}
+              <section aria-labelledby="side-{{ filter.param_name | handleize }}" class="border-t border-[#f1e4dc] pt-5">
+                <h2 id="side-{{ filter.param_name | handleize }}" class="mb-2.5 font-heading text-[15px] font-bold text-[#4a3530]">{{ filter.label | escape }}</h2>
+                <ul role="list" class="flex flex-col gap-0.5 text-[14px]">
+                  {%- for value in filter.values limit: 10 -%}
+                    {%- if value.count == 0 and value.active == false -%}{%- continue -%}{%- endif -%}
+                    {%- if value.active -%}{%- assign value_url = value.url_to_remove -%}{%- else -%}{%- assign value_url = value.url_to_add -%}{%- endif -%}
+                    <li>
+                      <a href="{{ value_url }}" class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[#5b463f] no-underline hover:bg-sage" {% if value.active %}aria-current="true"{% endif %}>
+                        <span class="flex size-4 shrink-0 items-center justify-center rounded border-2 {% if value.active %}border-accent bg-accent text-white{% else %}border-[#dcc3b7] bg-white{% endif %}" aria-hidden="true">{% if value.active %}<svg viewBox="0 0 12 12" class="size-2.5"><path d="M2 6.5 5 9l5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endif %}</span>
+                        <span class="flex-1 truncate">{{ value.label | escape }}</span>
+                        <span class="text-[12px] text-on-surface-secondary">{{ value.count }}</span>
+                      </a>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              </section>
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if collection.filters.size > 0 -%}
+            <div class="border-t border-[#f1e4dc] pt-5">
+              <button type="button" commandfor="collection-filter-drawer" command="show-modal" class="w-full rounded-full border-2 border-[#e9d3c8] px-4 py-2 font-heading text-[13.5px] font-bold text-[#4a3530] hover:bg-sage">{{ 'mp.all_filters' | t }}</button>
+            </div>
+          {%- endif -%}
+        </div>
+      </aside>
+
+      <div class="min-w-0">
+  {% if collection.products.size > 0 %}
+    <h2 class="sr-only">{{ 'collections.products_heading' | t }}</h2>
+    {%- comment -%} Sidebar column plus 2/3/4/5 product columns; mirror in snippets/lcp-preload.liquid. {%- endcomment -%}
+    {%- assign product_sizes = '(min-width: 1280px) 196px, (min-width: 1024px) calc((100vw - 380px) / 4), (min-width: 768px) calc((100vw - 96px) / 3), calc((100vw - 40px) / 2)' -%}
+    <ul id="product-grid" role="list" class="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 md:gap-2.5 mb-8 contain-paint">
+      {% for product in collection.products %}
+        <li>
+          {%- if forloop.index <= 4 -%}{%- assign lazy_load = false -%}{%- else -%}{%- assign lazy_load = true -%}{%- endif -%}
+          {%- if forloop.first -%}{%- assign fetch_priority = 'high' -%}{%- elsif forloop.index <= 4 -%}{%- assign fetch_priority = 'low' -%}{%- else -%}{%- assign fetch_priority = 'auto' -%}{%- endif -%}
+          <s-view-event class="block h-full" view-event-trigger="intersect" view-event-payload="{{ product | standard_event_data: 'view', context: 'collection' | escape }}">
+            {%- liquid
+              assign card_variant = product.selected_or_first_available_variant
+              if lazy_load
+                assign card_loading = 'lazy'
+              else
+                assign card_loading = 'eager'
+              endif
+              assign card_image_attributes = 'loading="' | append: card_loading | append: '" fetchpriority="' | append: fetch_priority | append: '"'
+              assign card_tier = product.metafields.ponyo.size_tier.value
+              assign card_off = 0
+              if card_variant.compare_at_price > card_variant.price
+                assign card_off = card_variant.compare_at_price | minus: card_variant.price | times: 100 | divided_by: card_variant.compare_at_price
+              endif
+            -%}
+            {%- liquid
+              assign urg_now = 'now' | date: '%s' | plus: 0
+              assign urg_pub = product.published_at | date: '%s' | plus: 0
+              assign urg_age = urg_now | minus: urg_pub | divided_by: 86400
+              assign urg_new = false
+              if product.tags contains 'new-arrival' or urg_age < 30
+                assign urg_new = true
+              endif
+              assign urg_left = 0
+              if card_variant.inventory_management == 'shopify' and card_variant.inventory_policy == 'deny' and card_variant.inventory_quantity > 0 and card_variant.inventory_quantity <= 5
+                assign urg_left = card_variant.inventory_quantity
+              endif
+              assign urg_limited = false
+              if product.metafields.ponyo.availability_status.value == 'Limited'
+                assign urg_limited = true
+              endif
+            -%}
+            {% block 'card', block.name: 't:blocks.product_card', url: product.url, aria_label: product.title, border_radius: 'rounded-none', alignment: 'text-start', class: 'h-full gap-0! border border-[#e8ded8] bg-white p-0! motion-safe:transition hover:border-[#c9b2a6] hover:shadow-[0_4px_14px_rgba(46,33,29,.12)]' %}
+              <div class="relative mb-2.5">
+              {% render 'wishlist-button', product: product, class: 'absolute end-2 top-2 z-[3]' %}
+              <a href="{{ product.url | escape }}" class="relative block overflow-hidden rounded-none bg-[#fbf3ec]" aria-label="{{ product.title | escape }}">
+                {% block 'image', fallback_image: product.featured_image, aspect_ratio: 'aspect-square', sizes: product_sizes, attributes: card_image_attributes, alt: product.title, seed: forloop.index %}{% endblock %}
+                {% render 'card-hover-image', product: product, sizes: product_sizes %}
+                <span class="absolute start-2 top-2 z-[2] flex flex-wrap gap-1">
+                  {%- unless product.available -%}<span class="rounded-none bg-[#4a3530] text-white px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide">{{ 'mp.sold_out' | t }}</span>{%- endunless -%}{%- if urg_new -%}<span class="rounded-none bg-[#dbe9f5] px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-[#2c4256]">{{ 'explore.badge_new' | t }}</span>{%- endif -%}{%- if urg_limited -%}<span class="rounded-none bg-[#fde3cf] px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-[#7a3d14]">{{ 'marketplace.status_limited' | t }}</span>{%- endif -%}
+                  {%- if card_off > 0 -%}<span class="rounded-none bg-tangerine text-[#3f2418] px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide">{{ 'mp.save_percent' | t: percent: card_off }}</span>{%- endif -%}
+                  {%- if product.tags contains 'rare' or product.tags contains 'Rare' -%}<span class="rounded-none bg-[#2e211d] px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-[#f6c453]">✦ {{ 'mp.badge_rare' | t }}</span>{%- endif -%}{%- if product.tags contains 'premium' or product.tags contains 'Premium' -%}<span class="rounded-none bg-white px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-[#2e211d] shadow-sm">{{ 'mp.badge_premium' | t }}</span>{%- endif -%}{%- if card_tier contains 'Domina' -%}<span class="rounded-none bg-[#7a524b] text-white px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide">{{ card_tier | escape }}</span>{%- endif -%}
+                </span>
+              </a>
+              </div>
+              <div class="flex flex-1 flex-col gap-0.5 px-2 pb-2.5 md:px-2.5">
+                {% block 'text', variant: 'sm', tag: 'h3', class: 'line-clamp-2 text-[13.5px]! font-medium leading-snug text-[#3f302b]' %}{{ product.title | escape }}{% endblock %}
+                {%- if card_tier != blank -%}{% block 'text', variant: 'sm', class: 'text-[12px]! font-semibold text-accent' %}{{ card_tier | escape }}{% endblock %}{%- elsif product.type != blank -%}{% block 'text', variant: 'sm', class: 'text-[12px]! font-semibold text-accent' %}{{ product.type | escape }}{% endblock %}{%- endif -%}
+                {% render 'rating-stars', product: product %}
+                {%- if urg_left > 0 -%}<p class="m-0 text-[12px] font-bold text-[#c2410c]">🔥 {{ 'explore.only_left' | t: count: urg_left }}</p>{%- endif -%}
+                {% block 'price', price: card_variant.price, compare_at_price: card_variant.compare_at_price, price_min: product.price_min, price_max: product.price_max, class: 'mt-auto pt-1 text-[17px] font-heading font-bold text-[#3f302b] self-start' %}{% endblock %}
+                {%- if product.metafields.ponyo.dispatch_time != blank -%}{% block 'text', variant: 'sm', class: 'text-[11.5px]! leading-snug text-on-surface-secondary' %}{{ product.metafields.ponyo.dispatch_time.value | escape }}{% endblock %}{%- endif -%}
+              </div>
+            {% endblock %}
+          </s-view-event>
+        </li>
+      {% endfor %}
+      {%- unless paginate.next -%}{% render 'ponyo-fill-tiles', count: collection.products.size, cols_sm: 2, cols_md: 3, cols_lg: 4, cols_xl: 5, offset: 0 %}{%- endunless -%}
+    </ul>
+    {% block 'pagination', paginate: paginate %}{% endblock %}
+  {% elsif shop.products_count == 0 %}
+    {%- comment -%} Sample plush shown only while the catalog is empty. {%- endcomment -%}
+    {%- assign shelf_items = 'maker-bear.jpg|Hoshi Cloud Bear|Soft bear|A warm, cuddly bear with a classic little bow.|1880000|Mochi & Co. · 🇯🇵 Japan|Warm cream teddy bear plush with a checkered bow^^maker-bunny.jpg|Haneul Bunny|Bunny favorite|A floppy-eared friend in soft cream with a blue bow.|1780000|Studio Haneul · 🇰🇷 South Korea|Cream bunny plush with long ears and a blue bow^^maker-dinosaur.jpg|Mint Dino|Character plush|A minty-green dinosaur with a friendly, curious look.|2120000|Gajah Rumah · 🇮🇩 Indonesia|Mint green dinosaur plush with soft spikes^^maker-penguin.jpg|Bluebell Penguin|Character plush|A round little penguin in soft blue and snowy white.|2750000|Nordkind Studio · 🇩🇪 Germany|Round blue and white penguin plush^^ponyo-11.png|Good Things Ahead Kitty|Cat plush|A cozy kitty with a soft pink bow.|2290000|Ponyo Originals · 🇯🇵 Japan|Cream and taupe cat plush with a rose-colored bow^^ponyo-12.png|Better Days Panda|Panda plush|A classic panda look with a sweet bow.|2560000|Ponyo Originals · 🇯🇵 Japan|Cream and charcoal panda plush with a rose-colored bow^^maker-dog.jpg|Biscuit Bow Pup|Puppy plush|A sweet pup with floppy ears and a gingham bow.|2450000|Renard Atelier · 🇫🇷 France|Cream puppy plush with floppy caramel ears and a bow^^maker-cloud.jpg|Cloud Cat|Cat plush|A sleepy little cat in soft cream and caramel tones.|1960000|Mochi & Co. · 🇯🇵 Japan|Cream cat plush with caramel markings' | split: '^^' -%}
+    <ul role="list" class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 md:gap-4">
+      {%- for item in shelf_items -%}
+        {%- assign f = item | split: '|' -%}
+        {%- assign tile_image = images[f[0]] -%}
+        <li class="h-full">
+          {% block 'card', block.name: 't:blocks.product_card', url: routes.all_products_collection_url, aria_label: f[1], link_mode: 'card', class: 'h-full border border-[#efe1d8] bg-white p-2.5 md:p-3 motion-safe:transition hover:border-[#e2c8bb] hover:shadow-[0_12px_26px_rgba(110,74,62,.12)]', border_radius: 'rounded-[18px]', alignment: 'text-start' %}
+            <div class="relative mb-2.5 overflow-hidden rounded-none bg-[#fbf3ec]">
+              {% block 'image', fallback_image: tile_image, aspect_ratio: 'aspect-square', alt: f[6], sizes: '(min-width: 1280px) 236px, (min-width: 768px) 30vw, 45vw', class: 'object-cover object-[center_30%]', attributes: 'loading="lazy"' %}{% endblock %}
+            </div>
+            <div class="flex flex-1 flex-col gap-0.5 px-2 pb-2.5 md:px-2.5">
+              {% block 'text', tag: 'h3', class: 'line-clamp-2 text-[13.5px]! font-medium leading-snug text-[#3f302b]' %}{{ f[1] }}{% endblock %}
+              {% block 'text', variant: 'sm', class: 'text-[12px]! font-semibold text-accent' %}{{ f[2] }}{% endblock %}
+              {% block 'text', class: 'mt-auto pt-1 font-heading text-[17px]! font-bold text-[#3f302b]' %}{{ f[4] | plus: 0 | money_without_trailing_zeros }}{% endblock %}
+            </div>
+          {% endblock %}
+        </li>
+      {%- endfor -%}
+    </ul>
+  {% else %}
+    {% block 'text', variant: 'md', class: 'text-on-surface-secondary py-12 text-center' %}{{ 'collections.no_products' | t }}{% endblock %}
+  {% endif %}
+      </div>
+    </div>
+{% endpaginate %}
+    {% endpartial %}
+  </form>
+</s-live-form>
+</s-view-event>
+{% render 'recently-viewed' %}
+{% render 'explore-strip', exclude: collection.handle %}
+
+<script type="application/ld+json">
+  {{ collection | structured_data }}
+</script>
+{% endblock %}

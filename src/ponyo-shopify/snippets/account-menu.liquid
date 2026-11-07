@@ -1,0 +1,104 @@
+{% doc %}
+  Header account button with a Ponyo account panel (native popover).
+  Signed out: sign in / create account, account shortcuts and help links.
+  Signed in: greeting, email, orders, profile, addresses, help and sign out.
+
+  @category navigation
+  @renders div
+
+  @example
+  {% render 'account-menu' %}
+{% enddoc %}
+
+{%- liquid
+  assign profile_url = routes.account_profile_url | default: routes.account_url
+  assign faq_url = pages['faq'].url | default: routes.root_url
+  assign contact_url = pages['contact'].url | default: routes.root_url
+  if customer
+    assign initials = customer.first_name | slice: 0 | append: ''
+    if initials == ''
+      assign initials = customer.email | slice: 0
+    endif
+    assign initials = initials | upcase
+    assign greet_name = customer.first_name | default: customer.email | escape
+  endif
+  assign link_class = 'flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-[14px] font-semibold text-[#3f302b] no-underline hover:bg-[#f3ece7]'
+  assign icon_class = 'inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f3ece7] text-[#a2502f] [&_svg]:size-4'
+-%}
+
+<button
+  type="button"
+  popovertarget="ponyo-account"
+  class="inline-flex h-11 min-w-11 items-center justify-center rounded-full text-white hover:opacity-80 motion-safe:transition motion-safe:active:scale-[0.97]"
+  aria-label="{{ 'general.account' | t | escape }}"
+>
+  {%- if customer -%}
+    <span class="inline-flex size-8 items-center justify-center rounded-full bg-[#f6c453] font-heading text-sm font-bold text-[#2e211d]" aria-hidden="true">{{ initials }}</span>
+  {%- else -%}
+    <span class="inline-flex size-5 items-center justify-center [&_svg]:size-full" aria-hidden="true">{{- 'icon-account.svg' | inline_asset_content -}}</span>
+  {%- endif -%}
+</button>
+
+<div
+  id="ponyo-account"
+  popover
+  aria-label="{{ 'general.account' | t | escape }}"
+  class="fixed inset-auto top-[6.5rem] end-3 m-0 w-[min(92vw,360px)] overflow-hidden rounded-[24px] border border-[#efe1d8] bg-[#fffaf5] p-0 text-[#3f302b] shadow-[0_24px_60px_rgba(46,33,29,.22)] md:end-8"
+>
+  <div class="relative bg-[#2e211d] px-5 pb-5 pt-5 text-white">
+    <button type="button" popovertarget="ponyo-account" popovertargetaction="hide" class="absolute end-3 top-3 inline-flex size-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 [&_svg]:size-4" aria-label="{{ 'general.close' | t | escape }}">{{- 'icon-x.svg' | inline_asset_content -}}</button>
+    {%- if customer -%}
+      <div class="flex items-center gap-3 pe-10">
+        <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-[#f6c453] font-heading text-lg font-bold text-[#2e211d]" aria-hidden="true">{{ initials }}</span>
+        <div class="min-w-0">
+          <p class="m-0 font-heading text-lg font-bold leading-tight">{{ 'acct.hi' | t: name: greet_name }}</p>
+          <p class="m-0 truncate text-[13px] text-[#e8d6cd]">{{ customer.email | escape }}</p>
+        </div>
+      </div>
+      {%- if customer.orders_count > 0 -%}
+        <p class="m-0 mt-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-[12px] font-semibold text-[#f6d6c8]">{{ 'acct.orders_count' | t: count: customer.orders_count }}</p>
+      {%- endif -%}
+    {%- else -%}
+      <p class="m-0 pe-10 font-heading text-xl font-bold leading-tight">{{ 'acct.welcome' | t }}</p>
+      <p class="m-0 mt-1 text-[13px] leading-relaxed text-[#e8d6cd]">{{ 'acct.welcome_body' | t }}</p>
+      <div class="mt-4 grid grid-cols-2 gap-2">
+        <a href="{{ routes.account_login_url }}" class="inline-flex h-11 items-center justify-center rounded-button bg-tangerine font-heading text-sm font-bold text-[#3f2418] no-underline hover:opacity-90">{{ 'acct.sign_in' | t }}</a>
+        <a href="{{ routes.account_register_url | default: routes.account_login_url }}" class="inline-flex h-11 items-center justify-center rounded-button border border-white/40 font-heading text-sm font-bold text-white no-underline hover:bg-white/10">{{ 'acct.create' | t }}</a>
+      </div>
+    {%- endif -%}
+  </div>
+
+  <nav class="px-2 py-2" aria-label="{{ 'acct.my_account' | t | escape }}">
+    <p class="m-0 px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wide text-on-surface-secondary">{{ 'acct.my_account' | t }}</p>
+    <ul role="list" class="m-0 list-none p-0">
+      <li>
+        <a href="{{ routes.account_url }}" class="{{ link_class }}">
+          <span class="{{ icon_class }}" aria-hidden="true">{{- 'icon-cart.svg' | inline_asset_content -}}</span>
+          <span class="flex flex-col"><span>{{ 'acct.orders' | t }}</span><span class="text-[12px] font-normal text-on-surface-secondary">{{ 'acct.orders_hint' | t }}</span></span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ profile_url }}" class="{{ link_class }}">
+          <span class="{{ icon_class }}" aria-hidden="true">{{- 'icon-account.svg' | inline_asset_content -}}</span>
+          <span class="flex flex-col"><span>{{ 'acct.profile' | t }}</span><span class="text-[12px] font-normal text-on-surface-secondary">{{ 'acct.profile_hint' | t }}</span></span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ routes.account_addresses_url | default: profile_url }}" class="{{ link_class }}">
+          <span class="{{ icon_class }}" aria-hidden="true">{{- 'icon-tag.svg' | inline_asset_content -}}</span>
+          <span class="flex flex-col"><span>{{ 'acct.addresses' | t }}</span><span class="text-[12px] font-normal text-on-surface-secondary">{{ 'acct.addresses_hint' | t }}</span></span>
+        </a>
+      </li>
+    </ul>
+
+    <p class="m-0 mt-1 border-t border-[#efe1d8] px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wide text-on-surface-secondary">{{ 'acct.help' | t }}</p>
+    <ul role="list" class="m-0 grid list-none grid-cols-2 gap-1 p-0 pb-1">
+      <li><a href="{{ faq_url }}" class="block rounded-[12px] px-3 py-2 text-[13px] font-semibold text-[#5b463f] no-underline hover:bg-[#f3ece7]">{{ 'acct.faq' | t }}</a></li>
+      <li><a href="{{ contact_url }}" class="block rounded-[12px] px-3 py-2 text-[13px] font-semibold text-[#5b463f] no-underline hover:bg-[#f3ece7]">{{ 'acct.contact' | t }}</a></li>
+    </ul>
+
+    {%- if customer -%}
+      <a href="{{ routes.account_logout_url }}" class="mx-1 mb-1 mt-1 flex h-10 items-center justify-center rounded-[12px] border border-[#e8dfd9] text-[13px] font-bold text-[#a2502f] no-underline hover:bg-[#f3ece7]">{{ 'acct.sign_out' | t }}</a>
+    {%- endif -%}
+  </nav>
+</div>

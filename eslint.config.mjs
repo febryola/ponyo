@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
 		"build/**",
 		"next-env.d.ts",
 		"src/sample-frontend/**",
+		// The copied Shopify Liquid theme is a read-only reference, not app source.
+		"src/ponyo-shopify/**",
 	]),
 ]);
 

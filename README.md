@@ -1,53 +1,28 @@
-# Ponyo
+# Ponyo storefront preview
 
-Ponyo is a product catalog and order-routing MVP built with Next.js App Router, React, TypeScript, Tailwind CSS, and Supabase. It deliberately does not manage inventory or take payments yet. The existing storefront wireframe and its product photography remain in `src/sample-frontend/`; the app reuses its images while rebuilding the customer pages as Next.js routes and reusable components.
-
-## Requirements
-
-- Node.js 22.13+; `.nvmrc` pins 22.13.0.
-- npm
-- A Supabase project for database-backed products (optional for local preview).
+A responsive Next.js storefront that uses the provided `src/ponyo-shopify` theme as a **visual reference**. It runs without Shopify credentials or a Supabase project. For local-only design review, catalog/cart/orders/forms use browser preview data. To connect the storefront to the planned AWS FastAPI backend, set the public API origin described in [docs/backend-api-contract.md](docs/backend-api-contract.md).
 
 ## Run locally
 
-```bash
-nvm use
-npm install
-npm run dev
-```
+- Node.js 22.13+ (`.nvmrc` pins 22.13.0)
+- npm
 
-Open http://localhost:3000. Without Supabase credentials the storefront uses a small sample catalog, so the UI can be explored immediately.
+Install dependencies and run the development server with `npm run dev`. Open http://localhost:3000. No environment variables are required for preview mode.
 
-## Supabase setup
+Optional backend connection: copy `.env.example` to `.env.local`, set `NEXT_PUBLIC_PONYO_API_BASE_URL` to the HTTPS FastAPI API origin, and set `PONYO_MEDIA_HOST` to the exact S3/CloudFront hostname if the API returns images from it. The frontend client contract is documented in [docs/backend-api-contract.md](docs/backend-api-contract.md). Never add AWS, database, supplier, or payment secrets to the frontend or to a `NEXT_PUBLIC_` variable. The actual API implementation must be deployed separately in the AWS backend.
 
-1. Copy `.env.example` to `.env.local`.
-2. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from the Supabase project API settings.
-3. Apply `supabase/migrations/20261104000000_initial_schema.sql` in the Supabase SQL Editor (or with the Supabase CLI).
-4. Add supplier, category, and published product records before expecting live products to appear.
+## Main routes
 
-The public anon key is intended for browser-safe access and must be paired with the migration's RLS policies. Never expose a Supabase service-role key using a `NEXT_PUBLIC_` variable. Customer/order tables have RLS enabled but no public read/write policies; order writes should go through a validated server-side flow.
+- `/` — responsive homepage, animated stats, merchandising shelves, category rails, size guide, and newsletter preview.
+- `/collections/[slug]` and `/shop` — responsive collection banner, filters, sorting, and product cards.
+- `/products/[slug]` — product gallery and purchase preview.
+- `/account/login`, `/account/register`, `/account/forgot-password`, and `/orders` — account/order screens; they use local preview behavior until the API is configured.
+- `/cart`, `/checkout`, and `/wishlist` — browser-local interaction previews; configured checkout redirects to the backend-provided hosted payment session.
+- `/blogs/news` — Plush Journal landing page.
+- `/pages/about`, `/pages/faq`, `/pages/contact`, `/pages/domina-xl` — storefront information pages.
 
-## Current foundation
+All UI changes should be compared against the Liquid/theme files in `src/ponyo-shopify`; treat that folder as read-only reference. Stripe/Adyen, inventory, supplier integrations, persistence, and payment webhooks are backend responsibilities described in the API contract; this repository only contains the frontend client adapter.
 
-- `/` — responsive Ponyo storefront landing page using the existing wireframe hero and product photography.
-- `/shop` — product listing with category query filters.
-- `/products/[slug]` — product details and supplier availability note.
-- `/cart`, `/checkout`, `/orders` — clearly marked MVP placeholders.
-- `GET /api/products` — catalog data from Supabase, or the wireframe sample catalog if Supabase is not configured.
-- `POST /api/orders` — intentionally returns `503` until payment policy, validation, and server-side persistence are agreed.
-- `supabase/migrations/` — starter schema for suppliers, products, images, categories, customers, orders, routing, and status history.
+## Validate
 
-Product availability is descriptive (`available`, `unavailable`, or `needs_confirmation`); there are no stock counts, reservations, or warehouse workflows.
-
-## Before implementing checkout
-
-Confirm with Sergio: will customers pay Ponyo, or will Ponyo forward orders and customers pay the supplier? This decision changes payment integration, refunds, and order statuses. Also define supplier confirmation and cancellation handling before enabling order submission.
-
-## Validate and deploy
-
-```bash
-npm run lint
-npm run build
-```
-
-Connect the repository to Vercel and add the two Supabase environment variables in the Vercel project settings. Do not commit `.env.local`.
+Run `npm run lint` and `npm run build`.

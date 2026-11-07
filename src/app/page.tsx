@@ -1,200 +1,159 @@
 import Image from "next/image";
 import Link from "next/link";
-import { SiteHeader } from "@/components/layout/site-header";
+import { SiteFrame } from "@/components/layout/site-frame";
+import { HomeCarousel } from "@/components/home/home-carousel";
+import { AnimalTabs } from "@/components/home/animal-tabs";
+import { RecentlyViewed } from "@/components/home/recently-viewed";
+import { HomeStatCount } from "@/components/home/home-stat-count";
+import { HomeInterestForms } from "@/components/layout/local-store-forms";
 import { ProductShelf } from "@/components/product/product-shelf";
-import { CategoryScrollButton } from "@/components/ui/category-scroll-button";
 import { getProducts } from "@/services/product.service";
+import { formatPrice } from "@/lib/utils/format-price";
 import type { Product } from "@/types/product";
-import dominaImage from "@/sample-frontend/images/3.png";
-import journalGroupImage from "@/sample-frontend/images/2.png";
-import journalDetailImage from "@/sample-frontend/images/5.png";
-import categoryBearImage from "@/sample-frontend/images/crop/maker-bear.jpg";
-import categoryBunnyImage from "@/sample-frontend/images/crop/maker-bunny.jpg";
-import categoryCatImage from "@/sample-frontend/images/crop/maker-cat.jpg";
-import categoryDinoImage from "@/sample-frontend/images/crop/maker-dinosaur.jpg";
-import categoryChickImage from "@/sample-frontend/images/crop/maker-chick.jpg";
-import categoryDogImage from "@/sample-frontend/images/crop/maker-dog.jpg";
-import categoryPenguinImage from "@/sample-frontend/images/crop/maker-penguin.jpg";
-import pandaImage from "@/sample-frontend/images/12.png";
+import locale from "@/ponyo-shopify/locales/en.default.json";
 
-const badges = {
-  "hoshi-cloud-bear": "Trending",
-  "haneul-bunny": "Loved",
-  "mint-dino": "Standout",
-  "bluebell-penguin": "Popular",
+const images = {
+  bunny: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-bunny.jpg?v=1793843383",
+  bear: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-bear.jpg?v=1793843383",
+  cat: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-cat.jpg?v=1793843383",
+  dinosaur: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-dinosaur.jpg?v=1793843384",
+  dog: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-dog.jpg?v=1793843384",
+  penguin: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-penguin.jpg?v=1793843384",
+  chick: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-chick.jpg?v=1793843383",
+  panda: "https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-12.png?v=1793843385",
+  premium: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-5.png?v=1793843377",
 };
 
-function Sparkle({ className }: { className: string }) {
-  return (
-    <span className={`hero-sparkle ${className}`}>
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1.5 19.7 12l10.8 4-10.8 3.8L16 30.5l-3.8-10.7L1.5 16l10.7-4L16 1.5Z" fill="currentColor" /></svg>
-    </span>
-  );
+const categories = [
+  { title: "Giant plush", href: "/pages/domina-xl", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" },
+  { title: "Bears", href: "/collections/bears", image: images.bear },
+  { title: "Bunnies", href: "/collections/bunnies", image: images.bunny },
+  { title: "Cats", href: "/collections/cats", image: images.cat },
+  { title: "Cute Characters", href: "/collections/characters", image: images.dinosaur },
+  { title: "Premium", href: "/collections/premium", image: images.premium },
+  { title: "Pandas", href: "/collections/pandas", image: images.panda },
+  { title: "Puppies", href: "/collections/puppies", image: images.dog },
+  { title: "Penguins", href: "/collections/penguins", image: images.penguin },
+  { title: "More plush", href: "/collections/all", image: images.chick },
+];
+
+function byTag(products: Product[], tag: string, limit = 4) {
+  return products.filter((product) => product.tags?.includes(tag)).slice(0, limit);
 }
 
-function BrandLogo({ light = false }: { light?: boolean }) {
+function AisleCard({ title, description, href, products }: { title: string; description: string; href: string; products: Product[] }) {
   return (
-    <Link href="/" className={`logo${light ? " logo-light" : ""}`} aria-label="Ponyo home">
-      <span className="logo-mark"><svg className="icon-jelly" viewBox="0 0 64 64" aria-hidden="true">
-        <path d="M12 28C12 15 20 6 32 6C44 6 52 15 52 28C52 33 48 36 44 36H20C16 36 12 33 12 28Z" fill="var(--rose)" />
-        <path d="M18 27C18 18 24 11 32 11C40 11 46 18 46 27" fill="none" stroke="var(--white)" strokeWidth="2" strokeLinecap="round" opacity=".5" />
-        <circle cx="26" cy="23" r="2.6" fill="var(--cocoa)" /><circle cx="38" cy="23" r="2.6" fill="var(--cocoa)" />
-        <path d="M22 29c1.4 1.6 3 1.6 4.4 0" stroke="var(--cocoa)" strokeWidth="2" strokeLinecap="round" fill="none" />
-        <path d="M19 38c0 4-2 6-2 10M27 38c0 5 2 7 0 12M35 38c0 5-1 7 1 12M43 38c0 4 2 6 1 10" stroke="var(--rose)" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".85" />
-      </svg></span><span className="logo-word">PONYO</span>
-    </Link>
+    <article className="marketplace-aisle">
+      <h3>{title}</h3><p>{description}</p>
+      <div className="marketplace-aisle-grid">
+        {products.slice(0, 4).map((product) => <Link href={`/products/${product.slug}`} className="aisle-product" key={product.id}><span className="aisle-product-image"><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 640px) 42vw, 130px" /></span><span className="aisle-product-title">{product.name}</span><strong>{formatPrice(product.priceAmount, product.currency)}</strong></Link>)}
+        {products.length > 0 && products.length < 4 && <Link href={href} className="aisle-see-all"><span>→</span>See all</Link>}
+      </div>
+      <Link href={href} className="aisle-link">Shop more {title} →</Link>
+    </article>
   );
-}
-
-function JournalCard({ href, image, alt, kicker, title, action }: {
-  href: string;
-  image: typeof dominaImage;
-  alt: string;
-  kicker: string;
-  title: string;
-  action: string;
-  priority?: boolean;
-}) {
-  return (
-    <Link href={href} className="home-journal-card">
-      <Image src={image} alt={alt} fill priority={priority} sizes="(max-width: 560px) 90vw, 33vw" />
-      <span className="home-journal-copy"><span>{kicker}</span><strong>{title}</strong><span>{action}</span></span>
-    </Link>
-  );
-}
-
-function pick(products: Product[], slugs: string[]) {
-  return slugs.map((slug) => products.find((product) => product.slug === slug)).filter((product): product is Product => Boolean(product));
 }
 
 export default async function Home() {
   const products = await getProducts();
-  const trending = pick(products, ["hoshi-cloud-bear", "haneul-bunny", "mint-dino", "bluebell-penguin"]);
-  const recommended = pick(products, ["good-things-ahead-kitty", "better-days-panda", "biscuit-bow-pup", "cloud-cat"]);
-  const newArrivals = pick(products, ["good-things-ahead-kitty", "better-days-panda", "biscuit-bow-pup", "cloud-cat", "sunny-chick", "cherry-blossom-bunny"]);
-  const dominaProducts = pick(products, ["hoshi-cloud-bear-xl", "haneul-bunny-xl", "baluran-elephant-xl", "clement-fox-xl"]);
+  const rare = byTag(products, "rare", 5);
+  const premium = byTag(products, "premium", 12);
+  const domina = byTag(products, "domina-xl", 6);
+  const arrivals = byTag(products, "new-arrival", 10);
+  const rareSpotlight = products.find((product) => product.slug === "cherry-blossom-bunny") ?? rare[0];
+  const rareSupporting = products.filter((product) => ["mint-dino", "hoshi-cloud-bear"].includes(product.slug));
+  const allTrending = products.filter((product) => !product.tags?.includes("new-arrival")).slice(0, 12);
+  const aisles = [
+    { title: "Rare Finds", description: "Hard-to-find and limited-edition plush.", href: "/collections/rare-finds", products: rare },
+    { title: "Premium Plushies", description: "Top-quality plush with extra-soft finishes.", href: "/collections/premium", products: premium.slice(0, 4) },
+    { title: "XL Goodies", description: "Giant plush, big enough to hug back.", href: "/collections/domina-xl", products: domina },
+    { title: "Shop by animal", description: "Bears, bunnies, cats and more.", href: "/collections", products: ["bears", "bunnies", "cats", "pandas"].map((tag) => products.find((product) => product.tags?.includes(tag))).filter((product): product is Product => Boolean(product)) },
+  ];
+  const faq = locale.pg.faq;
 
   return (
-    <>
-      <SiteHeader />
-      <main className="home-page" id="top">
-        <section className="hero home-hero">
-          <div className="home-hero-sparkles" aria-hidden="true">
-            <Sparkle className="sparkle-one" /><Sparkle className="sparkle-two" /><Sparkle className="sparkle-three" />
-            <Sparkle className="sparkle-four" /><Sparkle className="sparkle-five" /><Sparkle className="sparkle-six" />
-            <span className="hero-sparkle sparkle-moon"><svg viewBox="0 0 32 32"><path d="M24.8 21.4A12.6 12.6 0 0 1 10.6 7.2 12.8 12.8 0 1 0 24.8 21.4Z" fill="currentColor" /></svg></span>
-          </div>
-          <div className="container home-hero-inner">
-            <div className="home-hero-copy">
-              <p className="eyebrow">Rare finds · oversized plush</p>
-              <h1>Extraordinary Finds. <span>Impossible to Ignore.</span></h1>
-              <p className="home-hero-sub">Discover rare, premium, and oversized plushies you won&apos;t easily find anywhere else.</p>
-              <div className="hero-ctas">
-                <Link href="/shop" className="btn btn-primary">Shop the collection →</Link>
-                <Link href="/shop?category=giant-plush" className="btn btn-outline">Explore Domina XL</Link>
-              </div>
-              <p className="home-hero-note">Independent makers · Premium by design · Thoughtful delivery</p>
-            </div>
-            <Link className="home-hero-visual" href="/shop?category=giant-plush" aria-label="Shop the Domina XL oversized plush collection">
-              <Image src={dominaImage} alt="Oversized cream bunny plush photographed in a cozy room" fill priority sizes="(max-width: 560px) 100vw, (max-width: 860px) 48vw, 50vw" />
-              <span className="hero-product-tag"><span>DOMINA XL COLLECTION</span><strong>Shop giant plush <b aria-hidden="true">→</b></strong></span>
-            </Link>
-          </div>
-        </section>
+    <SiteFrame className="store-home">
+      <HomeCarousel hasCollectibles={products.some((product) => product.tags?.includes("collectibles"))} />
 
-        <section className="category-section container" id="edit" aria-label="Shop by product type">
-          <div className="category-bar">
-            <p className="category-label">Find your<br />kind of plush</p>
-            <div className="category-list">
-              <Link className="category-pill" href="/shop?category=giant-plush"><span className="cat-icon cat-domina"><Image src={dominaImage} alt="" /></span>Giant plush</Link>
-              <Link className="category-pill" href="/shop?category=bears"><span className="cat-icon cat-bear"><Image src={categoryBearImage} alt="" /></span>Bears</Link>
-              <Link className="category-pill" href="/shop?category=bunnies"><span className="cat-icon cat-bunny"><Image src={categoryBunnyImage} alt="" /></span>Bunnies</Link>
-              <Link className="category-pill" href="/shop?category=cats"><span className="cat-icon cat-cat"><Image src={categoryCatImage} alt="" /></span>Cats</Link>
-              <Link className="category-pill" href="/shop?category=characters"><span className="cat-icon cat-char"><Image src={categoryDinoImage} alt="" /></span>Characters</Link>
-              <Link className="category-pill" href="/shop"><span className="cat-icon cat-char"><Image src={categoryChickImage} alt="" /></span>More plush</Link>
-              <Link className="category-pill" href="/shop?q=panda"><span className="cat-icon cat-char"><Image src={pandaImage} alt="" /></span>Pandas</Link>
-              <Link className="category-pill" href="/shop?q=puppy"><span className="cat-icon cat-bunny"><Image src={categoryDogImage} alt="" /></span>Puppies</Link>
-              <Link className="category-pill" href="/shop?q=penguin"><span className="cat-icon cat-bird"><Image src={categoryPenguinImage} alt="" /></span>Penguins</Link>
-            </div>
-            <CategoryScrollButton />
-          </div>
-        </section>
-
-        <ProductShelf id="rare-finds" eyebrow="Standout plush finds" title="Worth Discovering." description="A selection of plush with distinctive design, details, and character." products={trending} badges={badges} />
-        <ProductShelf className="marketplace-shelf" eyebrow="Easy to revisit" title="Buy Again" description="Shortcuts to revisit plush from the collection." products={trending} rail compact linkLabel="Shop all →" />
-        <ProductShelf className="marketplace-shelf" eyebrow="A few character-rich picks" title="Recommended for You" description="A curated mix to help you discover a new favorite." products={recommended} rail compact linkLabel="Explore more →" />
-        <ProductShelf id="new-limited" className="home-new-arrivals marketplace-shelf" eyebrow="Just added to the collection" title="New Arrivals" description="Meet the latest plush additions, including two new character designs." products={newArrivals} rail badges={{
-          "good-things-ahead-kitty": "New", "better-days-panda": "New", "biscuit-bow-pup": "New", "cloud-cat": "New", "sunny-chick": "New", "cherry-blossom-bunny": "New",
-        }} linkLabel="Browse collection →" />
-        <ProductShelf className="marketplace-shelf" eyebrow="A Ponyo-curated edit" title="Most-Loved Picks" description="A handpicked mix of distinctive faces, colors, and character." products={trending} rail compact linkLabel="See the collection →" />
-
-        <section className="domina" id="domina">
-          <span className="deco star d1" aria-hidden="true">✦</span><span className="deco star d2" aria-hidden="true">⭐</span><span className="deco heart d3" aria-hidden="true">♡</span>
-          <div className="container domina-inner">
-            <div className="domina-copy">
-              <p className="eyebrow eyebrow-light">OVERSIZED PLUSH · DOMINA XL</p>
-              <h2>Room for Something Extraordinary.</h2>
-              <p className="domina-sub">Meet Domina XL — oversized plush companions to bring comfort, character, and a little wonder into your space.</p>
-              <Link href="/shop?category=giant-plush" className="btn btn-light">Shop giant plush →</Link>
-            </div>
-            <div className="domina-visual"><div className="ph-domina domina-scale-visual">
-              <Image src={dominaImage} alt="Oversized cream bunny plush in a warm bedroom" fill sizes="(max-width: 860px) 90vw, 42vw" />
-              <span className="scale-caption">A plush with presence.</span>
-            </div></div>
-          </div>
-        </section>
-
-        <ProductShelf className="domina-product-shelf" eyebrow="Big plush, memorable presence" title="Shop Domina XL" products={dominaProducts} rail compact linkLabel="View all XL plush →" href="/shop?category=giant-plush" />
-
-        <section className="home-journal container" id="journal">
-          <div className="section-head"><div><p className="eyebrow">Stories, guides &amp; product details</p><h2 className="section-title">A Closer Look at Plush.</h2></div><Link href="/#journal" className="view-all">Read the journal →</Link></div>
-          <div className="home-journal-grid">
-            <JournalCard href="/#journal" image={dominaImage} alt="An oversized bunny plush in a cozy bedroom" kicker="SIZE & SPACE" title="Choosing an XL plush for your space" action="Read the guide →" />
-            <JournalCard href="/#journal" image={journalDetailImage} alt="Close-up details of a soft teddy bear plush" kicker="LOOK CLOSER" title="The little details that make a plush" action="Explore the details →" />
-            <JournalCard href="/#journal" image={journalGroupImage} alt="A selection of plush characters arranged together" kicker="CARE NOTES" title="Simple ways to care for a favorite" action="Read care notes →" />
-          </div>
-        </section>
-
-        <section className="shipping-details container" id="destinations" aria-label="Shipping information">
-          <div className="trust-pill shipping-note"><div className="trust-col">
-            <div className="trust-icon trust-icon-blue" aria-hidden="true">↗</div>
-            <div><h4>Shipping &amp; delivery</h4><p>Available options and estimates depend on your destination.</p></div>
-            <Link className="view-all" href="/checkout">View shipping details →</Link>
-          </div></div>
-        </section>
-
-        <section className="newsletter container">
-          <div className="newsletter-inner">
-            <div className="newsletter-mascot left"><div className="mascot-octo" aria-hidden="true" /><div className="speech-bubble small">New plush finds &amp; notes</div></div>
-            <div className="newsletter-form-wrap">
-              <h2>Get first dibs on new plush drops.</h2>
-              <div className="newsletter-form">
-                <label className="newsletter-input"><span aria-hidden="true">✉️</span><input type="email" placeholder="Your email address" aria-label="Email address" required /></label>
-                <button type="button" className="btn btn-primary btn-round" aria-label="Subscribe">→</button>
-              </div>
-              <div className="social-row" aria-label="Follow Ponyo">
-                <a href="#story" className="social-icon-link" aria-label="Instagram"><span aria-hidden="true">◎</span></a>
-                <a href="#story" className="social-icon-link" aria-label="TikTok"><span aria-hidden="true">♪</span></a>
-                <a href="#story" className="social-icon-link" aria-label="YouTube"><span aria-hidden="true">▶</span></a>
-                <a href="#story" className="social-icon-link" aria-label="Pinterest"><span aria-hidden="true">P</span></a>
-              </div>
-            </div>
-            <div className="newsletter-mascot right"><div className="mascot-octo mascot-pink" aria-hidden="true" /><div className="speech-bubble small">PONYO<br />Softness for a<br />kinder world ♡</div></div>
-          </div>
-        </section>
-      </main>
-
-      <footer className="site-footer" id="story">
-        <div className="footer-meadow" aria-hidden="true"><span className="meadow-item m1" /><span className="meadow-item m2" /><span className="meadow-item m3" /><span className="meadow-item m4" /><span className="meadow-item m5" /><span className="meadow-item m6" /><span className="meadow-item m7" /></div>
-        <svg className="footer-wave" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40 C240 0 480 80 720 40 C960 0 1200 80 1440 40 L1440 80 L0 80Z" fill="currentColor" /></svg>
-        <div className="container footer-grid">
-          <div className="footer-brand"><BrandLogo light /><p>A curated collection of rare, premium, and distinctive plushies. ♡</p></div>
-          <div className="footer-col"><h5>Shop</h5><Link href="/shop">Shop All</Link><Link href="/shop#rare-finds">Rare Finds</Link><Link href="/shop?category=giant-plush">Domina XL</Link></div>
-          <div className="footer-col"><h5>Explore</h5><Link href="/#journal">The Plush Journal</Link><Link href="/#story">About Ponyo</Link><Link href="/shop">Become a Maker</Link></div>
-          <div className="footer-col"><h5>Support</h5><Link href="/checkout">FAQ &amp; Shipping</Link><Link href="/checkout">Returns &amp; Refunds</Link><Link href="/orders">Contact Us</Link></div>
+      <section className="home-marketplace-intro" aria-labelledby="home-hero-heading">
+        <span className="home-marketplace-eyebrow">{locale.mp.hero_eyebrow}</span>
+        <h1 id="home-hero-heading">{locale.mp.hero_heading} <span>{locale.mp.hero_heading_accent}</span></h1>
+        <p>{locale.mp.hero_body}</p>
+        <div className="home-marketplace-actions">
+          <Link href="/collections/all">{locale.mp.hero_cta_shop}</Link>
+          <Link href="/pages/domina-xl">{locale.mp.hero_cta_domina}</Link>
         </div>
-        <div className="footer-bottom-bar"><p>© {new Date().getFullYear()} Ponyo. All rights reserved.</p><p className="footer-legal"><Link href="/#story">Privacy Policy</Link> · <Link href="/#story">Terms of Service</Link> · <Link href="/checkout">Shipping Policy</Link></p></div>
-      </footer>
-    </>
+      </section>
+
+      <section className="store-stats-bar" aria-label="Ponyo collection highlights">
+        <div className="store-stats">
+          <Link className="store-stat-all" href="/collections/all"><b>🧸</b><span className="store-stat-copy"><strong><HomeStatCount value={products.length} /></strong><span>{locale.home.stats.all}</span></span></Link>
+          {rare.length > 0 && <Link className="store-stat-rare" href="/collections/rare-finds"><b>💎</b><span className="store-stat-copy"><strong><HomeStatCount value={rare.length} /></strong><span>{locale.home.stats.rare}</span></span></Link>}
+          {premium.length > 0 && <Link className="store-stat-premium" href="/collections/premium"><b>✨</b><span className="store-stat-copy"><strong><HomeStatCount value={premium.length} /></strong><span>{locale.home.stats.premium}</span></span></Link>}
+          <Link className="store-stat-xl" href="/pages/domina-xl"><b>📏</b><span className="store-stat-copy"><strong><HomeStatCount value={120} /> <small>cm</small></strong><span>{locale.home.stats.xl}</span></span></Link>
+        </div>
+      </section>
+
+      <nav className="home-category-rail" aria-label="Shop by type">
+        <div className="home-category-rail-card"><strong>Find your kind of plush</strong>
+          <ul>{categories.map((category) => <li key={category.title}><Link href={category.href}><Image src={category.image} alt="" width={56} height={56} /><span>{category.title}</span></Link></li>)}</ul>
+        </div>
+      </nav>
+
+      <section className="marketplace-aisles store-container" aria-labelledby="aisles-heading">
+        <header><div><h2 id="aisles-heading">Shop every kind of plush</h2><p>Rare finds, premium plushies and XL goodies, all in one place.</p></div></header>
+        <div className="marketplace-aisles-grid">{aisles.map((aisle) => <AisleCard key={aisle.title} {...aisle} />)}</div>
+      </section>
+
+      <section className="budget-section store-container">
+        <header><h2>Shop by budget</h2><p>Find your next plush at the price that feels right.</p></header>
+        <div className="budget-links">
+          <Link href="/collections/all?filter.v.price.lte=20000"><span>Sweet treats</span><strong>Under ¥20,000 →</strong></Link>
+          <Link href="/collections/all?filter.v.price.gte=20000&filter.v.price.lte=30000"><span>Fan favourites</span><strong>¥20,000–¥30,000 →</strong></Link>
+          <Link href="/collections/all?filter.v.price.gte=60000"><span>Giant splurge</span><strong>¥60,000+ →</strong></Link>
+        </div>
+      </section>
+
+      {rareSpotlight && <section className="rare-spotlight store-container" id="rare-finds">
+        <header><div><h2>Trending now</h2><p>The plush shoppers are loving right now.</p></div><Link href="/collections/trending">See all →</Link></header>
+        <div className="rare-spotlight-grid">
+          <Link className="rare-featured-product" href={`/products/${rareSpotlight.slug}`}><Image src={rareSpotlight.image} alt={rareSpotlight.imageAlt} fill sizes="(max-width: 1024px) 100vw, 52vw" /><span className="rare-spotlight-shade"/><span className="rare-spotlight-badge">✦ Spotlight</span><span className="rare-featured-copy"><strong>{rareSpotlight.name}</strong>{rareSpotlight.size && <small>{rareSpotlight.size}</small>}<b>{formatPrice(rareSpotlight.priceAmount, rareSpotlight.currency)} <i>View plush →</i></b></span></Link>
+          <div className="rare-supporting-grid">{rareSupporting.map((product) => <Link href={`/products/${product.slug}`} key={product.slug}><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 700px) 44vw, 24vw"/><span>{product.tags?.includes("rare") && "✦ Rare · New"}</span><strong>{product.name}</strong><b>{formatPrice(product.priceAmount, product.currency)}</b></Link>)}</div>
+        </div>
+      </section>}
+
+      <ProductShelf className="home-live-shelf" id="new-arrivals" eyebrow="Just landed" title="Just landed" description="The newest plush on Ponyo. Swipe to see them all." products={arrivals} href="/collections/new-arrivals" linkLabel="See all →" rail compact />
+      <ProductShelf className="home-live-shelf" id="more-plush" eyebrow="Trending now" title="More plush to discover" description="A fresh mix from across the Ponyo catalog." products={allTrending} href="/collections/all" linkLabel="See all →" />
+      <RecentlyViewed products={products} />
+
+      <AnimalTabs products={products} />
+
+      <section className="lifestyle-break">
+        <Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-6.png?v=1793843378" alt="A pile of plush friends on a cosy pastel bed" fill sizes="100vw" />
+        <div><span aria-hidden="true">🧸</span><h2>Every plush has a story. Find yours.</h2><Link href="/shop">Shop all plush →</Link></div>
+      </section>
+
+      <section className="size-guide store-container" id="sizes">
+        <header><h2>How big is big?</h2><p>From pocket pals to room-filling giants. Tap a size to shop it.</p></header>
+        <div className="size-guide-tiles">
+          {[{ name: "Small", range: "Under 25 cm", image: images.chick, size: "Small" }, { name: "Medium", range: "25–45 cm", image: images.bear, size: "Medium" }, { name: "Large", range: "45–70 cm", image: images.dog, size: "Large" }, { name: "XL", range: "70 cm +", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376", size: "XL" }].map((tile) => <Link href={`/collections/all?filter.p.m.ponyo.size_tier=${tile.size}`} key={tile.name}><span><Image src={tile.image} alt="" fill sizes="(max-width: 640px) 30vw, 230px" /></span><strong>{tile.name}</strong><small>{tile.range}</small></Link>)}
+        </div>
+      </section>
+
+      <section className="domina-band" id="domina">
+        <div className="domina-band-copy"><span className="domina-eyebrow">DOMINA BY PONYO</span><h2>Room for Something Extraordinary.</h2><p>Meet Domina XL — oversized plush companions to bring comfort, character, and a little wonder into your space.</p><Link href="/pages/domina-xl">Shop giant plush →</Link></div>
+        <figure><div className="domina-band-image"><Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" alt="A person holding an oversized cream bunny plush to show its real-world scale" fill sizes="(max-width: 767px) 90vw, 560px"/></div><figcaption>A plush with presence.</figcaption></figure>
+      </section>
+
+      <ProductShelf className="home-live-shelf" id="domina-products" eyebrow="Big plush, memorable presence" title="XL Goodies" products={domina} href="/collections/domina-xl" linkLabel="See all →" />
+      <ProductShelf className="home-live-shelf premium-picks" id="most-loved" eyebrow="Premium Picks" title="Premium Picks" description="A handpicked mix of distinctive faces, colors, and character." products={premium} href="/collections/premium" linkLabel="See all →" />
+
+      <section className="quick-faq store-container">
+        <header><div><h2>Quick answers</h2><p>New to Ponyo? Here is what shoppers ask most.</p></div><Link href="/pages/faq">All FAQs →</Link></header>
+        <div className="quick-faq-list">{[[faq.ordering_q1, faq.ordering_a1], [faq.shipping_q2, faq.shipping_a2], [faq.sizes_q1, faq.sizes_a1]].map(([question, answer]) => <details key={question}><summary>{question}<span>+</span></summary><p>{answer}</p></details>)}</div>
+      </section>
+
+      <HomeInterestForms />
+    </SiteFrame>
   );
 }

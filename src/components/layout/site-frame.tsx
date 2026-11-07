@@ -1,17 +1,25 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { SiteHeader } from "@/components/layout/site-header";
+import { NewsletterPanel } from "@/components/layout/newsletter-panel";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { ShopifyCartProvider } from "@/components/layout/shopify-cart-provider";
 
-export function SiteFrame({ children }: { children: ReactNode }) {
+export function SiteFrame({ children, className = "", showNewsletter }: { children: ReactNode; className?: string; showNewsletter?: boolean }) {
+  const shouldShowNewsletter = showNewsletter ?? (
+    !className.includes("product-page")
+    && !className.includes("cart-page")
+    && !className.includes("checkout-page")
+    && !className.includes("account")
+    && !className.includes("wishlist")
+    && !className.includes("orders")
+  );
   return (
     <>
       <SiteHeader />
-      <main className="section-wrap page-shell">{children}</main>
-      <footer className="site-footer section-wrap">
-        <Link href="/" className="wordmark">ponyo<span>®</span></Link>
-        <p>Teman kecil, cerita besar.</p>
-        <span>© {new Date().getFullYear()} Ponyo</span>
-      </footer>
+      <ShopifyCartProvider />
+      <main className={`store-main ${className}`.trim()} id="main-content">{children}</main>
+      {shouldShowNewsletter && <NewsletterPanel />}
+      <SiteFooter />
     </>
   );
 }

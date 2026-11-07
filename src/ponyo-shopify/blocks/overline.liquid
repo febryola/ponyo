@@ -1,0 +1,43 @@
+{% doc %}
+  Renders overline text with a fixed typography style.
+  Body content is composed via `{{ content }}`. Tailwind utilities use the
+  stock Tailwind sizes and the merchant-configurable font families.
+
+  @param {string} [tag] - HTML element. Default: p.
+  @param {string} [class] - Additional Tailwind utilities appended after the typography utilities.
+  @param {string} [attributes] - Additional HTML attributes passed through to the root element.
+
+  @category typography
+  @renders h1|h2|h3|h4|h5|h6|p|span
+
+  @example
+  {% block 'overline' %}Example overline{% endblock %}
+{% enddoc %}
+
+{%- liquid
+  assign typography_class = 'font-body text-xs font-medium uppercase tracking-wider text-pretty'
+  assign tag     = tag     | default: 'p'
+  assign color   = color
+
+  if class != blank
+    assign full_class = typography_class | append: ' ' | append: class
+  else
+    assign full_class = typography_class
+  endif
+-%}
+
+<{{ tag }} class="{{ full_class }}"{% if color != blank %} style="color: {{ color }}"{% endif %}{% if attributes != blank %} {{ attributes }}{% endif %}>{{ content }}</{{ tag }}>
+
+{% schema %}
+{
+  "name": "t:blocks.overline",
+  "settings": [
+    {
+      "type": "color",
+      "id": "color",
+      "label": "t:general.color",
+      "placeholder": "t:general.default"
+    }
+  ]
+}
+{% endschema %}

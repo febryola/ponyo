@@ -1,0 +1,24 @@
+{% doc %}
+  Heart toggle that saves a product to the shopper's wishlist (stored in this
+  browser). State and the header count are kept in sync by assets/ponyo-wishlist.js.
+
+  @param {object} product - The product to save. @required
+  @param {string} [class] - Extra classes for positioning and size.
+  @param {boolean} [with_label] - Show a text label next to the heart.
+
+  @example
+  {% render 'wishlist-button', product: product, class: 'absolute end-2 top-2' %}
+{% enddoc %}
+<button
+  type="button"
+  class="group/heart inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white/90 text-[#4a3530] shadow-[0_2px_10px_rgba(46,33,29,.12)] backdrop-blur-sm hover:bg-white motion-safe:transition motion-safe:active:scale-90 aria-pressed:text-[#e0566b] {% if with_label %}h-11 border-2 border-[#efe1d8] px-4 text-[14px] font-bold shadow-none{% else %}size-9{% endif %} {{ class }}"
+  data-wishlist-toggle="{{ product.handle | escape }}"
+  aria-pressed="false"
+  aria-label="{{ 'wishlist.save' | t }}: {{ product.title | escape }}"
+>
+  <svg viewBox="0 0 24 24" class="size-[18px] motion-safe:transition-transform group-aria-pressed/heart:scale-110" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.5 1.1 5 2.9 1.5-1.8 3-2.9 5-2.9 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2Z" fill="currentColor" fill-opacity="0" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" class="group-aria-pressed/heart:fill-opacity-100"/></svg>
+  {%- if with_label -%}
+    <span class="group-aria-pressed/heart:hidden">{{ 'wishlist.save' | t }}</span>
+    <span class="hidden group-aria-pressed/heart:inline">{{ 'wishlist.saved' | t }}</span>
+  {%- endif -%}
+</button>

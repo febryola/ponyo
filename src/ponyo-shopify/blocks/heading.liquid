@@ -1,0 +1,85 @@
+{% doc %}
+  Renders a heading with five visual sizes. The template controls the semantic HTML tag independently of size.
+  Body content is composed via `{{ content }}`. Tailwind utilities use the
+  stock Tailwind sizes and the merchant-configurable font families.
+  The variant selects a size; class supplies additional styling.
+
+  @param {string} [tag] - HTML element. Default: h2.
+  @param {string} [class] - Additional Tailwind utilities appended after the typography utilities.
+  @param {string} [attributes] - Additional HTML attributes passed through to the root element.
+
+  @category typography
+  @renders h1|h2|h3|h4|h5|h6|p|span
+
+  @example
+  {% block 'heading' %}Example heading{% endblock %}
+{% enddoc %}
+
+{%- liquid
+  assign variant = variant | default: 'lg'
+  assign tag     = tag     | default: 'h2'
+  assign color   = color
+
+  case variant
+    when '2xl'
+      assign typography_class = 'font-heading text-7xl text-pretty'
+    when 'xl'
+      assign typography_class = 'font-heading text-6xl text-pretty'
+    when 'md'
+      assign typography_class = 'font-heading text-4xl text-pretty'
+    when 'sm'
+      assign typography_class = 'font-heading text-3xl text-pretty'
+    else
+      assign typography_class = 'font-heading text-5xl text-pretty'
+  endcase
+
+  if class != blank
+    assign full_class = typography_class | append: ' ' | append: class
+  else
+    assign full_class = typography_class
+  endif
+-%}
+
+<{{ tag }} class="{{ full_class }}"{% if color != blank %} style="color: {{ color }}"{% endif %}{% if attributes != blank %} {{ attributes }}{% endif %}>{{ content }}</{{ tag }}>
+
+{% schema %}
+{
+  "name": "t:blocks.heading",
+  "settings": [
+    {
+      "type": "color",
+      "id": "color",
+      "label": "t:general.color",
+      "placeholder": "t:general.default"
+    },
+    {
+      "type": "select",
+      "id": "variant",
+      "label": "t:general.size",
+      "default": "lg",
+      "options": [
+        {
+          "value": "2xl",
+          "label": "t:variants.typography_size.2xl"
+        },
+        {
+          "value": "xl",
+          "label": "t:variants.typography_size.xl"
+        },
+        {
+          "value": "lg",
+          "label": "t:variants.typography_size.l"
+        },
+        {
+          "value": "md",
+          "label": "t:variants.typography_size.m"
+        },
+        {
+          "value": "sm",
+          "label": "t:variants.typography_size.s"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

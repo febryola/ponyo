@@ -18,6 +18,7 @@ const footerGroups = [
       ["About Ponyo", "/pages/about"],
       ["The Plush Journal", "/blogs/news"],
       ["Request a plush", "/pages/contact"],
+      ["Partner with Ponyo", "/pages/partners"],
     ],
   },
   {
@@ -78,7 +79,6 @@ export function SiteFooter() {
             <Link href="/pages/faq">Terms</Link>
             <Link href="/pages/faq">Shipping</Link>
           </nav>
-          <span>Powered by Shopify</span>
         </div>
       </div>
     </footer>

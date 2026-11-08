@@ -9,7 +9,7 @@ from app.config import settings
 from app.db import get_db
 from app.models import Customer
 from app.rate_limit import enforce_rate_limit
-from app.schemas import AcceptedOut, AuthCredentials, CustomerEnvelope, CustomerOut, PasswordResetRequest, RegisterRequest
+from app.schemas import AcceptedOut, AuthCredentials, CustomerEnvelope, CustomerOut, CustomerProfileOut, PasswordResetRequest, RegisterRequest
 from app.security import clear_session_cookie, get_current_customer, hash_password, set_session_cookie, verify_password
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -45,7 +45,7 @@ async def issue_csrf_token(response: Response) -> dict[str, dict[str, str]]:
 async def register(payload: RegisterRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     check_csrf(request)
     await enforce_rate_limit(request, "register", 5, 3600)
-    normalized_email = payload.email.lower().strip()
+    normalized_email = str(payload.email).lower().strip()
     exists = await db.scalar(select(Customer.id).where(func.lower(Customer.email) == normalized_email))
     if exists:
         raise HTTPException(status_code=409, detail="An account already exists for this email.")
@@ -64,6 +64,15 @@ async def register(payload: RegisterRequest, request: Request, response: Respons
         raise HTTPException(status_code=409, detail="An account already exists for this email.") from None
     await db.refresh(customer)
     set_session_cookie(response, customer.id)
+    response.set_cookie(
+        settings.csrf_cookie_name,
+        secrets.token_urlsafe(32),
+        httponly=False,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        domain=settings.cookie_domain,
+        path="/",
+    )
     return {"data": customer_envelope(customer).model_dump(mode="json")}
 
 
@@ -71,33 +80,46 @@ async def register(payload: RegisterRequest, request: Request, response: Respons
 async def login(payload: AuthCredentials, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     check_csrf(request)
     await enforce_rate_limit(request, "login", 10, 60)
-    customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == payload.email.lower().strip()))
+    customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == str(payload.email).lower().strip()))
     if not customer or not verify_password(payload.password, customer.password_hash):
         raise HTTPException(status_code=401, detail="Email or password is incorrect.")
     set_session_cookie(response, customer.id)
+    response.set_cookie(
+        settings.csrf_cookie_name,
+        secrets.token_urlsafe(32),
+        httponly=False,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        domain=settings.cookie_domain,
+        path="/",
+    )
     return {"data": customer_envelope(customer).model_dump(mode="json")}
 
 
 @router.post("/logout", response_model=dict)
-async def logout(request: Request):
+async def logout(request: Request, response: Response):
     check_csrf(request)
-    response = Response(content='{"data":{"accepted":true}}', media_type="application/json")
     clear_session_cookie(response)
-    return response
+    response.delete_cookie(settings.csrf_cookie_name, domain=settings.cookie_domain, path="/")
+    return {"data": {"accepted": True}}
 
 
 @router.post("/password-reset", response_model=dict)
-async def password_reset(_payload: PasswordResetRequest, request: Request):
+async def password_reset(_payload: PasswordResetRequest, request: Request, db: AsyncSession = Depends(get_db)):
     check_csrf(request)
     await enforce_rate_limit(request, "password-reset", 5, 3600)
-    # TODO: publish a password-reset notification through SES/SQS after the email provider is configured.
-    # Do not reveal whether the account exists.
+    email = str(_payload.email).lower().strip()
+    customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == email))
+    if customer:
+        # TODO: generate a single-use, short-lived reset token and publish it through SES/SQS.
+        # Do not include account existence in the public response.
+        pass
     return {"data": AcceptedOut().model_dump()}
 
 
 @router.get("/me", response_model=dict)
 async def get_me(customer: Customer = Depends(get_current_customer)):
-    return {"data": customer_envelope(customer).model_dump(mode="json")}
+    return {"data": CustomerProfileOut(id=customer.id, firstName=customer.first_name, lastName=customer.last_name, email=customer.email).model_dump(mode="json")}
 
 
 @router.get("/health")

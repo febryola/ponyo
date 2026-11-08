@@ -4,9 +4,9 @@ The storefront is a Next.js client. It must call only the public HTTPS FastAPI A
 
 ## Configuration and security
 
-- Configure `NEXT_PUBLIC_PONYO_API_BASE_URL` to the public API origin, e.g. `https://api.example.com`.
-- The API allows the exact storefront origins in CORS and credentials.
-- Authentication uses Secure, HttpOnly, SameSite cookies. Host the API on the same site (for example `api.ponyo.example`) so the readable `ponyo_csrf` cookie can be shared with the storefront and copied into `X-CSRF-Token` on mutations.
+- Production storefront domain: `https://byponyo.com`; configure `NEXT_PUBLIC_PONYO_API_BASE_URL` as `https://api.byponyo.com` after the API is deployed.
+- The API allows the exact storefront origin `https://byponyo.com` in credentialed CORS.
+- Authentication uses Secure, HttpOnly, SameSite cookies. Host the API at `api.byponyo.com` and set `COOKIE_DOMAIN=.byponyo.com` so the readable `ponyo_csrf` cookie can be shared with the storefront and copied into `X-CSRF-Token` on mutations.
 - Never put payment secret keys, AWS credentials, database URLs, supplier credentials, or service tokens in `NEXT_PUBLIC_*` variables.
 - Payment entry stays on a Stripe/Adyen hosted checkout or provider SDK. The storefront never sends raw card numbers to Ponyo APIs.
 - All API errors use `{ "error": { "code": "...", "message": "...", "request_id": "..." } }`.
@@ -26,6 +26,7 @@ The storefront is a Next.js client. It must call only the public HTTPS FastAPI A
 | GET | `/v1/orders` | current customer's order history |
 | GET | `/v1/orders/{order_id}` | authorized order details and fulfillment status |
 | POST | `/v1/checkout/sessions` | validate inventory/prices, reserve stock, create Stripe/Adyen hosted session, return redirect URL |
+| GET | `/v1/checkout/sessions/{session_id}` | limited guest receipt lookup using the unguessable Stripe Checkout Session ID |
 | POST | `/v1/newsletter/subscriptions` | subscribe an email to marketing updates |
 | POST | `/v1/contact/requests` | contact or plush request form |
 
@@ -42,6 +43,7 @@ Register accepts `{ "firstName", "lastName", "email", "password", "marketingOptI
 ### Checkout request/response
 
 `POST /v1/checkout/sessions` accepts `{ "email", "shippingAddress": { "firstName", "lastName", "address1", "city", "postalCode", "countryCode" }, "shippingMethod", "paymentMethod": "card" | "paypal" | "apple_pay", "items": [{ "variantId", "quantity" }], "successUrl", "cancelUrl" }`. The backend chooses Stripe or Adyen from server configuration, recalculates prices, and validates inventory; client-submitted prices are ignored. It responds `{ "data": { "checkoutUrl", "orderId", "expiresAt" } }`. The client redirects to the HTTPS `checkoutUrl`; webhook processing confirms payment and updates fulfillment asynchronously.
+`POST /v1/checkout/sessions` accepts `{ "email", "shippingAddress": { "firstName", "lastName", "address1", "city", "postalCode", "countryCode" }, "shippingMethod", "paymentMethod": "card" | "paypal" | "apple_pay", "items": [{ "variantId", "quantity" }], "successUrl", "cancelUrl" }`. The backend currently supports Stripe card checkout, recalculates prices, and validates/reserves inventory; client-submitted prices are ignored. It responds `{ "data": { "checkoutUrl", "orderId", "expiresAt" } }`. The client redirects to the HTTPS `checkoutUrl`; webhook processing verifies amount/session/signature and updates payment state. The hosted success URL includes Stripe's `{CHECKOUT_SESSION_ID}` placeholder; the receipt endpoint returns only a non-PII summary.
 
 ## Infrastructure ownership
 

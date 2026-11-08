@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatPrice } from "@/lib/utils/format-price";
+import { useLocalization } from "@/components/layout/localization-provider";
 import { saveWishlist, useWishlistHandles } from "@/lib/wishlist";
 import type { Product } from "@/types/product";
 
 export function ProductPurchasePanel({ product }: { product: Product }) {
+  const { formatPrice } = useLocalization();
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState(product.variantId ?? product.variants?.[0]?.id ?? "");
   const savedHandles = useWishlistHandles();

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
@@ -9,13 +10,15 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.db import engine
-from app.routers import auth, checkout, content, orders, products, webhooks
+from app.outbox import publish_outbox_events
+from app.routers import auth, checkout, content, localization, orders, products, webhooks
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.environment = settings.environment
     app.state.redis = None
+    outbox_task = None
     try:
         from redis.asyncio import Redis
 
@@ -26,7 +29,17 @@ async def lifespan(app: FastAPI):
         if settings.environment == "production":
             raise RuntimeError("Redis must be available in production for API rate limits.") from None
         app.state.redis = None
-    yield
+    if settings.sqs_order_events_url:
+        outbox_task = asyncio.create_task(publish_outbox_events())
+    try:
+        yield
+    finally:
+        if outbox_task:
+            outbox_task.cancel()
+            try:
+                await outbox_task
+            except asyncio.CancelledError:
+                pass
     if app.state.redis is not None:
         await app.state.redis.aclose()
     await engine.dispose()
@@ -49,6 +62,8 @@ async def add_request_id(request: Request, call_next):
     request.state.request_id = request_id
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -72,6 +87,7 @@ async def internal_error_handler(request: Request, _error: Exception):
 
 app.include_router(auth.router, prefix="/v1")
 app.include_router(products.router, prefix="/v1")
+app.include_router(localization.router, prefix="/v1")
 app.include_router(orders.router, prefix="/v1")
 app.include_router(checkout.router, prefix="/v1")
 app.include_router(content.router, prefix="/v1")

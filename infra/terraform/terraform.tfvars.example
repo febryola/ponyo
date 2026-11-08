@@ -1,0 +1,15 @@
+aws_region     = "ap-northeast-1"
+project_name   = "ponyo"
+environment    = "staging"
+api_domain     = "api.byponyo.com"
+frontend_origin = "https://byponyo.com"
+cookie_domain  = ".byponyo.com"
+certificate_arn = "arn:aws:acm:ap-northeast-1:000000000000:certificate/replace-me"
+route53_zone_id = "Z0000000000000000000"
+container_image = "000000000000.dkr.ecr.ap-northeast-1.amazonaws.com/ponyo/api:replace-with-immutable-tag"
+jwt_secret_arn = "arn:aws:secretsmanager:ap-northeast-1:000000000000:secret:ponyo/staging/jwt-replace"
+stripe_secret_key_arn = "arn:aws:secretsmanager:ap-northeast-1:000000000000:secret:ponyo/staging/stripe-secret-replace"
+stripe_webhook_secret_arn = "arn:aws:secretsmanager:ap-northeast-1:000000000000:secret:ponyo/staging/stripe-webhook-replace"
+redis_auth_token = "replace-with-a-random-32-character-alphanumeric-value"
+desired_api_count = 1
+enable_deletion_protection = false

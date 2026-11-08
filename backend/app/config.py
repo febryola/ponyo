@@ -1,5 +1,6 @@
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import quote_plus
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,7 +14,15 @@ class Settings(BaseSettings):
     api_port: int = 8000
     frontend_origins: str = "http://localhost:3000,http://localhost:3003"
     database_url: str = "postgresql+asyncpg://ponyo:ponyo@localhost:5433/ponyo"
+    database_host: str | None = None
+    database_port: int = 5432
+    database_name: str | None = None
+    database_user: str | None = None
+    database_password: str | None = None
     redis_url: str = "redis://localhost:6379/0"
+    redis_host: str | None = None
+    redis_port: int = 6379
+    redis_password: str | None = None
 
     jwt_secret: str = "development-only-change-me-32-characters"
     jwt_issuer: str = "ponyo-api"
@@ -44,11 +53,22 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_security(self):
+        if self.cookie_domain == "":
+            self.cookie_domain = None
+        if self.database_host and self.database_name and self.database_user and self.database_password:
+            self.database_url = (
+                f"postgresql+asyncpg://{quote_plus(self.database_user)}:{quote_plus(self.database_password)}"
+                f"@{self.database_host}:{self.database_port}/{quote_plus(self.database_name)}?ssl=require"
+            )
+        if self.redis_host and self.redis_password:
+            self.redis_url = f"rediss://:{quote_plus(self.redis_password)}@{self.redis_host}:{self.redis_port}/0"
         if self.environment == "production":
             if self.jwt_secret == "development-only-change-me-32-characters":
                 raise ValueError("JWT_SECRET must be set to a unique production secret.")
             if not self.cookie_secure:
                 raise ValueError("COOKIE_SECURE must be true in production.")
+            if not self.cookie_domain:
+                raise ValueError("COOKIE_DOMAIN must be the shared storefront/API parent domain in production.")
             if not self.frontend_origins.strip():
                 raise ValueError("FRONTEND_ORIGINS must contain the deployed storefront origin.")
             if "*" in self.frontend_origins:
@@ -57,6 +77,10 @@ class Settings(BaseSettings):
                 raise ValueError("SameSite=None cookies require COOKIE_SECURE=true.")
             if not self.stripe_secret_key or not self.stripe_webhook_secret:
                 raise ValueError("Stripe secret and webhook keys are required in production.")
+            if not self.sqs_order_events_url:
+                raise ValueError("SQS_ORDER_EVENTS_URL is required in production for transactional event delivery.")
+            if "localhost" in self.database_url or "localhost" in self.redis_url:
+                raise ValueError("Production database and Redis endpoints must be explicitly configured.")
         return self
 
 

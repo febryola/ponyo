@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useCartItems, saveCart } from "@/lib/cart";
 import { saveLocalOrder } from "@/lib/local-orders";
-import { formatPrice } from "@/lib/utils/format-price";
+import { useLocalization } from "@/components/layout/localization-provider";
 import { ApiNotConfiguredError, ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 
 type CheckoutStep = 0 | 1 | 2;
@@ -14,22 +14,30 @@ type PaymentMethod = "card" | "paypal" | "apple";
 const shippingOptions = [
   { id: "standard", name: "Standard delivery", detail: "5–8 business days", price: 0 },
   { id: "express", name: "Express delivery", detail: "2–4 business days", price: 1200 },
-] as const;
+] as const
 
 export function CheckoutPageClient() {
+  const { currency, country, deliveryCountries, formatPrice, convertMajorAmount } = useLocalization();
   const items = useCartItems();
   const [step, setStep] = useState<CheckoutStep>(0);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [shipping, setShipping] = useState<(typeof shippingOptions)[number]["id"]>("standard");
   const [email, setEmail] = useState("");
-  const [delivery, setDelivery] = useState({ firstName: "", lastName: "", address: "", city: "", postal: "", country: "Japan" });
-  const [placedOrder, setPlacedOrder] = useState<string | null>(null);
+  const [delivery, setDelivery] = useState({ firstName: "", lastName: "", address: "", city: "", postal: "", country: deliveryCountries.find((item) => item.code === country)?.label ?? "Japan" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const currency = items[0]?.currency ?? "JPY";
-  const deliveryPrice = shippingOptions.find((option) => option.id === shipping)?.price ?? 0;
+  const catalogCurrency = items[0]?.currency ?? "JPY";
+  const subtotal = convertMajorAmount(items.reduce((sum, item) => sum + item.price * item.qty, 0), catalogCurrency);
+  const deliveryPrice = convertMajorAmount(shippingOptions.find((option) => option.id === shipping)?.price ?? 0, "JPY");
   const total = subtotal + deliveryPrice;
+
+  const paymentOptions = PONYO_API_BASE_URL
+    ? [{ id: "card" as const, label: "Credit or debit card", detail: "Pay securely with Stripe" }]
+    : [
+        { id: "card" as const, label: "Credit or debit card", detail: "Preview only" },
+        { id: "paypal" as const, label: "PayPal", detail: "Preview only" },
+        { id: "apple" as const, label: "Apple Pay", detail: "Preview only" },
+      ];
 
   function continueToPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,16 +69,17 @@ export function CheckoutPageClient() {
             address1: delivery.address,
             city: delivery.city,
             postalCode: delivery.postal,
-            countryCode: delivery.country === "United States" ? "US" : delivery.country === "United Kingdom" ? "GB" : delivery.country === "Australia" ? "AU" : delivery.country === "Canada" ? "CA" : "JP",
+            countryCode: deliveryCountries.find((item) => item.label === delivery.country)?.code ?? "JP",
           },
           shippingMethod: shipping,
           paymentMethod: paymentMethod === "apple" ? "apple_pay" : paymentMethod,
+          currency,
           items: checkoutItems.filter((item): item is { variantId: string; quantity: number } => item !== null),
-          successUrl: `${window.location.origin}/orders?checkout=success`,
+          successUrl: `${window.location.origin}/orders?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${window.location.origin}/checkout?checkout=cancelled`,
         });
         const checkoutUrl = new URL(session.checkoutUrl);
-        if (checkoutUrl.protocol !== "https:" && checkoutUrl.origin !== window.location.origin) throw new Error("The payment service returned an invalid checkout URL.");
+        if (checkoutUrl.protocol !== "https:") throw new Error("The payment service returned an invalid checkout URL.");
         window.location.assign(checkoutUrl.toString());
       } catch (error) {
         setApiError(error instanceof ApiNotConfiguredError ? "Checkout service is not configured." : error instanceof Error ? error.message : "Unable to start checkout.");
@@ -90,24 +99,10 @@ export function CheckoutPageClient() {
       deliveryAddress: `${delivery.firstName} ${delivery.lastName}, ${delivery.address}, ${delivery.city} ${delivery.postal}, ${delivery.country}`,
       total,
       currency,
-      items,
+      items: items.map((item) => ({ ...item, price: convertMajorAmount(item.price, item.currency), currency })),
     });
     saveCart([]);
     window.dispatchEvent(new CustomEvent("ponyo:local-cart-update", { detail: [] }));
-    setPlacedOrder(id);
-  }
-
-  if (placedOrder) {
-    return (
-      <section className="checkout-complete" aria-labelledby="checkout-complete-title">
-        <span className="checkout-complete-icon" aria-hidden="true">✓</span>
-        <p className="account-auth-eyebrow">ORDER CONFIRMED</p>
-        <h1 id="checkout-complete-title">Your plush is on its way.</h1>
-        <p>Your preview order <strong>{placedOrder}</strong> has been saved on this device.</p>
-        <div><Link className="shop-button shop-button-orange" href="/orders">View order history <b>→</b></Link><Link className="checkout-back-link" href="/collections/all">Continue shopping</Link></div>
-        <small>This is a frontend checkout preview. No payment was collected.</small>
-      </section>
-    );
   }
 
   if (items.length === 0) {
@@ -125,7 +120,7 @@ export function CheckoutPageClient() {
     <div className="checkout-flow">
       <div className="checkout-flow-heading">
         <div><p className="eyebrow">A LITTLE BUNDLE OF JOY</p><h1>Checkout</h1></div>
-        <span className="checkout-secure-note"><span aria-hidden="true">♧</span> Secure checkout preview</span>
+        <span className="checkout-secure-note"><span aria-hidden="true">♧</span> {PONYO_API_BASE_URL ? "Secure Stripe checkout" : "Secure checkout preview"}</span>
       </div>
 
       <ol className="checkout-steps" aria-label="Checkout steps">
@@ -147,11 +142,11 @@ export function CheckoutPageClient() {
               </div>
               <label>Address<input name="address" autoComplete="street-address" placeholder="Street address" value={delivery.address} onChange={(event) => setDelivery({ ...delivery, address: event.target.value })} required /></label>
               <div className="checkout-field-grid checkout-field-grid-city"><label>City<input name="city" autoComplete="address-level2" placeholder="City" value={delivery.city} onChange={(event) => setDelivery({ ...delivery, city: event.target.value })} required /></label><label>Postal code<input name="postal" autoComplete="postal-code" placeholder="Postal code" value={delivery.postal} onChange={(event) => setDelivery({ ...delivery, postal: event.target.value })} required /></label></div>
-              <label>Country or region<select name="country" value={delivery.country} onChange={(event) => setDelivery({ ...delivery, country: event.target.value })}><option>Japan</option><option>United States</option><option>United Kingdom</option><option>Australia</option><option>Canada</option></select></label>
+              <label>Country or region<select name="country" value={delivery.country} onChange={(event) => setDelivery({ ...delivery, country: event.target.value })}>{deliveryCountries.map((item) => <option key={item.code} value={item.label}>{item.label}</option>)}</select></label>
             </section>
             <section className="checkout-form-section">
               <div className="checkout-section-heading"><span>03</span><div><h2>Delivery method</h2><p>Choose how quickly your plush should travel.</p></div></div>
-              <div className="checkout-choice-list">{shippingOptions.map((option) => <label className={`checkout-choice${shipping === option.id ? " is-selected" : ""}`} key={option.id}><input type="radio" name="shipping" value={option.id} checked={shipping === option.id} onChange={() => setShipping(option.id)} /><span><b>{option.name}</b><small>{option.detail}</small></span><strong>{option.price ? formatPrice(option.price, currency) : "Complimentary"}</strong></label>)}</div>
+              <div className="checkout-choice-list">{shippingOptions.map((option) => <label className={`checkout-choice${shipping === option.id ? " is-selected" : ""}`} key={option.id}><input type="radio" name="shipping" value={option.id} checked={shipping === option.id} onChange={() => setShipping(option.id)} /><span><b>{option.name}</b><small>{option.detail}</small></span><strong>{option.price ? formatPrice(option.price, "JPY") : "Complimentary"}</strong></label>)}</div>
             </section>
             <button type="submit" className="checkout-primary-button">Continue to payment <span aria-hidden="true">→</span></button>
           </form>}
@@ -160,17 +155,15 @@ export function CheckoutPageClient() {
             <section className="checkout-form-section">
               <div className="checkout-section-heading"><span>04</span><div><h2>Payment method</h2><p>Choose a payment option for this preview.</p></div></div>
               <div className="checkout-choice-list checkout-payment-list">
-                <label className={`checkout-choice${paymentMethod === "card" ? " is-selected" : ""}`}><input type="radio" name="payment" checked={paymentMethod === "card"} onChange={() => setPaymentMethod("card")} /><span><b>Credit or debit card</b><small>Visa · Mastercard · Amex</small></span><span className="checkout-payment-icons">VISA&nbsp; MC</span></label>
-                <label className={`checkout-choice${paymentMethod === "paypal" ? " is-selected" : ""}`}><input type="radio" name="payment" checked={paymentMethod === "paypal"} onChange={() => setPaymentMethod("paypal")} /><span><b>PayPal</b><small>Pay with your PayPal account</small></span><strong className="payment-wordmark paypal-wordmark">PayPal</strong></label>
-                <label className={`checkout-choice${paymentMethod === "apple" ? " is-selected" : ""}`}><input type="radio" name="payment" checked={paymentMethod === "apple"} onChange={() => setPaymentMethod("apple")} /><span><b>Apple Pay</b><small>Quick and secure checkout</small></span><strong className="payment-wordmark">Pay</strong></label>
+                {paymentOptions.map((option) => <label className={`checkout-choice${paymentMethod === option.id ? " is-selected" : ""}`} key={option.id}><input type="radio" name="payment" checked={paymentMethod === option.id} onChange={() => setPaymentMethod(option.id)} /><span><b>{option.label}</b><small>{option.detail}</small></span>{option.id === "card" ? <span className="checkout-payment-icons">VISA&nbsp; MC</span> : <strong className="payment-wordmark">{option.id === "paypal" ? "PayPal" : "Pay"}</strong>}</label>)}
               </div>
-              <p className="checkout-preview-disclaimer">Payment details are entered on the secure payment provider page. This store never handles card numbers.</p>
+              <p className="checkout-preview-disclaimer">Payment details are entered on the secure Stripe checkout page. This store never handles card numbers.</p>
             </section>
             <div className="checkout-step-actions"><button type="button" className="checkout-secondary-button" onClick={() => setStep(0)}>← Back to delivery</button><button type="submit" className="checkout-primary-button">Review order <span aria-hidden="true">→</span></button></div>
           </form>}
 
           {step === 2 && <section className="checkout-review-panel">
-            <div className="checkout-section-heading"><span>05</span><div><h2>Review your order</h2><p>Everything looks good? Place your local preview order.</p></div></div>
+            <div className="checkout-section-heading"><span>05</span><div><h2>Review your order</h2><p>{PONYO_API_BASE_URL ? "Confirm your details, then continue to secure payment." : "Everything looks good? Place your local preview order."}</p></div></div>
             <div className="checkout-review-block"><div><strong>Contact</strong><button type="button" onClick={() => setStep(0)}>Edit</button></div><p>{email}</p></div>
             <div className="checkout-review-block"><div><strong>Delivery</strong><button type="button" onClick={() => setStep(0)}>Edit</button></div><p>{delivery.firstName} {delivery.lastName}<br />{delivery.address}<br />{delivery.city} {delivery.postal}, {delivery.country}<br />{shippingOptions.find((option) => option.id === shipping)?.name}</p></div>
             <div className="checkout-review-block"><div><strong>Payment</strong><button type="button" onClick={() => setStep(1)}>Edit</button></div><p>{paymentMethod === "card" ? "Credit or debit card" : paymentMethod === "paypal" ? "PayPal" : "Apple Pay"}</p></div>

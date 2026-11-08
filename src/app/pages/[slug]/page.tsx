@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFrame } from "@/components/layout/site-frame";
 import { LocalContactForm } from "@/components/layout/local-store-forms";
+import { PartnerInquiryForm } from "@/components/layout/partner-inquiry-form";
 import { ProductGrid } from "@/components/product/product-grid";
 import { getProducts } from "@/services/product.service";
 import locale from "@/ponyo-shopify/locales/en.default.json";
@@ -32,6 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (slug === "about") return { title: about.title, description: about.intro };
   if (slug === "domina-xl") return { title: "Domina XL", description: domina.sub };
   if (slug === "contact") return { title: "Contact Ponyo" };
+  if (slug === "partners") return { title: "Partner with Ponyo", description: "Share your plush collection with the Ponyo community." };
   return { title: "Ponyo" };
 }
 
@@ -63,6 +65,27 @@ function ContactPage() {
   return <div className="store-container contact-page"><Breadcrumb title="Contact Ponyo"/><div className="contact-layout"><div><h1>How can we help?</h1><p>Questions about an order, delivery, or finding a plush? Send us a note and the Ponyo team will get back to you.</p></div><LocalContactForm /></div></div>;
 }
 
+function PartnerPage() {
+  return (
+    <div className="store-container contact-page partner-page">
+      <Breadcrumb title="Partner with Ponyo" />
+      <section className="partner-page-hero">
+        <span className="account-auth-eyebrow">MADE FOR FOREVER PLUSH</span>
+        <h1>Let’s make room for your creations.</h1>
+        <p>We partner with thoughtful plush makers and character brands. Tell us about your work and what you have in mind.</p>
+      </section>
+      <section className="partner-page-content" aria-labelledby="partner-form-title">
+        <div className="partner-page-note">
+          <h2 id="partner-form-title">Start a conversation</h2>
+          <p>Share your product range, studio, and partnership idea. Your inquiry is saved directly to Ponyo’s local system.</p>
+          <ul><li>Independent makers and established brands welcome</li><li>Limited editions and distinctive characters are a plus</li><li>Include a website or social link so we can see your work</li></ul>
+        </div>
+        <PartnerInquiryForm />
+      </section>
+    </div>
+  );
+}
+
 async function DominaPage() {
   const products = (await getProducts()).filter((product) => product.tags?.includes("domina-xl"));
   return <div className="domina-page">
@@ -77,6 +100,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
   if (slug === "about") return <SiteFrame className="store-page"><AboutPage/></SiteFrame>;
   if (slug === "faq") return <SiteFrame className="store-page"><FaqPage/></SiteFrame>;
   if (slug === "contact") return <SiteFrame className="store-page"><ContactPage/></SiteFrame>;
+  if (slug === "partners") return <SiteFrame className="store-page"><PartnerPage /></SiteFrame>;
   if (slug === "domina-xl") return <SiteFrame className="store-page"><DominaPage /></SiteFrame>;
   notFound();
 }

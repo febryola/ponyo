@@ -64,6 +64,10 @@ class CustomerOut(BaseModel):
     email: EmailStr
 
 
+class CustomerProfileOut(CustomerOut):
+    pass
+
+
 class CustomerEnvelope(BaseModel):
     customer: CustomerOut
 
@@ -120,6 +124,7 @@ class CheckoutSessionRequest(BaseModel):
     shippingAddress: CheckoutAddress
     shippingMethod: str = Field(min_length=1, max_length=64)
     paymentMethod: Literal["card", "paypal", "apple_pay"]
+    currency: str = Field(default="JPY", min_length=3, max_length=3)
     items: list[CheckoutItem] = Field(min_length=1, max_length=40)
     successUrl: str
     cancelUrl: str
@@ -129,6 +134,16 @@ class CheckoutSessionOut(BaseModel):
     checkoutUrl: str
     orderId: UUID
     expiresAt: datetime
+
+
+class CheckoutReceiptOut(BaseModel):
+    orderId: UUID
+    orderNumber: str
+    status: str
+    paymentStatus: str
+    fulfillmentStatus: str
+    totalAmount: int
+    currency: str
 
 
 class NewsletterRequest(BaseModel):

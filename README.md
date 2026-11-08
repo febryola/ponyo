@@ -1,6 +1,6 @@
 # Ponyo storefront preview
 
-A responsive Next.js storefront that uses the provided `src/ponyo-shopify` theme as a **visual reference**. It runs without Shopify credentials or a Supabase project. For local-only design review, catalog/cart/orders/forms use browser preview data. To connect the storefront to the planned AWS FastAPI backend, set the public API origin described in [docs/backend-api-contract.md](docs/backend-api-contract.md).
+A responsive Next.js storefront and FastAPI backend in one repository. The provided `src/ponyo-shopify` theme is a **visual reference**; Shopify is not the runtime backend. The storefront still runs in local preview mode without AWS or Stripe credentials. Backend endpoints, local services, and AWS foundation are in [backend/README.md](backend/README.md) and [infra/terraform/README.md](infra/terraform/README.md).
 
 ## Run locally
 
@@ -9,7 +9,7 @@ A responsive Next.js storefront that uses the provided `src/ponyo-shopify` theme
 
 Install dependencies and run the development server with `npm run dev`. Open http://localhost:3000. No environment variables are required for preview mode.
 
-Optional backend connection: copy `.env.example` to `.env.local`, set `NEXT_PUBLIC_PONYO_API_BASE_URL` to the HTTPS FastAPI API origin, and set `PONYO_MEDIA_HOST` to the exact S3/CloudFront hostname if the API returns images from it. The frontend client contract is documented in [docs/backend-api-contract.md](docs/backend-api-contract.md). Never add AWS, database, supplier, or payment secrets to the frontend or to a `NEXT_PUBLIC_` variable. The actual API implementation must be deployed separately in the AWS backend.
+Optional backend connection: start the local backend from [backend/README.md](backend/README.md), then copy the root `.env.example` to `.env.local` and set `NEXT_PUBLIC_PONYO_API_BASE_URL` to `http://localhost:8000`. For deployment, use the HTTPS API URL output by Terraform and the exact `PONYO_MEDIA_HOST` if media is served from an allowed CDN. The frontend contract is documented in [docs/backend-api-contract.md](docs/backend-api-contract.md). Never add AWS, database, supplier, or payment secrets to the frontend or to a `NEXT_PUBLIC_` variable.
 
 ## Main routes
 
@@ -21,7 +21,7 @@ Optional backend connection: copy `.env.example` to `.env.local`, set `NEXT_PUBL
 - `/blogs/news` — Plush Journal landing page.
 - `/pages/about`, `/pages/faq`, `/pages/contact`, `/pages/domina-xl` — storefront information pages.
 
-All UI changes should be compared against the Liquid/theme files in `src/ponyo-shopify`; treat that folder as read-only reference. Stripe/Adyen, inventory, supplier integrations, persistence, and payment webhooks are backend responsibilities described in the API contract; this repository only contains the frontend client adapter.
+All UI changes should be compared against the Liquid/theme files in `src/ponyo-shopify`; treat that folder as read-only reference. The FastAPI backend now implements catalog, account/session, order history, checkout session, Stripe webhook, newsletter, and contact APIs. Real fulfillment queues, supplier integrations, email delivery, S3 upload/signing, and production AWS rollout still require configuration and additional work before accepting real payments.
 
 ## Validate
 

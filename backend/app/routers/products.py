@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
-from app.models import Product
+from app.models import Product, ProductVariant
 from app.schemas import ProductOut, VariantOut
 
 router = APIRouter(prefix="/products", tags=["catalog"])
@@ -24,7 +24,7 @@ def product_response(product: Product) -> ProductOut:
         if variant.active
     ]
     default_variant = next((variant for variant in variants if variant.availability == "available"), variants[0] if variants else None)
-    availability = "available" if default_variant and default_variant.availability == "available" else product.availability
+    availability = "available" if default_variant and default_variant.availability == "available" else "unavailable"
     return ProductOut(
         id=str(product.id),
         slug=product.slug,
@@ -44,7 +44,7 @@ def product_response(product: Product) -> ProductOut:
         sizeTier=product.size_tier,
         dimensions=product.dimensions,
         dispatchTime=product.dispatch_time,
-        variantId=default_variant.id if default_variant else None,
+        variantId=str(default_variant.id) if default_variant else None,
         variants=variants,
     )
 
@@ -69,16 +69,29 @@ async def list_products(
         query = query.where(Product.category_name.ilike(category.strip()))
     if size:
         query = query.where(Product.size_tier.ilike(size.strip()))
-    if min_price is not None:
-        query = query.where(Product.price_amount >= min_price)
-    if max_price is not None:
-        query = query.where(Product.price_amount <= max_price)
+    variant_price = select(func.min(ProductVariant.price_amount)).where(
+        ProductVariant.product_id == Product.id,
+        ProductVariant.active.is_(True),
+        ProductVariant.stock_quantity > 0,
+    ).correlate(Product).scalar_subquery()
+    if min_price is not None or max_price is not None:
+        price_conditions = [ProductVariant.active.is_(True), ProductVariant.stock_quantity > 0]
+        if min_price is not None:
+            price_conditions.append(ProductVariant.price_amount >= min_price)
+        if max_price is not None:
+            price_conditions.append(ProductVariant.price_amount <= max_price)
+        eligible_product = select(ProductVariant.id).where(
+            ProductVariant.product_id == Product.id,
+            *price_conditions,
+        ).exists()
+        query = query.where(eligible_product)
 
     sort_columns = {
-        "price-ascending": Product.price_amount.asc(),
-        "price-descending": Product.price_amount.desc(),
+        "price-ascending": variant_price.asc().nulls_last(),
+        "price-descending": variant_price.desc().nulls_last(),
         "title-descending": Product.name.desc(),
         "created-descending": Product.created_at.desc(),
+        # Until paid order analytics are populated, newest is the deterministic merchandising fallback.
         "best-selling": Product.created_at.desc(),
     }
     query = query.order_by(sort_columns.get(sort, Product.name.asc()))

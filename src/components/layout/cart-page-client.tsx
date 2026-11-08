@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { saveCart, useCartItems, type CartItem } from "@/lib/cart";
-import { formatPrice } from "@/lib/utils/format-price";
+import { useLocalization } from "@/components/layout/localization-provider";
 import { LocalCheckoutLink } from "@/components/layout/local-checkout-link";
 
 export function CartPageClient() {
+  const { currency, formatPrice, convertMajorAmount } = useLocalization();
   const items = useCartItems();
-  const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const currency = items[0]?.currency ?? "JPY";
+  const sourceCurrency = items[0]?.currency ?? "JPY";
+  const total = convertMajorAmount(items.reduce((sum, item) => sum + item.price * item.qty, 0), sourceCurrency);
 
   function update(next: CartItem[]) {
     saveCart(next);

@@ -6,15 +6,17 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { saveCart, useCartItems } from "@/lib/cart";
 import { StoreSearch } from "@/components/layout/store-search";
-import { formatPrice } from "@/lib/utils/format-price";
+import { DeliveryRegionBanner } from "@/components/layout/delivery-region-banner";
+import { LocalizationPicker } from "@/components/layout/localization-picker";
+import { useLocalization } from "@/components/layout/localization-provider";
 
 const mainLinks = [
-  { title: "Discover", href: "/" },
-  { title: "Shop All", href: "/collections/all" },
-  { title: "Rare Finds", href: "/collections/rare-finds" },
-  { title: "Premium Plushies", href: "/collections/premium" },
-  { title: "XL Goodies", href: "/collections/domina-xl" },
-  { title: "New Arrivals", href: "/collections/new-arrivals" },
+  { title: "Discover", key: "home.header.discover", href: "/" },
+  { title: "Shop All", key: "home.footer.shop_all", href: "/collections/all" },
+  { title: "Rare Finds", key: "home.footer.rare", href: "/collections/rare-finds" },
+  { title: "Premium Plushies", key: "home.footer.premium", href: "/collections/premium" },
+  { title: "XL Goodies", key: "home.footer.domina", href: "/collections/domina-xl" },
+  { title: "New Arrivals", key: "home.footer.new", href: "/collections/new-arrivals" },
 ] as const;
 
 const animalCategories = [
@@ -27,9 +29,9 @@ const animalCategories = [
 ];
 
 const ticker = [
-  { text: "NEW: DOMINA GIANT PLUSH UP TO 120 CM", href: "/pages/domina-xl" },
-  { text: "JOIN RARE DROP ALERTS AND BE FIRST TO KNOW", href: "/#drops" },
-  { text: "RARE & LIMITED PLUSH, HAND-PICKED FOR YOU", href: "/collections/rare-finds" },
+  { text: "NEW: DOMINA GIANT PLUSH UP TO 120 CM", key: "home.announce_2", href: "/pages/domina-xl" },
+  { text: "JOIN RARE DROP ALERTS AND BE FIRST TO KNOW", key: "home.announce_3", href: "/#drops" },
+  { text: "RARE & LIMITED PLUSH, HAND-PICKED FOR YOU", key: "home.announce_4", href: "/collections/rare-finds" },
 ];
 
 function JellyfishMark({ className = "" }: { className?: string }) {
@@ -47,6 +49,9 @@ function HeartGlyph() {
 }
 function PersonGlyph() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.7"/><path d="M4.5 20c1.5-4 4-6 7.5-6s6 2 7.5 6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>;
+}
+function CategoryGlyph() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2c2.1 0 3.2 2.4 1.8 4.1L12 9.5l-1.8-2.2C8.8 5.6 9.9 3.2 12 3.2ZM20.8 12c0 2.1-2.4 3.2-4.1 1.8L14.5 12l2.2-1.8c1.7-1.4 4.1-.3 4.1 1.8ZM12 20.8c-2.1 0-3.2-2.4-1.8-4.1L12 14.5l1.8 2.2c1.4 1.7.3 4.1-1.8 4.1ZM3.2 12c0-2.1 2.4-3.2 4.1-1.8l2.2 1.8-2.2 1.8C5.6 15.2 3.2 14.1 3.2 12Z" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="#fffaf6"/></svg>;
 }
 
 function useWishlistCount() {
@@ -73,6 +78,7 @@ function useWishlistCount() {
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const { t, formatPrice } = useLocalization();
   const localCart = useCartItems();
   const cart = localCart;
   const headerRef = useRef<HTMLElement>(null);
@@ -82,6 +88,7 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<"root" | "collectibles">("root");
   const [smartHeaderVisible, setSmartHeaderVisible] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [categoryPinned, setCategoryPinned] = useState(false);
   const [categoryHeight, setCategoryHeight] = useState(0);
   const wishlistCount = useWishlistCount();
@@ -89,27 +96,41 @@ export function SiteHeader() {
   const itemCount = cart.reduce((total, item) => total + item.qty, 0);
   const subtotal = cart.reduce((total, item) => total + item.price * item.qty, 0);
   const accountUrl = "/account";
+  const isTopPicksRoute = pathname.startsWith("/collections/premium");
+  const isForYouRoute = pathname.startsWith("/collections/new-arrivals");
+  const isCategoryRoute = pathname === "/collections" || pathname === "/shop" || pathname.startsWith("/shop?") || (pathname.startsWith("/collections/") && !isTopPicksRoute && !isForYouRoute);
+  const pinCompactHeader = pathname !== "/";
+  const pinCompactMobileHeader = pinCompactHeader && isMobileViewport;
 
   useEffect(() => {
-    let lastY = window.scrollY;
+    const root = document.documentElement;
+    const previousScrollBehavior = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    window.scrollTo(0, 0);
+    root.style.scrollBehavior = previousScrollBehavior;
+  }, [pathname]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobileViewport(media.matches);
+    updateViewport();
+    media.addEventListener("change", updateViewport);
+    return () => media.removeEventListener("change", updateViewport);
+  }, []);
+
+  useEffect(() => {
     let ticking = false;
     const update = () => {
       const y = window.scrollY;
       const header = headerRef.current;
       const slot = categorySlotRef.current;
-      const headerBottom = header ? header.offsetTop + header.offsetHeight : 0;
-      setSmartHeaderVisible((visible) => {
-        if (y <= headerBottom) return false;
-        if (y < lastY - 6) return true;
-        if (y > lastY + 6) return false;
-        return visible;
-      });
-      const shouldPin = Boolean(window.matchMedia("(min-width: 768px)").matches && slot && y > slot.getBoundingClientRect().top + y);
+      const compactStart = slot ? slot.getBoundingClientRect().top + y : (header?.offsetTop ?? 0) + (header?.offsetHeight ?? 0);
+      setSmartHeaderVisible(y > compactStart);
+      const shouldPin = Boolean(window.matchMedia("(min-width: 768px)").matches && slot && y > compactStart);
       if (shouldPin !== categoryPinned) {
         setCategoryPinned(shouldPin);
         if (shouldPin && slot) setCategoryHeight(slot.firstElementChild?.getBoundingClientRect().height ?? 0);
       }
-      lastY = y;
       ticking = false;
     };
     const onScroll = () => {
@@ -165,43 +186,57 @@ export function SiteHeader() {
   return (
     <>
       <div className="store-announcement" role="region" aria-label="Announcement">
-        <Link href="/pages/contact">How can we help you?</Link>
-        <p><JellyfishMark /><span>Meet your next forever plush.</span><JellyfishMark /></p>
-        <Link href="/pages/faq">Delivery information</Link>
+        <Link href="/pages/contact">{t("home.header.help", "How can we help you?")}</Link>
+        <p><JellyfishMark /><span>{t("home.announcement", "Meet your next forever plush.")}</span><JellyfishMark /></p>
+        <Link href="/pages/faq">{t("home.header.delivery", "Delivery information")}</Link>
       </div>
-      <header className="store-header" id="site-header" ref={headerRef}>
+      <header className={`store-header${pathname !== "/" ? " is-mobile-sticky" : ""}`} id="site-header" ref={headerRef}>
         <div className="store-header-main" data-header-nav-group>
-          <button className="store-icon-button menu-toggle" type="button" aria-label="Open menu" aria-expanded={menuOpen} onClick={() => { setActiveMenu("root"); setMenuOpen(true); }}><span className="menu-glyph" aria-hidden="true">☰</span></button>
+          <button className="store-icon-button menu-toggle" type="button" aria-label={t("header.menu", "Open menu")} aria-expanded={menuOpen} onClick={() => { setActiveMenu("root"); setMenuOpen(true); }}><span className="menu-glyph" aria-hidden="true">☰</span></button>
           <div className="store-brand-group">
             <Link href="/" className="store-logo-mark" aria-hidden="true" tabIndex={-1}><JellyfishMark /></Link>
             <Link href="/" className="store-logo" aria-label="Ponyo home">PONYO</Link>
           </div>
           <StoreSearch />
           <div className="store-actions">
-            <span className="store-localization"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.7"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z" fill="none" stroke="currentColor" strokeWidth="1.4"/></svg><span>EN</span><i>|</i><span>¥ JPY</span></span>
+            <LocalizationPicker />
             <Link href="/collections/all?view=wishlist" className="store-icon-button" aria-label={`My Wishlist${wishlistCount ? `, ${wishlistCount} saved` : ""}`}><HeartGlyph />{wishlistCount > 0 && <span className="wishlist-count">{wishlistCount}</span>}</Link>
-            <a href={accountUrl} className="store-icon-button" aria-label="Account"><PersonGlyph /></a>
+            <a href={accountUrl} className="store-icon-button account-icon-trigger" aria-label={t("general.account", "Account")}><PersonGlyph /></a>
             <button className="store-icon-button bag-button" type="button" aria-label={`Cart (${itemCount} items)`} aria-expanded={bagOpen} onClick={() => setBagOpen(true)}><BagGlyph />{itemCount > 0 && <span className="bag-count">{itemCount}</span>}</button>
           </div>
         </div>
         <div ref={categorySlotRef} className={`store-category-slot${categoryPinned ? " is-pinned" : ""}`} style={categoryPinned ? { height: categoryHeight } : undefined}>
         <div className={`store-category-row${categoryPinned ? " is-pinned" : ""}`} style={categoryPinned ? { top: smartHeaderVisible ? 64 : 0 } : undefined}>
           <nav className="store-navigation" aria-label="Main navigation">
-            {mainLinks.map((item) => <Link key={item.title} href={item.href} aria-current={pathname === item.href ? "page" : undefined}>{item.title}</Link>)}
+            {mainLinks.map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? "page" : undefined}>{t(item.key, item.title)}</Link>)}
             <details className="desktop-collectibles-menu"><summary>Collectibles <span aria-hidden="true">⌄</span></summary><div className="desktop-collectibles-panel">{animalCategories.slice(1, 5).map((item) => <Link key={item.title} href={item.href}>{item.title}</Link>)}<Link href="/shop?category=penguins">Penguins</Link></div></details>
           </nav>
           <Link href="/pages/domina-xl" className="domina-link"><span>DOMINA by Ponyo</span><span className="domina-promo-copy">· Giant plush from 70 to 120 cm</span><span className="domina-arrow" aria-hidden="true">›</span></Link>
         </div>
         </div>
-        <div className="store-ticker" role="region" aria-label="Announcements"><div className="ticker-track">{[0, 1].map((pass) => <div key={pass} className="ticker-set" aria-hidden={pass === 1}>{ticker.map((item) => <span className="ticker-item" key={`${pass}-${item.text}`}><Link href={item.href} tabIndex={pass ? -1 : undefined}>{item.text}</Link><span aria-hidden="true">✦</span></span>)}</div>)}</div></div>
+        <div className="store-ticker" role="region" aria-label={t("home.announce_label", "Announcements")}><div className="ticker-track">{[0, 1].map((pass) => <div key={pass} className="ticker-set" aria-hidden={pass === 1}>{ticker.map((item) => <span className="ticker-item" key={`${pass}-${item.text}`}><Link href={item.href} tabIndex={pass ? -1 : undefined}>{t(item.key, item.text)}</Link><span aria-hidden="true">✦</span></span>)}</div>)}</div></div>
+        {pathname === "/" && <DeliveryRegionBanner />}
       </header>
 
-      <div className={`smart-header${smartHeaderVisible ? " is-shown" : ""}`} aria-hidden={!smartHeaderVisible} inert={!smartHeaderVisible}>
+      <div className={`smart-header${smartHeaderVisible || pinCompactHeader ? " is-shown" : ""}${pinCompactMobileHeader ? " is-mobile-pinned" : ""}`} aria-hidden={!smartHeaderVisible && !pinCompactHeader} inert={!smartHeaderVisible && !pinCompactHeader}>
         <div className="smart-header-inner">
           <button type="button" className="smart-menu-trigger" aria-label="Open menu" onClick={() => { setActiveMenu("root"); setMenuOpen(true); }}>☰</button>
-          <Link href="/" className="smart-brand"><span className="store-logo-mark"><JellyfishMark /></span><span>PONYO</span></Link>
-          <button type="button" className="smart-search-trigger" aria-label="Search" onClick={() => window.dispatchEvent(new Event("ponyo:open-search"))}>Search bunnies, bears, giant plush...<span><SearchGlyph /></span></button>
-          <button type="button" className="smart-cart-trigger" aria-label={`Cart, ${itemCount} items`} onClick={() => setBagOpen(true)}><BagGlyph />{itemCount > 0 && <span>{itemCount}</span>}</button>
+          <Link href="/" className="smart-brand" aria-label="Ponyo home"><span className="smart-brand-mark"><JellyfishMark /></span><span>PONYO</span></Link>
+          <div className="smart-header-search"><StoreSearch compactHeader /></div>
+          <button type="button" className="smart-search-trigger" aria-label={t("search.placeholder", "Search Ponyo")} onClick={() => window.dispatchEvent(new Event("ponyo:open-search"))}><span className="smart-search-mobile-label">{t("home.header.search_placeholder", "Search something lovely...")}</span><span className="smart-search-desktop-label">{t("home.header.search_placeholder", "Search bunnies, bears, giant plush...")}</span><span className="smart-search-icon"><SearchGlyph /></span></button>
+          <div className="smart-header-actions">
+            <LocalizationPicker compact />
+            <Link href="/collections/all?view=wishlist" className="smart-icon-trigger" aria-label={`My Wishlist${wishlistCount ? `, ${wishlistCount} saved` : ""}`}><HeartGlyph />{wishlistCount > 0 && <span>{wishlistCount}</span>}</Link>
+            <a href={accountUrl} className="smart-icon-trigger" aria-label={t("general.account", "Account")}><PersonGlyph /></a>
+            <button type="button" className="smart-icon-trigger smart-cart-trigger" aria-label={`Cart (${itemCount} items)`} onClick={() => setBagOpen(true)}><BagGlyph />{itemCount > 0 && <span>{itemCount}</span>}</button>
+          </div>
+        </div>
+        <div className="smart-header-category">
+          <nav aria-label="Sticky main navigation">
+            {mainLinks.map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? "page" : undefined}>{t(item.key, item.title)}</Link>)}
+            <details className="desktop-collectibles-menu"><summary>Collectibles <span aria-hidden="true">⌄</span></summary><div className="desktop-collectibles-panel">{animalCategories.slice(1, 5).map((item) => <Link key={item.title} href={item.href}>{item.title}</Link>)}<Link href="/shop?category=penguins">Penguins</Link></div></details>
+          </nav>
+          <Link href="/pages/domina-xl" className="smart-domina-link">DOMINA by Ponyo</Link>
         </div>
       </div>
 
@@ -224,7 +259,7 @@ export function SiteHeader() {
               <div className="mobile-category-tiles">{animalCategories.map((item) => <Link href={item.href} key={item.title} onClick={() => setMenuOpen(false)}><Image src={item.image} alt="" width={56} height={56} /><span>{item.title}</span></Link>)}</div>
               <Link className="mobile-domina-card" href="/pages/domina-xl" onClick={() => setMenuOpen(false)}><Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" alt="" width={68} height={68} /><span><b>DOMINA by Ponyo</b><small>Giant plush from 70 to 120 cm</small></span><i>›</i></Link>
               <p className="mobile-menu-label">Help</p>
-              <nav className="mobile-help-links"><Link href="/collections/all?view=wishlist" onClick={() => setMenuOpen(false)}>♡ My Wishlist{wishlistCount > 0 && <b>{wishlistCount}</b>}</Link><Link href="/blogs/news" onClick={() => setMenuOpen(false)}>The Plush Journal</Link><Link href="/pages/faq" onClick={() => setMenuOpen(false)}>FAQ &amp; Shipping</Link><Link href="/pages/contact" onClick={() => setMenuOpen(false)}>Contact us</Link><Link href="/pages/about" onClick={() => setMenuOpen(false)}>About Ponyo</Link></nav>
+              <nav className="mobile-help-links"><button type="button" onClick={() => { setMenuOpen(false); setBagOpen(true); }}>Your cart{itemCount > 0 && <b>{itemCount}</b>}<span aria-hidden="true">›</span></button><Link href="/collections/all?view=wishlist" onClick={() => setMenuOpen(false)}>♡ My Wishlist{wishlistCount > 0 && <b>{wishlistCount}</b>}</Link><Link href="/blogs/news" onClick={() => setMenuOpen(false)}>The Plush Journal</Link><Link href="/pages/faq" onClick={() => setMenuOpen(false)}>FAQ &amp; Shipping</Link><Link href="/pages/contact" onClick={() => setMenuOpen(false)}>Contact us</Link><Link href="/pages/about" onClick={() => setMenuOpen(false)}>About Ponyo</Link></nav>
             </> : <div className="mobile-submenu-grid">{animalCategories.map((item) => <Link href={item.href} key={item.title} onClick={() => setMenuOpen(false)}><Image src={item.image} alt="" width={40} height={40} />{item.title}<span>›</span></Link>)}</div>}
           </div>
         </div>
@@ -232,10 +267,10 @@ export function SiteHeader() {
 
       <nav className="mobile-tab-bar" aria-label="Quick navigation">
         <Link href="/" aria-current={pathname === "/" ? "page" : undefined}><span className="tab-icon">⌂</span><small>Home</small></Link>
-        <button type="button" onClick={() => { setActiveMenu("root"); setMenuOpen(true); }} aria-label="Open categories"><span className="tab-icon">▦</span><small>Categories</small></button>
-        <Link href="/collections/premium"><span className="tab-icon">☆</span><small>Top Picks</small></Link>
-        <Link href="/collections/new-arrivals"><span className="tab-icon"><JellyfishMark /></span><small>For You</small></Link>
-        <a href={accountUrl}><span className="tab-icon"><PersonGlyph /></span><small>Me</small></a>
+        <button type="button" className={menuOpen || isCategoryRoute ? "is-current" : ""} aria-current={menuOpen || isCategoryRoute ? "page" : undefined} onClick={() => { setActiveMenu("root"); setMenuOpen(true); }} aria-label="Open categories"><span className="tab-icon"><CategoryGlyph /></span><small>Categories</small></button>
+        <button type="button" className="mobile-cart-tab" aria-current={pathname === "/cart" || pathname === "/checkout" ? "page" : undefined} aria-label={`Open cart, ${itemCount} items`} onClick={() => setBagOpen(true)}><span className="tab-icon"><BagGlyph />{itemCount > 0 && <b className="mobile-cart-tab-count">{itemCount}</b>}</span><small>Cart</small></button>
+        <Link href="/collections/new-arrivals" aria-current={isForYouRoute ? "page" : undefined}><span className="tab-icon"><JellyfishMark className="mobile-tab-jellyfish" /></span><small>For You</small></Link>
+        <a href={accountUrl} aria-current={pathname.startsWith("/account") || pathname === "/orders" ? "page" : undefined}><span className="tab-icon"><PersonGlyph /></span><small>Me</small></a>
       </nav>
 
       <dialog ref={cartDialog} className="cart-drawer" aria-label="Shopping cart" onClose={() => setBagOpen(false)} onClick={(event) => { if (event.target === cartDialog.current) setBagOpen(false); }}>

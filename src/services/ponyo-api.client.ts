@@ -71,6 +71,7 @@ export type CheckoutSessionInput = {
 	};
 	shippingMethod: string;
 	paymentMethod: "card" | "paypal" | "apple_pay";
+	currency?: string;
 	items: Array<{ variantId: string; quantity: number }>;
 	successUrl: string;
 	cancelUrl: string;
@@ -80,6 +81,16 @@ export type CheckoutSession = {
 	checkoutUrl: string;
 	orderId: string;
 	expiresAt: string;
+};
+
+export type CheckoutReceipt = {
+	orderId: string;
+	orderNumber: string;
+	status: string;
+	paymentStatus: string;
+	fulfillmentStatus: string;
+	totalAmount: number;
+	currency: string;
 };
 
 type ApiEnvelope<T> = { data: T };
@@ -101,6 +112,7 @@ async function ensureCsrfToken() {
 	const response = await fetch(`${PONYO_API_BASE_URL}/v1/auth/csrf`, {
 		credentials: "include",
 		cache: "no-store",
+		referrerPolicy: "no-referrer",
 		headers: { Accept: "application/json" },
 	});
 	if (!response.ok)
@@ -135,6 +147,7 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
 			headers,
 			credentials: "include",
 			cache: "no-store",
+			referrerPolicy: "no-referrer",
 		},
 	);
 
@@ -160,6 +173,10 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const ponyoApi = {
+	getLocalizationRates: (symbols = "USD,EUR,GBP,AUD,CAD,IDR") =>
+		apiRequest<{ base: string; date: string; rates: Record<string, number> }>(
+			`/localization/rates?symbols=${encodeURIComponent(symbols)}`,
+		),
 	listProducts: (query = "") => apiRequest<Product[]>(`/products${query}`),
 	getProduct: (slug: string) =>
 		apiRequest<Product>(`/products/${encodeURIComponent(slug)}`),
@@ -200,6 +217,8 @@ export const ponyoApi = {
 		);
 		return response.customer;
 	},
+	logout: () =>
+		apiRequest<{ accepted: boolean }>("/auth/logout", { method: "POST" }),
 	getOrders: async () => {
 		return apiRequest<BackendOrder[]>("/orders");
 	},
@@ -208,6 +227,10 @@ export const ponyoApi = {
 			method: "POST",
 			body: JSON.stringify(input),
 		}),
+	getCheckoutReceipt: (sessionId: string) =>
+		apiRequest<CheckoutReceipt>(
+			`/checkout/sessions/${encodeURIComponent(sessionId)}`,
+		),
 	subscribeNewsletter: (email: string) =>
 		apiRequest<{ accepted: boolean }>("/newsletter/subscriptions", {
 			method: "POST",

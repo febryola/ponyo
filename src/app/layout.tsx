@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Libre_Baskerville, Nunito_Sans } from "next/font/google";
+import { StoreSplash } from "@/components/layout/store-splash";
+import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
+import { LocalizationProvider } from "@/components/layout/localization-provider";
 import "./globals.css";
 import "@/ponyo-shopify/assets/styles.min.css";
 import "./storefront.css";
@@ -12,16 +16,36 @@ const headingFont = Libre_Baskerville({ subsets: ["latin"], weight: ["700"], var
 
 export const metadata: Metadata = {
   title: {
-    default: "Ponyo — Rare, premium & giant plush",
+    default: "Ponyo — Your World of Cuteness",
     template: "%s | Ponyo",
   },
   description: "Rare finds, premium favorites, and giant plush companions—hand-picked for you.",
+  icons: {
+    icon: "/ponyo-jellyfish.svg",
+    shortcut: "/ponyo-jellyfish.svg",
+    apple: "/ponyo-jellyfish.svg",
+  },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const cookieStore = await cookies();
+  const initialLanguage = cookieStore.get("ponyo-language")?.value ?? "en";
+  const initialCurrency = cookieStore.get("ponyo-currency")?.value ?? "JPY";
+  const initialCountry = cookieStore.get("ponyo-country")?.value ?? "JP";
+  const initialDeliveryNoticeDismissed = cookieStore.get("ponyo-delivery-notice-dismissed")?.value === "1";
+  const savedCookieConsent = cookieStore.get("ponyo-cookie-consent")?.value;
+  const initialCookieConsent = savedCookieConsent === "all" || savedCookieConsent === "necessary" || savedCookieConsent === "custom" ? savedCookieConsent : null;
+  const initialAnalyticsConsent = cookieStore.get("ponyo-analytics-consent")?.value === "1";
+  const initialMarketingConsent = cookieStore.get("ponyo-marketing-consent")?.value === "1";
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className={`min-h-full ${bodyFont.variable} ${headingFont.variable}`}>{children}</body>
+    <html lang={initialLanguage} className="h-full antialiased">
+      <body className={`min-h-full ${bodyFont.variable} ${headingFont.variable}`}>
+        <LocalizationProvider initialLanguage={initialLanguage} initialCurrency={initialCurrency} initialCountry={initialCountry} initialDeliveryNoticeDismissed={initialDeliveryNoticeDismissed}>
+          <StoreSplash />
+          <CookieConsentBanner initialConsent={initialCookieConsent} initialAnalyticsConsent={initialAnalyticsConsent} initialMarketingConsent={initialMarketingConsent} />
+          {children}
+        </LocalizationProvider>
+      </body>
     </html>
   );
 }

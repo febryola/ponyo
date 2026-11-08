@@ -126,7 +126,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           </div>
           {activeFilters.length > 0 && <div className="active-filter-chips" aria-label="Active filters">{activeFilters.map((filter) => <Link href={filter.remove} key={filter.label}>{filter.label}<span aria-hidden="true">×</span></Link>)}<Link href="/shop" className="clear-all-filters">Clear all</Link></div>}
           <p className="mobile-product-count">{sorted.length} products</p>
-          <ProductGrid products={sorted} badges={badges} />
+          <ProductGrid products={sorted} badges={badges} fillSlots />
           {sorted.length === 0 && <div className="empty-collection"><strong>No plush found just yet.</strong><p>Try a different search or clear your filters.</p><Link className="shop-button shop-button-orange" href="/shop">See all plush</Link></div>}
         </section>
       </div>

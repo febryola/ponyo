@@ -9,14 +9,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.currency import SUPPORTED_CURRENCIES, convert_minor_amount, get_jpy_rates
 from app.db import get_db
 from app.models import Customer, Order, OrderItem, ProductVariant
-from app.schemas import CheckoutSessionRequest
+from app.rate_limit import enforce_rate_limit
+from app.schemas import CheckoutReceiptOut, CheckoutSessionRequest
 from app.security import get_optional_customer, require_csrf
 
 router = APIRouter(prefix="/checkout", tags=["checkout"])
 
 SHIPPING_PRICES = {"standard": 0, "express": 1200}
+SUPPORTED_COUNTRIES = {"JP", "US", "GB", "AU", "CA"}
+
+
+@router.get("/sessions/{session_id}", response_model=dict)
+async def get_checkout_receipt(session_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    if not session_id.startswith("cs_") or len(session_id) > 255:
+        raise HTTPException(status_code=404, detail="Checkout receipt not found.")
+    await enforce_rate_limit(request, "checkout-receipt", 30, 60)
+    order = await db.scalar(select(Order).where(Order.stripe_session_id == session_id))
+    if not order:
+        raise HTTPException(status_code=404, detail="Checkout receipt is not available yet.")
+    receipt = CheckoutReceiptOut(
+        orderId=order.id,
+        orderNumber=order.order_number,
+        status=order.status,
+        paymentStatus=order.payment_status,
+        fulfillmentStatus=order.fulfillment_status,
+        totalAmount=order.total_amount,
+        currency=order.currency,
+    )
+    return {"data": receipt.model_dump(mode="json")}
 
 
 def valid_storefront_url(value: str) -> str:
@@ -46,6 +69,11 @@ async def create_checkout_session(
     cancel_url = valid_storefront_url(payload.cancelUrl)
     if payload.paymentMethod == "paypal":
         raise HTTPException(status_code=422, detail="PayPal is not enabled for this Stripe account yet. Choose card or Apple Pay.")
+    target_currency = payload.currency.upper()
+    if target_currency not in SUPPORTED_CURRENCIES:
+        raise HTTPException(status_code=422, detail="Choose a supported display currency.")
+    if payload.shippingAddress.countryCode not in SUPPORTED_COUNTRIES:
+        raise HTTPException(status_code=422, detail="Shipping is not available for the selected country yet.")
 
     variant_ids = [item.variantId for item in payload.items]
     if len(set(variant_ids)) != len(variant_ids):
@@ -62,15 +90,25 @@ async def create_checkout_session(
     currencies = {variant.currency.lower() for variant in variant_by_id.values()}
     if len(currencies) != 1:
         raise HTTPException(status_code=422, detail="All items in one order must use the same currency.")
+    source_currency = next(iter(currencies)).upper()
+    try:
+        rates = await get_jpy_rates() if target_currency != source_currency else {"base": source_currency, "rates": {source_currency: 1}}
+        converted_prices = {
+            variant.id: convert_minor_amount(variant.price_amount, variant.currency, target_currency, rates)
+            for variant in variant_by_id.values()
+        }
+        converted_shipping = convert_minor_amount(shipping_price, source_currency, target_currency, rates)
+    except Exception:
+        raise HTTPException(status_code=503, detail="Currency conversion is temporarily unavailable. Please retry or select JPY.") from None
 
     for requested in payload.items:
         variant = variant_by_id[requested.variantId]
         if not variant.product.published or variant.stock_quantity < requested.quantity:
             raise HTTPException(status_code=409, detail="One or more items are no longer available in that quantity.")
 
-    currency = next(iter(currencies))
-    item_total = sum(variant_by_id[item.variantId].price_amount * item.quantity for item in payload.items)
-    total = item_total + shipping_price
+    currency = target_currency.lower()
+    item_total = sum(converted_prices[item.variantId] * item.quantity for item in payload.items)
+    total = item_total + converted_shipping
     order_id = uuid4()
     order_number = f"PNY-{datetime.now(timezone.utc):%y%m%d}-{str(order_id).split('-')[0].upper()}"
     address = payload.shippingAddress.model_dump()
@@ -89,9 +127,21 @@ async def create_checkout_session(
         payment_method=payload.paymentMethod,
         payment_provider="stripe",
     )
+    line_items = []
     for requested in payload.items:
         variant = variant_by_id[requested.variantId]
         variant.stock_quantity -= requested.quantity
+        line_items.append({
+            "quantity": requested.quantity,
+            "price_data": {
+                "currency": currency,
+                "unit_amount": converted_prices[variant.id],
+                "product_data": {
+                    "name": variant.product.name,
+                    "images": [variant.product.image_url] if variant.product.image_url.startswith("https://") else [],
+                },
+            },
+        })
         order.items.append(OrderItem(
             variant_id=variant.id,
             product_name=variant.product.name,
@@ -99,24 +149,13 @@ async def create_checkout_session(
             image_url=variant.product.image_url,
             image_alt=variant.product.image_alt,
             quantity=requested.quantity,
-            unit_price=variant.price_amount,
-            currency=variant.currency,
+            unit_price=converted_prices[variant.id],
+            currency=currency.upper(),
         ))
     db.add(order)
     stripe.api_key = settings.stripe_secret_key
-    line_items = [
-        {
-            "quantity": item.quantity,
-            "price_data": {
-                "currency": item.currency.lower(),
-                "unit_amount": item.unit_price,
-                "product_data": {"name": item.product_name, "images": [item.image_url] if item.image_url.startswith("https://") else []},
-            },
-        }
-        for item in order.items
-    ]
     if shipping_price:
-        line_items.append({"quantity": 1, "price_data": {"currency": currency, "unit_amount": shipping_price, "product_data": {"name": "Express delivery"}}})
+        line_items.append({"quantity": 1, "price_data": {"currency": currency, "unit_amount": converted_shipping, "product_data": {"name": "Express delivery"}}})
     try:
         session = stripe.checkout.Session.create(
             mode="payment",
@@ -136,7 +175,15 @@ async def create_checkout_session(
 
     order.stripe_session_id = session.id
     db.add(order)
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        try:
+            stripe.checkout.Session.expire(session.id)
+        except stripe.StripeError:
+            pass
+        raise HTTPException(status_code=503, detail="Checkout could not be saved securely. Please try again.") from None
     return {"data": {"checkoutUrl": session.url, "orderId": str(order.id), "expiresAt": datetime.fromtimestamp(session.expires_at, timezone.utc).isoformat()}}
 
 

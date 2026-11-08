@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocalization } from "@/components/layout/localization-provider";
 
 const slideCatalog = [
   { key: "rare", collection: "rare-finds", kicker: "HARD TO FIND", title: "Rare Finds", description: "Retired, discontinued, and limited-edition plush.", action: "Shop Rare Finds", href: "/shop?category=rare-finds", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-2.png?v=1793843375", imageAlt: "A lineup of soft plush toys sitting together" },
@@ -18,6 +19,15 @@ export function HomeCarousel({ hasCollectibles = false }: { hasCollectibles?: bo
   const timerRef = useRef<number | null>(null);
   const [active, setActive] = useState(0);
   const reduceMotion = useRef(false);
+  const { t } = useLocalization();
+
+  const copyKeys: Record<string, { kicker: string; title: string; description: string; action: string }> = {
+    rare: { kicker: "home.slides.rare_eyebrow", title: "home.pillars.rare_title", description: "home.pillars.rare_body", action: "home.slides.rare_cta" },
+    xl: { kicker: "home.slides.xl_eyebrow", title: "home.pillars.xl_title", description: "home.pillars.xl_body", action: "home.slides.xl_cta" },
+    premium: { kicker: "home.slides.premium_eyebrow", title: "home.pillars.premium_title", description: "home.pillars.premium_body", action: "home.slides.premium_cta" },
+    new: { kicker: "home.slides.new_eyebrow", title: "home.pillars.new_title", description: "home.pillars.new_body", action: "home.slides.new_cta" },
+    collectibles: { kicker: "home.slides.collectibles_eyebrow", title: "home.pillars.collectibles_title", description: "home.pillars.collectibles_body", action: "home.slides.collectibles_cta" },
+  };
 
   const markActive = useCallback(() => {
     const track = trackRef.current;
@@ -60,20 +70,20 @@ export function HomeCarousel({ hasCollectibles = false }: { hasCollectibles?: bo
   }, [start, stop]);
 
   return (
-    <section className="store-hero-carousel" aria-label="Featured plush" aria-roledescription="carousel">
+    <section className="store-hero-carousel" aria-label={t("home.slides.label", "Featured plush")} aria-roledescription="carousel">
       <div className="store-hero-track" ref={trackRef} onScroll={markActive} onTouchStart={stop} onTouchEnd={restart}>
         {slides.map((slide, index) => <div className="store-hero-slide" key={slide.key} role="group" aria-roledescription="slide" aria-label={`${index + 1} / ${slides.length}`}>
           <Image className="store-hero-image" src={slide.image} alt={slide.imageAlt} fill priority={index === 0} sizes="(min-width: 1400px) 1400px, 100vw" />
           <div className="store-hero-overlay" aria-hidden="true" />
           <div className="store-hero-copy" aria-live={index === active ? "polite" : undefined}>
-            <span className="store-hero-kicker">{slide.kicker}</span><h2>{slide.title}</h2><p>{slide.description}</p><Link className="store-hero-action" href={slide.href}>{slide.action}</Link>
+            <span className="store-hero-kicker">{t(copyKeys[slide.key]?.kicker ?? "", slide.kicker)}</span><h2>{t(copyKeys[slide.key]?.title ?? "", slide.title)}</h2><p>{t(copyKeys[slide.key]?.description ?? "", slide.description)}</p><Link className="store-hero-action" href={slide.href}>{t(copyKeys[slide.key]?.action ?? "", slide.action)}</Link>
           </div>
         </div>)}
       </div>
-      <button className="store-hero-arrow previous" type="button" aria-label="Previous slide" onClick={() => { goTo(activeRef.current - 1); restart(); }}>‹</button>
-      <button className="store-hero-arrow next" type="button" aria-label="Next slide" onClick={() => { goTo(activeRef.current + 1); restart(); }}>›</button>
+      <button className="store-hero-arrow previous" type="button" aria-label={t("home.slides.previous", "Previous slide")} onClick={() => { goTo(activeRef.current - 1); restart(); }}>‹</button>
+      <button className="store-hero-arrow next" type="button" aria-label={t("home.slides.next", "Next slide")} onClick={() => { goTo(activeRef.current + 1); restart(); }}>›</button>
       <div className="store-hero-dots" role="group" aria-label="Choose featured collection">
-        {slides.map((slide, index) => <button key={slide.key} type="button" className={index === active ? "is-active" : ""} aria-label={`Go to slide ${index + 1}`} aria-current={index === active ? "true" : undefined} onClick={() => { goTo(index); restart(); }} />)}
+        {slides.map((slide, index) => <button key={slide.key} type="button" className={index === active ? "is-active" : ""} aria-label={t("home.slides.go_to", `Go to slide ${index + 1}`, { number: index + 1 })} aria-current={index === active ? "true" : undefined} onClick={() => { goTo(index); restart(); }} />)}
       </div>
     </section>
   );

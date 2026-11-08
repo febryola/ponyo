@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8.3,<9", "pytest-asyncio>=0.25,<1", "httpx>=0.28,<1"]
+test = ["pytest>=8.3,<9", "pytest-asyncio>=0.25,<1", "httpx>=0.28,<1", "aiosqlite>=0.21,<1"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

@@ -50,6 +50,23 @@ async def seed_products() -> None:
                 )
                 db.add(product)
                 await db.flush()
+            else:
+                product.name = item["name"]
+                product.description = item["description"]
+                product.currency = "JPY"
+                product.price_amount = item["price"]
+                product.availability = "available"
+                product.availability_status = "Available"
+                product.category_name = item["category"]
+                product.product_type = item["type"]
+                product.supplier_name = item["supplier"]
+                product.image_url = item["image"]
+                product.image_alt = item["alt"]
+                product.tags = item["tags"]
+                product.size_tier = item["size"]
+                product.dimensions = item["dimensions"]
+                product.dispatch_time = "Ships in 1–3 business days"
+                product.published = True
             variant = await db.scalar(select(ProductVariant).where(ProductVariant.product_id == product.id, ProductVariant.title == "Default"))
             if variant is None:
                 db.add(ProductVariant(
@@ -62,6 +79,11 @@ async def seed_products() -> None:
                     stock_quantity=item["stock"],
                     active=True,
                 ))
+            else:
+                variant.currency = "JPY"
+                variant.price_amount = item["price"]
+                variant.stock_quantity = item["stock"]
+                variant.active = True
         await db.commit()
 
 

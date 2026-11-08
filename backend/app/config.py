@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     sqs_order_events_url: str | None = None
     eventbridge_bus_name: str | None = None
 
+    contact_notification_email: str = "febryola0402@gmail.com"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_starttls: bool = True
+    smtp_timeout_seconds: int = 8
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]
@@ -50,6 +59,14 @@ class Settings(BaseSettings):
     @property
     def stripe_configured(self) -> bool:
         return bool(self.stripe_secret_key and self.stripe_webhook_secret)
+
+    @property
+    def contact_email_configured(self) -> bool:
+        return bool(
+            self.smtp_host
+            and (self.smtp_from_email or self.smtp_username)
+            and (not self.smtp_username or self.smtp_password)
+        )
 
     @model_validator(mode="after")
     def validate_production_security(self):

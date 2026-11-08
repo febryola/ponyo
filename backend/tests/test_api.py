@@ -134,8 +134,11 @@ async def test_checkout_refuses_missing_stripe_config(test_client):
 
 
 @pytest.mark.asyncio
-async def test_supplier_contact_request_is_saved_and_queued(test_client):
+async def test_supplier_contact_request_is_saved_queued_and_notified(test_client, monkeypatch):
     client, session_factory = test_client
+    async def email_sent(*_args):
+        return True
+    monkeypatch.setattr("app.routers.content.send_contact_notification", email_sent)
     csrf = await csrf_token(client)
     response = await client.post(
         "/v1/contact/requests",
@@ -148,11 +151,34 @@ async def test_supplier_contact_request_is_saved_and_queued(test_client):
         },
     )
     assert response.status_code == 200
+    assert response.json()["data"]["accepted"] is True
+    assert response.json()["data"]["emailNotificationSent"] is True
+    assert response.json()["data"]["notificationEmail"] == settings.contact_notification_email
     async with session_factory() as db:
         inquiry = await db.scalar(select(ContactRequestModel))
         event = await db.scalar(select(OutboxEvent).where(OutboxEvent.event_type == "contact.request_received"))
         assert inquiry and inquiry.request_type == "Supplier partnership"
         assert event and "Little Cloud Studio" in event.payload["message"]
+
+
+@pytest.mark.asyncio
+async def test_contact_request_is_saved_when_email_is_not_configured(test_client, monkeypatch):
+    client, session_factory = test_client
+    async def email_not_configured(*_args):
+        return False
+    monkeypatch.setattr("app.routers.content.send_contact_notification", email_not_configured)
+    csrf = await csrf_token(client)
+    response = await client.post(
+        "/v1/contact/requests",
+        headers={"X-CSRF-Token": csrf},
+        json={"name": "Plush Friend", "email": "friend@example.com", "requestType": "Plush request", "message": "Looking for a small grey bunny."},
+    )
+    assert response.status_code == 200
+    assert response.json()["data"]["accepted"] is True
+    assert response.json()["data"]["emailNotificationSent"] is False
+    async with session_factory() as db:
+        inquiry = await db.scalar(select(ContactRequestModel).where(ContactRequestModel.email == "friend@example.com"))
+        assert inquiry and inquiry.message == "Looking for a small grey bunny."
 
 
 @pytest.mark.asyncio

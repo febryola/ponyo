@@ -3,7 +3,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db import get_db
+from app.email_notifications import send_contact_notification
 from app.models import ContactRequest as ContactRequestModel
 from app.models import NewsletterSubscription, OutboxEvent
 from app.rate_limit import enforce_rate_limit
@@ -47,5 +49,15 @@ async def create_contact_request(payload: ContactRequestIn, request: Request, db
         payload={"name": contact.name, "email": contact.email, "requestType": contact.request_type, "message": contact.message},
     ))
     await db.commit()
-    # The outbox publisher delivers this event to SQS when configured. An SES/email consumer is still required to notify the Ponyo team.
-    return {"data": AcceptedOut().model_dump()}
+    # Persist first. A missing or unavailable SMTP service must never discard the customer request.
+    notification_sent = await send_contact_notification(
+        contact.name,
+        contact.email,
+        contact.request_type or "Storefront request",
+        contact.message,
+    )
+    return {"data": {
+        **AcceptedOut().model_dump(),
+        "emailNotificationSent": notification_sent,
+        "notificationEmail": settings.contact_notification_email,
+    }}

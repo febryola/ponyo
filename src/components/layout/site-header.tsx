@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { AccountDrawer } from "@/components/account/account-drawer";
 import { saveCart, useCartItems } from "@/lib/cart";
 import { StoreSearch } from "@/components/layout/store-search";
 import { DeliveryRegionBanner } from "@/components/layout/delivery-region-banner";
@@ -95,7 +96,6 @@ export function SiteHeader() {
   const [bagOpen, setBagOpen] = useState(false);
   const itemCount = cart.reduce((total, item) => total + item.qty, 0);
   const subtotal = cart.reduce((total, item) => total + item.price * item.qty, 0);
-  const accountUrl = "/account";
   const isTopPicksRoute = pathname.startsWith("/collections/premium");
   const isForYouRoute = pathname.startsWith("/collections/new-arrivals");
   const isCategoryRoute = pathname === "/collections" || pathname === "/shop" || pathname.startsWith("/shop?") || (pathname.startsWith("/collections/") && !isTopPicksRoute && !isForYouRoute);
@@ -183,6 +183,15 @@ export function SiteHeader() {
     } catch { /* keep the drawer responsive if storage is disabled */ }
   }
 
+  function openAccountDrawer() {
+    window.dispatchEvent(new Event("ponyo:account-open"));
+  }
+
+  function openAccountFromMenu() {
+    setMenuOpen(false);
+    window.setTimeout(openAccountDrawer, 0);
+  }
+
   return (
     <>
       <div className="store-announcement" role="region" aria-label="Announcement">
@@ -201,7 +210,7 @@ export function SiteHeader() {
           <div className="store-actions">
             <LocalizationPicker />
             <Link href="/collections/all?view=wishlist" className="store-icon-button" aria-label={`My Wishlist${wishlistCount ? `, ${wishlistCount} saved` : ""}`}><HeartGlyph />{wishlistCount > 0 && <span className="wishlist-count">{wishlistCount}</span>}</Link>
-            <a href={accountUrl} className="store-icon-button account-icon-trigger" aria-label={t("general.account", "Account")}><PersonGlyph /></a>
+            <button type="button" className="store-icon-button account-icon-trigger" aria-label={t("general.account", "Account")} onClick={openAccountDrawer}><PersonGlyph /></button>
             <button className="store-icon-button bag-button" type="button" aria-label={`Cart (${itemCount} items)`} aria-expanded={bagOpen} onClick={() => setBagOpen(true)}><BagGlyph />{itemCount > 0 && <span className="bag-count">{itemCount}</span>}</button>
           </div>
         </div>
@@ -227,7 +236,7 @@ export function SiteHeader() {
           <div className="smart-header-actions">
             <LocalizationPicker compact />
             <Link href="/collections/all?view=wishlist" className="smart-icon-trigger" aria-label={`My Wishlist${wishlistCount ? `, ${wishlistCount} saved` : ""}`}><HeartGlyph />{wishlistCount > 0 && <span>{wishlistCount}</span>}</Link>
-            <a href={accountUrl} className="smart-icon-trigger" aria-label={t("general.account", "Account")}><PersonGlyph /></a>
+            <button type="button" className="smart-icon-trigger" aria-label={t("general.account", "Account")} onClick={openAccountDrawer}><PersonGlyph /></button>
             <button type="button" className="smart-icon-trigger smart-cart-trigger" aria-label={`Cart (${itemCount} items)`} onClick={() => setBagOpen(true)}><BagGlyph />{itemCount > 0 && <span>{itemCount}</span>}</button>
           </div>
         </div>
@@ -249,7 +258,7 @@ export function SiteHeader() {
           </div>
           <div className="mobile-menu-content">
             {activeMenu === "root" ? <>
-              <div className="mobile-account-card"><JellyfishMark /><div><strong>Welcome to Ponyo</strong><span>Find a new forever plush.</span></div><a href={accountUrl}>Sign in</a></div>
+              <div className="mobile-account-card"><JellyfishMark /><div><strong>Welcome to Ponyo</strong><span>Find a new forever plush.</span></div><button type="button" onClick={openAccountFromMenu}>Sign in</button></div>
               <p className="mobile-menu-label">Shop</p>
               <nav className="mobile-primary-links" aria-label="Shop menu">
                 {mainLinks.map((item) => <Link key={item.title} href={item.href} onClick={() => setMenuOpen(false)}>{item.title}<span aria-hidden="true">›</span></Link>)}
@@ -270,8 +279,10 @@ export function SiteHeader() {
         <button type="button" className={menuOpen || isCategoryRoute ? "is-current" : ""} aria-current={menuOpen || isCategoryRoute ? "page" : undefined} onClick={() => { setActiveMenu("root"); setMenuOpen(true); }} aria-label="Open categories"><span className="tab-icon"><CategoryGlyph /></span><small>Categories</small></button>
         <button type="button" className="mobile-cart-tab" aria-current={pathname === "/cart" || pathname === "/checkout" ? "page" : undefined} aria-label={`Open cart, ${itemCount} items`} onClick={() => setBagOpen(true)}><span className="tab-icon"><BagGlyph />{itemCount > 0 && <b className="mobile-cart-tab-count">{itemCount}</b>}</span><small>Cart</small></button>
         <Link href="/collections/new-arrivals" aria-current={isForYouRoute ? "page" : undefined}><span className="tab-icon"><JellyfishMark className="mobile-tab-jellyfish" /></span><small>For You</small></Link>
-        <a href={accountUrl} aria-current={pathname.startsWith("/account") || pathname === "/orders" ? "page" : undefined}><span className="tab-icon"><PersonGlyph /></span><small>Me</small></a>
+        <button type="button" className="mobile-account-tab" aria-current={pathname.startsWith("/account") || pathname === "/orders" ? "page" : undefined} onClick={openAccountDrawer} aria-label="Open my account"><span className="tab-icon"><PersonGlyph /></span><small>Me</small></button>
       </nav>
+
+      <AccountDrawer />
 
       <dialog ref={cartDialog} className="cart-drawer" aria-label="Shopping cart" onClose={() => setBagOpen(false)} onClick={(event) => { if (event.target === cartDialog.current) setBagOpen(false); }}>
         <div className="cart-drawer-heading"><div><span className="eyebrow">A little bundle of joy</span><h2>Your cart <span>({itemCount})</span></h2></div><button type="button" className="store-icon-button" aria-label="Close cart" onClick={() => setBagOpen(false)}>×</button></div>

@@ -212,10 +212,10 @@ export const ponyoApi = {
 			body: JSON.stringify({ email }),
 		}),
 	getMe: async () => {
-		const response = await apiRequest<{ customer: CustomerProfile }>(
-			"/auth/me",
-		);
-		return response.customer;
+		const response = await apiRequest<
+			CustomerProfile | { customer: CustomerProfile }
+		>("/auth/me");
+		return "customer" in response ? response.customer : response;
 	},
 	logout: () =>
 		apiRequest<{ accepted: boolean }>("/auth/logout", { method: "POST" }),
@@ -242,7 +242,11 @@ export const ponyoApi = {
 		message: string;
 		requestType?: string;
 	}) =>
-		apiRequest<{ accepted: boolean }>("/contact/requests", {
+		apiRequest<{
+			accepted: boolean;
+			emailNotificationSent: boolean;
+			notificationEmail: string;
+		}>("/contact/requests", {
 			method: "POST",
 			body: JSON.stringify(input),
 		}),

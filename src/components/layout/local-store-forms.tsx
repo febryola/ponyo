@@ -7,6 +7,7 @@ import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 export function HomeInterestForms() {
   const [alertsJoined, setAlertsJoined] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [requestOutcome, setRequestOutcome] = useState<"preview" | "saved-notified" | "saved-no-email" | null>(null);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const copy = locale.home;
@@ -23,16 +24,20 @@ export function HomeInterestForms() {
             await ponyoApi.subscribeNewsletter(String(formData.get("email") ?? ""));
             setAlertsJoined(true);
           } else {
-            await ponyoApi.submitContactRequest({
+            const result = await ponyoApi.submitContactRequest({
               name: String(formData.get("name") ?? ""),
               email: String(formData.get("email") ?? ""),
               message: String(formData.get("message") ?? ""),
               requestType: "Plush request",
             });
+            setRequestOutcome(result.emailNotificationSent ? "saved-notified" : "saved-no-email");
             setRequestSent(true);
           }
         } else if (type === "newsletter") setAlertsJoined(true);
-        else setRequestSent(true);
+        else {
+          setRequestOutcome("preview");
+          setRequestSent(true);
+        }
       } catch (error) {
         setFormError(error instanceof Error ? error.message : "Unable to submit this form.");
       } finally {
@@ -58,7 +63,7 @@ export function HomeInterestForms() {
       <div className="plush-request-panel">
         <h2>{copy.v2.request_title}</h2>
         <p>{copy.v2.request_body}</p>
-        {requestSent ? <p className="local-form-success" role="status">{copy.v2.request_success}</p> : (
+        {requestSent ? <p className="local-form-success" role="status">{requestOutcome === "saved-notified" ? "Your request is saved, and an email notification was sent to Ponyo." : requestOutcome === "saved-no-email" ? "Your request is saved in the Ponyo database. Email notification is not set up yet." : "Preview only: this request was not sent to the backend or by email."}</p> : (
           <form onSubmit={submit("request")}>
             <div>
               <label className="sr-only" htmlFor="request-name">{copy.v2.name_label}</label>
@@ -79,10 +84,11 @@ export function HomeInterestForms() {
 
 export function LocalContactForm() {
   const [sent, setSent] = useState(false);
+  const [requestOutcome, setRequestOutcome] = useState<"preview" | "saved-notified" | "saved-no-email" | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  if (sent) return <p className="local-form-success contact-success" role="status">Thanks for reaching out. Your message is saved in this preview.</p>;
+  if (sent) return <p className="local-form-success contact-success" role="status">{requestOutcome === "saved-notified" ? "Your message is saved, and an email notification was sent to Ponyo." : requestOutcome === "saved-no-email" ? "Your message is saved in the Ponyo database. Email notification is not set up yet." : "Preview only: your message was not sent to the backend or by email."}</p>;
 
   return (
     <form onSubmit={async (event) => {
@@ -91,7 +97,10 @@ export function LocalContactForm() {
       setErrorMessage("");
       const data = new FormData(event.currentTarget);
       try {
-        if (PONYO_API_BASE_URL) await ponyoApi.submitContactRequest({ name: String(data.get("name") ?? ""), email: String(data.get("email") ?? ""), message: String(data.get("message") ?? "") });
+        if (PONYO_API_BASE_URL) {
+          const result = await ponyoApi.submitContactRequest({ name: String(data.get("name") ?? ""), email: String(data.get("email") ?? ""), message: String(data.get("message") ?? "") });
+          setRequestOutcome(result.emailNotificationSent ? "saved-notified" : "saved-no-email");
+        } else setRequestOutcome("preview");
         setSent(true);
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : "Unable to send this message.");

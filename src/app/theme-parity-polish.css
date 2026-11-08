@@ -80,6 +80,32 @@
     z-index: 3;
 }
 
+@media (min-width: 768px) {
+    .store-home .rare-supporting-grid a {
+        min-width: 0;
+        min-height: 200px;
+        padding: 12px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 4px;
+        color: #fff;
+    }
+    .store-home .rare-supporting-image {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        display: block;
+        background: #fbf3ec;
+    }
+    .store-home .rare-supporting-image img {
+        object-fit: cover;
+    }
+}
+
 .store-hero-copy h2 {
     font-family: var(--font-heading);
     font-weight: 800;
@@ -298,7 +324,7 @@ body {
     height: 40px;
     padding: 0;
     border: 0;
-    border-radius: 12px;
+    border-radius: 50%;
     display: grid;
     flex: 0 0 40px;
     place-items: center;
@@ -445,26 +471,21 @@ body {
 
 .cookie-consent-mark {
     width: 36px;
-    min-height: min(62dvh, 520px);
+    height: 36px;
     border-radius: 50%;
     display: grid;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    place-items: center;
+    background: #f3e7df;
     font-size: 19px;
 }
 
 .cookie-consent-copy strong {
     display: block;
-    align-self: center;
     font-family: var(--font-heading);
     font-size: 14px;
 }
 
 .cookie-consent-copy p {
-    .cookie-consent-copy {
-        width: 100%;
-    }
     margin: 4px 0 0;
     color: #705d53;
     font-size: 12px;
@@ -2928,17 +2949,24 @@ body {
     background: #f5efea;
 }
 
-.account-auth-tabs a {
+.account-auth-tabs a,
+.account-auth-tabs button {
     min-height: 39px;
+    padding: 0 8px;
+    border: 0;
     border-radius: 9px;
     display: grid;
     place-items: center;
+    background: transparent;
     color: #6b5a53;
+    font: inherit;
     font-size: 13px;
     font-weight: 800;
+    cursor: pointer;
 }
 
-.account-auth-tabs a.is-active {
+.account-auth-tabs a.is-active,
+.account-auth-tabs button.is-active {
     background: white;
     color: #3a2b26;
     box-shadow: 0 2px 8px rgb(46 33 29 / 8%);
@@ -3022,10 +3050,16 @@ body {
 }
 
 .account-auth-form-options>a,
+.account-auth-form-options>button,
 .account-auth-help a {
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: #9b4f31;
+    font: inherit;
     font-size: 12px;
     font-weight: 800;
+    cursor: pointer;
 }
 
 .account-auth-submit {
@@ -5320,6 +5354,7 @@ body {
         font-weight: 800;
         line-height: 1.25;
         -webkit-box-orient: vertical;
+        line-clamp: 2;
         -webkit-line-clamp: 2;
     }
     .shop-product-bottom {
@@ -6873,6 +6908,87 @@ body {
     }
 }
 
+@media (min-width: 768px) {
+    .cookie-consent-layer {
+        padding: 24px;
+        place-items: center;
+    }
+    .cookie-consent-banner {
+        width: min(720px, calc(100vw - 48px));
+        height: auto;
+        min-height: 0;
+        max-height: min(760px, calc(100dvh - 48px));
+        padding: 30px 32px 24px;
+        grid-template-columns: 48px minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+        align-content: start;
+        gap: 18px 20px;
+        overflow-y: auto;
+        border: 1px solid #ead9cf;
+        border-top: 4px solid #ee8a4c;
+        border-radius: 22px;
+        box-shadow: 0 24px 80px rgb(22 16 15 / 35%);
+        animation: cookie-consent-dialog-in .28s cubic-bezier(.2, .75, .25, 1) both;
+    }
+    .cookie-consent-mark {
+        width: 44px;
+        height: 44px;
+        min-height: 0;
+        grid-column: 1;
+        grid-row: 1;
+        font-size: 24px;
+    }
+    .cookie-consent-copy {
+        grid-column: 2;
+        grid-row: 1;
+        min-height: 0;
+        overflow: visible;
+    }
+    .cookie-consent-copy strong {
+        font-size: 25px;
+        line-height: 1.2;
+    }
+    .cookie-consent-copy p {
+        margin-top: 9px;
+        font-size: 14px;
+        line-height: 1.55;
+    }
+    .cookie-consent-settings-panel {
+        margin-top: 14px;
+    }
+    .cookie-consent-actions {
+        grid-column: 2;
+        grid-row: 2;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+    .cookie-consent-actions button {
+        min-height: 44px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-size: 13px;
+    }
+    .cookie-consent-error {
+        grid-column: 2;
+        grid-row: 3;
+        margin: -8px 0 0;
+    }
+    .cookie-consent-banner.is-leaving {
+        transform: translateY(8px) scale(.98);
+    }
+}
+
+@keyframes cookie-consent-dialog-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .cookie-consent-layer,
     .cookie-consent-banner {
@@ -7219,6 +7335,52 @@ body {
         margin-right: 2px;
         padding: 6px 7px;
         font-size: 10px;
+    }
+}
+
+
+/* Desktop Discover page finishing pass: keep titles and cards in a clear vertical rhythm. */
+
+@media (min-width: 768px) {
+    .store-home .budget-section {
+        display: block;
+        padding-top: 40px;
+        padding-bottom: 10px;
+    }
+    .store-home .budget-section>header {
+        margin-bottom: 20px;
+    }
+    .store-home .budget-section>header h2 {
+        margin: 0;
+        font-family: var(--font-heading);
+        font-size: clamp(30px, 3vw, 38px);
+        font-weight: 700;
+        line-height: 1.15;
+    }
+    .store-home .budget-links {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+    .store-home .budget-links a {
+        min-width: 0;
+        min-height: 170px;
+        padding: 22px 68px 22px 24px;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 20px;
+    }
+    .store-home .budget-links a>strong {
+        max-width: 100%;
+        font-size: clamp(22px, 2.4vw, 30px);
+        line-height: 1.12;
+        white-space: normal;
+        text-wrap: balance;
+    }
+    .store-home .home-live-shelf .product-grid:not(.marketplace-rail) {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 220px));
+        justify-content: center;
+        gap: 16px;
     }
 }
 
@@ -8228,5 +8390,266 @@ body {
         margin: 0;
         align-self: center;
         justify-content: center;
+    }
+}
+
+
+/* Refine size portraits and inset the desktop FAQ panel from the page edges. */
+
+.store-home .size-guide-tiles a>span {
+    border-radius: 999px 999px 14px 14px;
+}
+
+.store-home .size-guide-tiles img {
+    padding: 0;
+    object-fit: contain;
+    object-position: center bottom;
+}
+
+@media (min-width: 768px) {
+    .store-home .quick-faq {
+        padding: 32px;
+        align-items: center;
+        gap: 24px 32px;
+        border-radius: 24px;
+    }
+}
+
+
+/* Account entry is a Ponyo-styled right-side sheet, keeping shoppers in context. */
+
+.account-drawer {
+    width: min(460px, 100vw);
+    height: 100dvh;
+    max-width: 100vw;
+    max-height: 100dvh;
+    margin: 0 0 0 auto;
+    padding: 0;
+    position: fixed;
+    inset: 0 0 0 auto;
+    overflow: hidden;
+    border: 0;
+    border-left: 1px solid #eadbd2;
+    background: #fffaf6;
+    color: #3f302b;
+    box-shadow: -16px 0 48px rgb(46 33 29 / 18%);
+}
+
+.account-drawer[open] {
+    display: flex;
+    flex-direction: column;
+    animation: account-drawer-enter .25s cubic-bezier(.2, .75, .25, 1) both;
+}
+
+.account-drawer::backdrop {
+    background: rgb(31 22 20 / 52%);
+    backdrop-filter: blur(3px);
+}
+
+@keyframes account-drawer-enter {
+    from {
+        opacity: .8;
+        transform: translateX(36px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.account-drawer-heading {
+    min-height: 82px;
+    padding: 16px 22px;
+    border-bottom: 1px solid #eadbd2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: linear-gradient(110deg, #fff4ea, #fffaf5 72%, #ffede2);
+}
+
+.account-drawer-heading .account-auth-eyebrow {
+    font-size: 9px;
+}
+
+.account-drawer-heading h2 {
+    margin: 4px 0 0;
+    color: #3a2b26;
+    font-family: var(--font-heading);
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+.account-drawer-close {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #eadbd2;
+    border-radius: 50%;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    background: #fffaf6;
+    color: #5b4339;
+    font-size: 25px;
+    cursor: pointer;
+}
+
+.account-drawer-body {
+    min-height: 0;
+    padding: 24px;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.account-drawer-preview-note {
+    margin: 0 0 18px;
+    padding: 11px 13px;
+    border: 1px solid #ecd7aa;
+    border-radius: 12px;
+    background: #fff6dd;
+    color: #725322;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.account-drawer-loading {
+    padding: 28px 0;
+    color: #78665e;
+    text-align: center;
+}
+
+.account-auth-page--drawer {
+    min-height: 0;
+    padding: 0;
+    display: block;
+    background: transparent;
+}
+
+.account-auth-card--drawer {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.account-auth-card--drawer .account-auth-heading {
+    margin-top: 0;
+}
+
+.account-auth-card--drawer .account-auth-heading h1 {
+    font-size: 30px;
+}
+
+.account-auth-card--drawer .account-auth-tabs {
+    margin-top: 20px;
+}
+
+.account-auth-card--drawer .account-auth-divider {
+    margin-top: 22px;
+}
+
+.account-drawer-profile {
+    text-align: center;
+}
+
+.account-drawer-avatar {
+    width: 68px;
+    height: 68px;
+    margin: 4px auto 16px;
+    border: 1px solid #eadbd2;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: white;
+    font-size: 35px;
+}
+
+.account-drawer-profile>.account-auth-eyebrow {
+    font-size: 10px;
+}
+
+.account-drawer-profile h3 {
+    margin: 8px 0 4px;
+    color: #3a2b26;
+    font-family: var(--font-heading);
+    font-size: 28px;
+}
+
+.account-drawer-email {
+    margin: 0 0 22px;
+    color: #796a62;
+    font-size: 13px;
+}
+
+.account-drawer-profile nav {
+    display: grid;
+    gap: 9px;
+    text-align: left;
+}
+
+.account-drawer-profile nav a {
+    min-height: 52px;
+    padding: 0 15px;
+    border: 1px solid #eddfd7;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    color: #4a3530;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.account-drawer-profile nav a span {
+    color: #a2502f;
+    font-size: 18px;
+}
+
+.account-drawer-signout {
+    min-height: 44px;
+    margin-top: 22px;
+    padding: 0 20px;
+    border: 1px solid #e6d7ce;
+    border-radius: 999px;
+    background: transparent;
+    color: #725d53;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.account-drawer-signout:disabled {
+    opacity: .65;
+    cursor: wait;
+}
+
+@media (max-width: 767px) {
+    .account-drawer {
+        width: min(440px, 100vw);
+        border-radius: 18px 0 0 18px;
+    }
+    .account-drawer-heading {
+        min-height: 76px;
+        padding: 14px 18px;
+    }
+    .account-drawer-body {
+        padding: 22px 18px max(22px, env(safe-area-inset-bottom));
+    }
+    .mobile-account-card>button {
+        min-height: 36px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 999px;
+        background: #ee8a4c;
+        color: #3f2418;
+        font: inherit;
+        font-size: 11px;
+        font-weight: 900;
+        cursor: pointer;
     }
 }

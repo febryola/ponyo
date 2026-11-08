@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { PONYO_API_BASE_URL, ponyoApi } from "@/services/ponyo-api.client";
 
-type InquiryDetails = { company: string; email: string };
+type InquiryDetails = { company: string; email: string; emailNotificationSent: boolean };
 
 export function PartnerInquiryForm() {
   const [submitted, setSubmitted] = useState<InquiryDetails | null>(null);
@@ -27,7 +27,7 @@ export function PartnerInquiryForm() {
         setErrorMessage("The partnership form needs the local Ponyo API to save submissions.");
         return;
       }
-      await ponyoApi.submitContactRequest({
+      const result = await ponyoApi.submitContactRequest({
         name: contactName,
         email,
         requestType: "Supplier partnership",
@@ -39,7 +39,7 @@ export function PartnerInquiryForm() {
           message,
         ].join("\n"),
       });
-      setSubmitted({ company, email });
+      setSubmitted({ company, email, emailNotificationSent: result.emailNotificationSent });
       form.reset();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to submit your partnership inquiry.");
@@ -53,7 +53,7 @@ export function PartnerInquiryForm() {
       <div className="partner-form-success" role="status">
         <span aria-hidden="true">✿</span>
         <h2>Thank you, {submitted.company}.</h2>
-        <p>Your partnership inquiry has been saved with contact email <strong>{submitted.email}</strong>. Thanks for sharing your work with Ponyo.</p>
+        <p>Your partnership inquiry has been saved with contact email <strong>{submitted.email}</strong>. {submitted.emailNotificationSent ? "A notification was emailed to Ponyo." : "Ponyo email notifications are not configured yet."}</p>
       </div>
     );
   }

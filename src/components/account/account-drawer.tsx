@@ -21,7 +21,11 @@ export function AccountDrawer() {
   }, [open]);
 
   useEffect(() => {
-    const openAccount = () => setOpen(true);
+    const openAccount = () => {
+      setSessionError("");
+      setCheckingSession(Boolean(PONYO_API_BASE_URL));
+      setOpen(true);
+    };
     window.addEventListener("ponyo:account-open", openAccount);
     return () => window.removeEventListener("ponyo:account-open", openAccount);
   }, []);
@@ -29,8 +33,6 @@ export function AccountDrawer() {
   useEffect(() => {
     if (!open || !PONYO_API_BASE_URL) return;
     let active = true;
-    setCheckingSession(true);
-    setSessionError("");
     ponyoApi.getMe()
       .then((profile) => { if (active) setCustomer(profile); })
       .catch((error: unknown) => {

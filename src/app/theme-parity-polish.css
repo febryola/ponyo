@@ -4833,25 +4833,25 @@ body {
 
 .size-guide-tiles a>span {
     height: 220px;
-    border-radius: 100px 100px 10px 10px;
+    border-radius: 100px 100px 14px 14px;
     background: #f9eee5;
     box-shadow: none;
 }
 
 .size-guide-tiles a:nth-child(1)>span {
-    height: 150px;
+    height: 190px;
 }
 
 .size-guide-tiles a:nth-child(2)>span {
-    height: 195px;
+    height: 210px;
 }
 
 .size-guide-tiles a:nth-child(3)>span {
-    height: 260px;
+    height: 230px;
 }
 
 .size-guide-tiles a:nth-child(4)>span {
-    height: 330px;
+    height: 270px;
     outline: 3px solid #f6c453;
     outline-offset: 0;
 }
@@ -7171,18 +7171,18 @@ body {
         font-family: var(--font-heading);
         font-size: 16px;
     }
-    /* Let the size examples climb higher into the unused space in the panel. */
+    /* Scale portrait frames with their narrow mobile columns; show each whole plush. */
     .store-home .size-guide-tiles a:nth-child(1)>span {
-        height: 95px;
+        height: 64px;
     }
     .store-home .size-guide-tiles a:nth-child(2)>span {
-        height: 120px;
+        height: 72px;
     }
     .store-home .size-guide-tiles a:nth-child(3)>span {
-        height: 150px;
+        height: 80px;
     }
     .store-home .size-guide-tiles a:nth-child(4)>span {
-        height: 180px;
+        height: 95px;
     }
 }
 
@@ -7207,18 +7207,18 @@ body {
         width: 34px;
         background: #fff;
     }
-    /* Taller examples reduce the unused space above the size silhouettes. */
+    /* Keep all product photos uncropped while the frame heights step up by size. */
     .store-home .size-guide-tiles a:nth-child(1)>span {
-        height: 110px;
+        height: 64px;
     }
     .store-home .size-guide-tiles a:nth-child(2)>span {
-        height: 135px;
+        height: 72px;
     }
     .store-home .size-guide-tiles a:nth-child(3)>span {
-        height: 165px;
+        height: 80px;
     }
     .store-home .size-guide-tiles a:nth-child(4)>span {
-        height: 195px;
+        height: 95px;
     }
 }
 
@@ -8404,6 +8404,24 @@ body {
     padding: 0;
     object-fit: contain;
     object-position: center bottom;
+    transform-origin: center bottom;
+    border-radius: 999px 999px 10px 10px;
+}
+
+.store-home .size-guide-tiles a:nth-child(1) img {
+    transform: scale(.78);
+}
+
+.store-home .size-guide-tiles a:nth-child(2) img {
+    transform: scale(.86);
+}
+
+.store-home .size-guide-tiles a:nth-child(3) img {
+    transform: scale(.93);
+}
+
+.store-home .size-guide-tiles a:nth-child(4) img {
+    transform: scale(1);
 }
 
 @media (min-width: 768px) {
@@ -8412,6 +8430,14 @@ body {
         align-items: center;
         gap: 24px 32px;
         border-radius: 24px;
+    }
+}
+
+@media (max-width: 767px) {
+    .store-home .size-guide-tiles {
+        min-height: 0;
+        padding: 16px 8px 10px;
+        align-items: flex-end;
     }
 }
 

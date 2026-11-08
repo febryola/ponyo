@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ApiNotConfiguredError, ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import type { CustomerProfile } from "@/services/ponyo-api.client";
@@ -17,12 +17,6 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", onAu
   const isDrawer = presentation === "drawer";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    setMode(initialMode);
-    setSubmitted(false);
-    setErrorMessage("");
-  }, [initialMode]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

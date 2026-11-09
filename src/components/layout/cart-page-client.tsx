@@ -46,7 +46,7 @@ export function CartPageClient() {
                 <button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={item.qty <= 1} onClick={() => update(items.map((entry) => entry.id === item.id ? { ...entry, qty: Math.max(1, entry.qty - 1) } : entry))}>−</button>
                 <span aria-live="polite">{item.qty}</span>
                 <button type="button" aria-label={`Increase ${item.name} quantity`} onClick={() => update(items.map((entry) => entry.id === item.id ? { ...entry, qty: Math.min(20, entry.qty + 1) } : entry))}>＋</button>
-                <button type="button" className="cart-remove" onClick={() => update(items.filter((entry) => entry.id !== item.id))}>Remove</button>
+                <button type="button" className="cart-remove cart-remove--icon" aria-label={`Remove ${item.name} from cart`} title="Remove item" onClick={() => update(items.filter((entry) => entry.id !== item.id))}><CartTrashIcon /><span className="sr-only">Remove</span></button>
               </div>
             </div>
             <strong className="cart-line-total">{formatPrice(item.price * item.qty, item.currency)}</strong>
@@ -66,6 +66,10 @@ export function CartPageClient() {
       </div>}
     </div>
   );
+}
+
+function CartTrashIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M9 7V4.8h6V7m2.8 0-.8 13H7L6.2 7m3.3 3.2v6.2m4.9-6.2v6.2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 function CartLineImage({ item }: { item: CartItem }) {

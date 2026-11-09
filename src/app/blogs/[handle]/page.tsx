@@ -1,33 +1,14 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFrame } from "@/components/layout/site-frame";
 import locale from "@/ponyo-shopify/locales/en.default.json";
+import { journalArticles } from "../journal-articles";
 
-const journalCards = [
-  {
-    image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376",
-    alt: "An oversized bunny plush shown beside a person for scale",
-    label: locale.home.journal.card1_label,
-    title: locale.home.journal.card1_title,
-    cta: locale.home.journal.card1_cta,
-  },
-  {
-    image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-5.png?v=1793843377",
-    alt: "Close-up details of a soft teddy bear plush",
-    label: locale.home.journal.card2_label,
-    title: locale.home.journal.card2_title,
-    cta: locale.home.journal.card2_cta,
-  },
-  {
-    image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-6.png?v=1793843378",
-    alt: "A selection of plush characters arranged together",
-    label: locale.home.journal.card3_label,
-    title: locale.home.journal.card3_title,
-    cta: locale.home.journal.card3_cta,
-  },
-];
-
-export const metadata = { title: "The Plush Journal" };
+export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
+  const { handle } = await params;
+  return { title: handle === "news" ? "The Plush Journal" : `${handle} | The Plush Journal` };
+}
 
 export default async function JournalPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
@@ -49,19 +30,15 @@ export default async function JournalPage({ params }: { params: Promise<{ handle
       </section>
 
       <section className="journal-list store-container" aria-labelledby="journal-articles-heading">
-        <h2 className="sr-only" id="journal-articles-heading">Articles</h2>
+        <header className="journal-list-heading"><div><span>✦ THE LATEST FROM PONYO</span><h2 id="journal-articles-heading">Stories to keep close</h2></div><p>Thoughtful guides for choosing, styling, and caring for the plush you love.</p></header>
         <div className="journal-card-grid">
-          {journalCards.map((card) => (
-            <article className="journal-card" key={card.title}>
-              <Image src={card.image} alt={card.alt} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" />
-              <span className="journal-card-shade" aria-hidden="true" />
-              <div className="journal-card-copy">
-                <span>{card.label}</span>
-                <h2>{card.title}</h2>
-                <b>{card.cta}</b>
-              </div>
-            </article>
-          ))}
+          {journalArticles.map((article) => {
+            const date = new Date(`${article.date}T12:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+            return <Link className="journal-card" href={`/blogs/${handle}/${article.slug}`} key={article.slug}>
+              <span className="journal-card-image"><Image src={article.image} alt={article.imageAlt} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" /></span>
+              <span className="journal-card-copy"><span className="journal-card-label">{article.label}</span><strong>{article.title}</strong><span className="journal-card-meta"><time dateTime={article.date}>{date}</time><span>·</span>{article.author}</span><span className="journal-card-excerpt">{article.excerpt}</span><b>{locale.home.pages.journal_read}</b></span>
+            </Link>;
+          })}
         </div>
       </section>
     </SiteFrame>

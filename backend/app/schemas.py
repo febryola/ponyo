@@ -198,11 +198,11 @@ class CheckoutAddress(BaseModel):
     lastName: str = Field(min_length=1, max_length=120)
     address1: str = Field(min_length=1, max_length=240)
     address2: str = Field(default="", max_length=240)
-    region: str = Field(default="", max_length=120)
+    region: str = Field(min_length=1, max_length=120)
     city: str = Field(min_length=1, max_length=120)
     postalCode: str = Field(min_length=1, max_length=40)
     countryCode: str = Field(min_length=2, max_length=2)
-    phone: str = Field(default="", max_length=40)
+    phone: str = Field(min_length=1, max_length=40)
 
 
 class CheckoutItem(BaseModel):

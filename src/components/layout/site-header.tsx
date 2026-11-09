@@ -10,6 +10,7 @@ import { StoreSearch } from "@/components/layout/store-search";
 import { DeliveryRegionBanner } from "@/components/layout/delivery-region-banner";
 import { LocalizationPicker } from "@/components/layout/localization-picker";
 import { useLocalization } from "@/components/layout/localization-provider";
+import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
 const mainLinks = [
   { title: "Discover", key: "home.header.discover", href: "/" },
@@ -88,6 +89,7 @@ function useWishlistCount() {
 export function SiteHeader() {
   const pathname = usePathname();
   const { t, formatPrice } = useLocalization();
+  const { customer } = useCustomerSession();
   const localCart = useCartItems();
   const cart = localCart;
   const headerRef = useRef<HTMLElement>(null);
@@ -266,7 +268,7 @@ export function SiteHeader() {
           </div>
           <div className="mobile-menu-content">
             {activeMenu === "root" ? <>
-              <div className="mobile-account-card"><JellyfishMark /><div><strong>Welcome to Ponyo</strong><span>Find a new forever plush.</span></div><button type="button" onClick={openAccountFromMenu}>Sign in</button></div>
+              <div className="mobile-account-card"><JellyfishMark /><div><strong>{customer ? `Welcome back, ${customer.firstName || "plush friend"}` : "Welcome to Ponyo"}</strong><span>{customer?.email ?? "Find a new forever plush."}</span></div><button type="button" onClick={openAccountFromMenu}>{customer ? "My profile" : "Sign in"}</button></div>
               <p className="mobile-menu-label">Shop</p>
               <nav className="mobile-primary-links" aria-label="Shop menu">
                 {mainLinks.map((item) => <Link key={item.title} href={item.href} onClick={() => setMenuOpen(false)}>{item.title}<span aria-hidden="true">›</span></Link>)}
@@ -276,7 +278,7 @@ export function SiteHeader() {
               <div className="mobile-category-tiles">{animalCategories.map((item) => <Link href={item.href} key={item.title} onClick={() => setMenuOpen(false)}><Image src={item.image} alt="" width={56} height={56} /><span>{item.title}</span></Link>)}</div>
               <Link className="mobile-domina-card" href="/pages/domina-xl" onClick={() => setMenuOpen(false)}><Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" alt="" width={68} height={68} /><span><b>DOMINA by Ponyo</b><small>Giant plush from 70 to 120 cm</small></span><i>›</i></Link>
               <p className="mobile-menu-label">Help</p>
-              <nav className="mobile-help-links"><button type="button" onClick={() => { setMenuOpen(false); setBagOpen(true); }}>Your cart{itemCount > 0 && <b>{itemCount}</b>}<span aria-hidden="true">›</span></button><Link href="/collections/all?view=wishlist" onClick={() => setMenuOpen(false)}>♡ My Wishlist{wishlistCount > 0 && <b>{wishlistCount}</b>}</Link><Link href="/blogs/news" onClick={() => setMenuOpen(false)}>The Plush Journal</Link><Link href="/pages/faq" onClick={() => setMenuOpen(false)}>FAQ &amp; Shipping</Link><Link href="/pages/contact" onClick={() => setMenuOpen(false)}>Contact us</Link><Link href="/pages/about" onClick={() => setMenuOpen(false)}>About Ponyo</Link></nav>
+              <nav className="mobile-help-links"><button type="button" onClick={() => { setMenuOpen(false); setBagOpen(true); }}><span>Your cart</span><span className="mobile-help-link-meta">{itemCount > 0 && <b>{itemCount}</b>}<i aria-hidden="true">›</i></span></button><Link href="/collections/all?view=wishlist" onClick={() => setMenuOpen(false)}><span>♡ My Wishlist</span>{wishlistCount > 0 && <b>{wishlistCount}</b>}</Link><Link href="/blogs/news" onClick={() => setMenuOpen(false)}>The Plush Journal</Link><Link href="/pages/faq" onClick={() => setMenuOpen(false)}>FAQ &amp; Shipping</Link><Link href="/pages/contact" onClick={() => setMenuOpen(false)}>Contact us</Link><Link href="/pages/about" onClick={() => setMenuOpen(false)}>About Ponyo</Link></nav>
             </> : <div className="mobile-submenu-grid">{animalCategories.map((item) => <Link href={item.href} key={item.title} onClick={() => setMenuOpen(false)}><Image src={item.image} alt="" width={40} height={40} />{item.title}<span>›</span></Link>)}</div>}
           </div>
         </div>
@@ -284,7 +286,7 @@ export function SiteHeader() {
 
       <nav className="mobile-tab-bar" aria-label="Quick navigation">
         <Link href="/" aria-current={pathname === "/" ? "page" : undefined}><span className="tab-icon">⌂</span><small>Home</small></Link>
-        <button type="button" className={menuOpen || isCategoryRoute ? "is-current" : ""} aria-current={menuOpen || isCategoryRoute ? "page" : undefined} onClick={() => { setActiveMenu("root"); setMenuOpen(true); }} aria-label="Open categories"><span className="tab-icon"><CategoryGlyph /></span><small>Categories</small></button>
+        <Link href="/collections" className={isCategoryRoute ? "is-current" : ""} aria-current={isCategoryRoute ? "page" : undefined} aria-label="Browse categories"><span className="tab-icon"><CategoryGlyph /></span><small>Categories</small></Link>
         <button type="button" className="mobile-cart-tab" aria-current={pathname === "/cart" || pathname === "/checkout" ? "page" : undefined} aria-label={`Open cart, ${itemCount} items`} onClick={() => setBagOpen(true)}><span className="tab-icon"><BagGlyph />{itemCount > 0 && <b className="mobile-cart-tab-count">{itemCount}</b>}</span><small>Cart</small></button>
         <Link href="/collections/new-arrivals" aria-current={isForYouRoute ? "page" : undefined}><span className="tab-icon"><JellyfishMark className="mobile-tab-jellyfish" /></span><small>For You</small></Link>
         <button type="button" className="mobile-account-tab" aria-current={pathname.startsWith("/account") || pathname === "/orders" ? "page" : undefined} onClick={openAccountDrawer} aria-label="Open my account"><span className="tab-icon"><PersonGlyph /></span><small>Me</small></button>

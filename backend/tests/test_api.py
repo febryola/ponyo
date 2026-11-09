@@ -389,8 +389,11 @@ async def test_product_reviews_require_account_and_are_listed_with_summary(test_
     assert listed.json()["data"]["averageRating"] == 4
     assert listed.json()["data"]["reviews"][0]["reviewerName"] == "Mika"
     assert listed.json()["data"]["reviews"][0]["photos"] == ["data:image/jpeg;base64,/9j/AA=="]
+    assert datetime.fromisoformat(listed.json()["data"]["reviews"][0]["createdAt"])
     async with session_factory() as db:
-        assert await db.scalar(select(ProductReview)) is not None
+        saved_review = await db.scalar(select(ProductReview))
+        assert saved_review is not None
+        assert saved_review.created_at is not None
 
 
 @pytest.mark.asyncio
@@ -442,7 +445,7 @@ async def test_checkout_refuses_missing_stripe_config(test_client):
         headers={"X-CSRF-Token": csrf},
         json={
             "email": "buyer@example.com",
-            "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "city": "Tokyo", "postalCode": "1000001", "countryCode": "JP"},
+            "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "region": "Tokyo", "city": "Tokyo", "postalCode": "1000001", "phone": "+81 90 0000 0000", "countryCode": "JP"},
             "shippingMethod": "standard", "paymentMethod": "card", "items": [{"variantId": str(uuid4()), "quantity": 1}],
             "successUrl": "http://localhost:3000/orders?checkout=success", "cancelUrl": "http://localhost:3000/checkout?checkout=cancelled",
         },
@@ -523,7 +526,7 @@ async def test_checkout_uses_database_price_and_reserves_stock(test_client, monk
         headers={"X-CSRF-Token": csrf},
         json={
             "email": "buyer@example.com",
-            "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "city": "Tokyo", "postalCode": "1000001", "countryCode": "JP"},
+            "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "region": "Tokyo", "city": "Tokyo", "postalCode": "1000001", "phone": "+81 90 0000 0000", "countryCode": "JP"},
             "shippingMethod": "standard", "paymentMethod": "card", "items": [{"variantId": str(variant_id), "quantity": 2}],
             "successUrl": "http://localhost:3000/orders?checkout=success", "cancelUrl": "http://localhost:3000/checkout?checkout=cancelled",
         },
@@ -565,7 +568,7 @@ async def test_checkout_converts_selected_currency_for_stripe_and_order(test_cli
         headers={"X-CSRF-Token": csrf},
         json={
             "email": "buyer@example.com",
-            "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "city": "Tokyo", "postalCode": "1000001", "countryCode": "JP"},
+            "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "region": "Tokyo", "city": "Tokyo", "postalCode": "1000001", "phone": "+81 90 0000 0000", "countryCode": "JP"},
             "shippingMethod": "standard", "paymentMethod": "card", "currency": "USD",
             "items": [{"variantId": str(variant_id), "quantity": 2}],
             "successUrl": "http://localhost:3000/orders?checkout=success", "cancelUrl": "http://localhost:3000/checkout?checkout=cancelled",

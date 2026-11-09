@@ -136,8 +136,12 @@ export default async function Home() {
       <section className="size-guide store-container" id="sizes">
         <header><h2>How big is big?</h2><p>From pocket pals to room-filling giants. Tap a size to shop it.</p></header>
         <div className="size-guide-tiles">
-          <span className="size-guide-jellyfish" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M12 29C12 16 20 7 32 7s20 9 20 22c0 5-4 8-8 8H20c-4 0-8-3-8-8Z"/><circle cx="26" cy="24" r="2.5"/><circle cx="38" cy="24" r="2.5"/><path d="M22 30c2 2 4 2 6 0M19 39c0 5-2 7-2 11m10-11c0 5 2 7 0 12m8-12c0 5-1 7 1 12m7-12c0 5 2 7 1 11"/></svg></span>
-          {[{ name: "Small", range: "Under 25 cm", image: images.chick, size: "Small" }, { name: "Medium", range: "25–45 cm", image: images.bear, size: "Medium" }, { name: "Large", range: "45–70 cm", image: images.dog, size: "Large" }, { name: "XL", range: "70 cm +", image: images.xlCat, size: "XL" }].map((tile) => <Link href={`/collections/all?filter.p.m.ponyo.size_tier=${tile.size}`} key={tile.name}><span><Image src={tile.image} alt={`${tile.name} plush size example`} fill sizes="(max-width: 640px) 30vw, 230px" /></span><strong>{tile.name}</strong><small>{tile.range}</small></Link>)}
+          {[
+            { className: "size-guide-jellyfish", delay: "0s" },
+            { className: "size-guide-jellyfish size-guide-jellyfish--friend", delay: "-1.1s" },
+            { className: "size-guide-jellyfish size-guide-jellyfish--tiny", delay: "-2.2s" },
+          ].map((jellyfish) => <span key={jellyfish.className} className={jellyfish.className} style={{ animationDelay: jellyfish.delay }} aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M12 29C12 16 20 7 32 7s20 9 20 22c0 5-4 8-8 8H20c-4 0-8-3-8-8Z"/><circle cx="26" cy="24" r="2.5"/><circle cx="38" cy="24" r="2.5"/><path d="M22 30c2 2 4 2 6 0M19 39c0 5-2 7-2 11m10-11c0 5 2 7 0 12m8-12c0 5-1 7 1 12m7-12c0 5 2 7 1 11"/></svg></span>)}
+          {[{ name: "Small", range: "Under 25 cm", image: images.chick, size: "Small" }, { name: "Medium", range: "25–45 cm", image: images.bear, size: "Medium" }, { name: "Large", range: "45–70 cm", image: images.dog, size: "Large" }, { name: "XL", range: "70 cm +", image: images.xlCat, size: "XL" }].map((tile) => <Link className={`size-guide-tile size-guide-tile--${tile.name.toLowerCase()}`} href={`/collections/all?filter.p.m.ponyo.size_tier=${tile.size}`} key={tile.name}><span><Image src={tile.image} alt={`${tile.name} plush size example`} fill sizes="(max-width: 640px) 30vw, 230px" /></span><strong>{tile.name}</strong><small>{tile.range}</small></Link>)}
         </div>
       </section>
 

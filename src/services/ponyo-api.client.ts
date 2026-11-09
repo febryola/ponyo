@@ -36,6 +36,39 @@ export type CustomerProfile = {
 	email: string;
 };
 
+export type CustomerAddress = {
+	id: string;
+	firstName: string;
+	lastName: string;
+	address1: string;
+	address2: string;
+	city: string;
+	region: string;
+	postalCode: string;
+	countryCode: string;
+	phone: string;
+	isDefault: boolean;
+};
+
+export type CustomerAddressInput = Omit<CustomerAddress, "id">;
+
+export type ProductReview = {
+	id: string;
+	reviewerName: string;
+	rating: number;
+	title: string;
+	body: string;
+	photos: string[];
+	verifiedPurchase: boolean;
+	createdAt: string;
+};
+
+export type ProductReviewSummary = {
+	averageRating: number;
+	reviewCount: number;
+	reviews: ProductReview[];
+};
+
 export type BackendOrder = {
 	id: string;
 	orderNumber: string;
@@ -45,6 +78,8 @@ export type BackendOrder = {
 	fulfillmentStatus: string;
 	customerEmail?: string;
 	deliveryAddress?: string;
+	trackingNumber?: string | null;
+	trackingCarrier?: string | null;
 	totalAmount: number;
 	currency: string;
 	items: Array<{
@@ -65,9 +100,12 @@ export type CheckoutSessionInput = {
 		firstName: string;
 		lastName: string;
 		address1: string;
+		address2?: string;
+		region?: string;
 		city: string;
 		postalCode: string;
 		countryCode: string;
+		phone?: string;
 	};
 	shippingMethod: string;
 	paymentMethod: "card" | "paypal" | "apple_pay";
@@ -178,8 +216,34 @@ export const ponyoApi = {
 			`/localization/rates?symbols=${encodeURIComponent(symbols)}`,
 		),
 	listProducts: (query = "") => apiRequest<Product[]>(`/products${query}`),
-	getProduct: (slug: string) =>
-		apiRequest<Product>(`/products/${encodeURIComponent(slug)}`),
+	getProduct: (id: string) =>
+		apiRequest<Product>(`/products/${encodeURIComponent(id)}`),
+	getProductReviews: (productId: string) =>
+		apiRequest<ProductReviewSummary>(
+			`/products/${encodeURIComponent(productId)}/reviews`,
+		),
+	submitProductReview: (
+		productId: string,
+		input: { rating: number; title: string; body: string; photos?: string[] },
+	) =>
+		apiRequest<ProductReview>(
+			`/products/${encodeURIComponent(productId)}/reviews`,
+			{
+				method: "POST",
+				body: JSON.stringify(input),
+			},
+		),
+	joinProductWaitlist: (
+		productId: string,
+		input: { email: string; firstName: string },
+	) =>
+		apiRequest<{ accepted: boolean }>(
+			`/products/${encodeURIComponent(productId)}/waitlist`,
+			{
+				method: "POST",
+				body: JSON.stringify(input),
+			},
+		),
 	login: async (email: string, password: string) => {
 		const response = await apiRequest<{ customer: CustomerProfile }>(
 			"/auth/login",
@@ -211,12 +275,47 @@ export const ponyoApi = {
 			method: "POST",
 			body: JSON.stringify({ email }),
 		}),
+	confirmPasswordReset: (token: string, password: string) =>
+		apiRequest<{ accepted: boolean }>("/auth/password-reset/confirm", {
+			method: "POST",
+			body: JSON.stringify({ token, password }),
+		}),
 	getMe: async () => {
 		const response = await apiRequest<
 			CustomerProfile | { customer: CustomerProfile }
 		>("/auth/me");
 		return "customer" in response ? response.customer : response;
 	},
+	updateMe: async (input: { firstName: string; lastName: string }) => {
+		const response = await apiRequest<
+			CustomerProfile | { customer: CustomerProfile }
+		>("/auth/me", { method: "PATCH", body: JSON.stringify(input) });
+		return "customer" in response ? response.customer : response;
+	},
+	getAddresses: () => apiRequest<CustomerAddress[]>("/auth/addresses"),
+	createAddress: (input: CustomerAddressInput) =>
+		apiRequest<CustomerAddress>("/auth/addresses", {
+			method: "POST",
+			body: JSON.stringify(input),
+		}),
+	updateAddress: (id: string, input: CustomerAddressInput) =>
+		apiRequest<CustomerAddress>(`/auth/addresses/${encodeURIComponent(id)}`, {
+			method: "PATCH",
+			body: JSON.stringify(input),
+		}),
+	deleteAddress: (id: string) =>
+		apiRequest<{ accepted: boolean }>(
+			`/auth/addresses/${encodeURIComponent(id)}`,
+			{
+				method: "DELETE",
+			},
+		),
+	getWishlist: () => apiRequest<{ productSlugs: string[] }>("/auth/wishlist"),
+	updateWishlist: (productSlugs: string[]) =>
+		apiRequest<{ productSlugs: string[] }>("/auth/wishlist", {
+			method: "PUT",
+			body: JSON.stringify({ productSlugs }),
+		}),
 	logout: () =>
 		apiRequest<{ accepted: boolean }>("/auth/logout", { method: "POST" }),
 	getOrders: async () => {

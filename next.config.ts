@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const ponyoMediaHost = process.env.PONYO_MEDIA_HOST?.trim();
 
 const nextConfig: NextConfig = {
+	devIndicators: false,
 	images: {
 		remotePatterns: [
 			{

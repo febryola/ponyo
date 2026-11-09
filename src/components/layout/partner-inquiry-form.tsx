@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { PONYO_API_BASE_URL, ponyoApi } from "@/services/ponyo-api.client";
+import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
 type InquiryDetails = { company: string; email: string; emailNotificationSent: boolean };
 
@@ -9,6 +10,9 @@ export function PartnerInquiryForm() {
   const [submitted, setSubmitted] = useState<InquiryDetails | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactName, setContactName] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+  const { customer } = useCustomerSession();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,8 +66,8 @@ export function PartnerInquiryForm() {
     <form className="partner-inquiry-form" onSubmit={handleSubmit}>
       <div className="partner-form-grid">
         <label>Company or maker name <span>*</span><input name="company" required maxLength={160} autoComplete="organization" placeholder="Your studio or brand" /></label>
-        <label>Contact name <span>*</span><input name="contactName" required maxLength={160} autoComplete="name" placeholder="Your name" /></label>
-        <label>Business email <span>*</span><input name="email" type="email" required maxLength={320} autoComplete="email" placeholder="you@yourstudio.com" /></label>
+        <label>Contact name <span>*</span><input name="contactName" required maxLength={160} autoComplete="name" placeholder="Your name" value={contactName ?? [customer?.firstName, customer?.lastName].filter(Boolean).join(" ")} onChange={(event) => setContactName(event.target.value)} /></label>
+        <label>Business email <span>*</span><input name="email" type="email" required maxLength={320} autoComplete="email" placeholder="you@yourstudio.com" value={email ?? customer?.email ?? ""} onChange={(event) => setEmail(event.target.value)} /></label>
         <label>Website or social link<input name="website" type="url" maxLength={500} placeholder="https://" /></label>
       </div>
       <label>What do you make? <span>*</span>

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import locale from "@/ponyo-shopify/locales/en.default.json";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
+import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
 export function HomeInterestForms() {
   const [alertsJoined, setAlertsJoined] = useState(false);
@@ -10,6 +11,10 @@ export function HomeInterestForms() {
   const [requestOutcome, setRequestOutcome] = useState<"preview" | "saved-notified" | "saved-no-email" | null>(null);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState<string | null>(null);
+  const [requestName, setRequestName] = useState<string | null>(null);
+  const [requestEmail, setRequestEmail] = useState<string | null>(null);
+  const { customer } = useCustomerSession();
   const copy = locale.home;
 
   function submit(type: "newsletter" | "request") {
@@ -55,7 +60,7 @@ export function HomeInterestForms() {
         {alertsJoined ? <p className="local-form-success" role="status">{copy.v2.drops_success}</p> : (
           <form onSubmit={submit("newsletter")}>
             <label className="sr-only" htmlFor="drops-email">{copy.v2.email_label}</label>
-            <div><input id="drops-email" name="email" type="email" required autoComplete="email" placeholder={copy.v2.email_placeholder} /><button type="submit" disabled={submitting}>{submitting ? "Please wait…" : copy.v2.drops_cta}</button></div>
+            <div><input id="drops-email" name="email" type="email" required autoComplete="email" placeholder={copy.v2.email_placeholder} value={newsletterEmail ?? customer?.email ?? ""} onChange={(event) => setNewsletterEmail(event.target.value)} /><button type="submit" disabled={submitting}>{submitting ? "Please wait…" : copy.v2.drops_cta}</button></div>
             {formError && !alertsJoined && <p className="api-form-error" role="alert">{formError}</p>}
           </form>
         )}
@@ -67,9 +72,9 @@ export function HomeInterestForms() {
           <form onSubmit={submit("request")}>
             <div>
               <label className="sr-only" htmlFor="request-name">{copy.v2.name_label}</label>
-              <input id="request-name" name="name" autoComplete="name" placeholder={copy.v2.name_label} />
+              <input id="request-name" name="name" autoComplete="name" placeholder={copy.v2.name_label} value={requestName ?? [customer?.firstName, customer?.lastName].filter(Boolean).join(" ")} onChange={(event) => setRequestName(event.target.value)} />
               <label className="sr-only" htmlFor="request-email">{copy.v2.email_label}</label>
-              <input id="request-email" name="email" type="email" required autoComplete="email" placeholder={copy.v2.email_placeholder} />
+              <input id="request-email" name="email" type="email" required autoComplete="email" placeholder={copy.v2.email_placeholder} value={requestEmail ?? customer?.email ?? ""} onChange={(event) => setRequestEmail(event.target.value)} />
             </div>
             <label className="sr-only" htmlFor="request-body">{copy.v2.request_label}</label>
             <textarea id="request-body" name="message" required rows={3} placeholder={copy.v2.request_placeholder} />
@@ -87,6 +92,9 @@ export function LocalContactForm() {
   const [requestOutcome, setRequestOutcome] = useState<"preview" | "saved-notified" | "saved-no-email" | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [contactName, setContactName] = useState<string | null>(null);
+  const [contactEmail, setContactEmail] = useState<string | null>(null);
+  const { customer } = useCustomerSession();
 
   if (sent) return <p className="local-form-success contact-success" role="status">{requestOutcome === "saved-notified" ? "Your message is saved, and an email notification was sent to Ponyo." : requestOutcome === "saved-no-email" ? "Your message is saved in the Ponyo database. Email notification is not set up yet." : "Preview only: your message was not sent to the backend or by email."}</p>;
 
@@ -107,9 +115,9 @@ export function LocalContactForm() {
       } finally { setSubmitting(false); }
     }}>
       <label htmlFor="contact-name">Name <span>*</span></label>
-      <input id="contact-name" name="name" required autoComplete="name" />
+      <input id="contact-name" name="name" required autoComplete="name" value={contactName ?? [customer?.firstName, customer?.lastName].filter(Boolean).join(" ")} onChange={(event) => setContactName(event.target.value)} />
       <label htmlFor="contact-email">Email <span>*</span></label>
-      <input id="contact-email" name="email" type="email" required autoComplete="email" />
+      <input id="contact-email" name="email" type="email" required autoComplete="email" value={contactEmail ?? customer?.email ?? ""} onChange={(event) => setContactEmail(event.target.value)} />
       <label htmlFor="contact-phone">Phone</label>
       <input id="contact-phone" name="phone" type="tel" autoComplete="tel" />
       <label htmlFor="contact-message">Message <span>*</span></label>

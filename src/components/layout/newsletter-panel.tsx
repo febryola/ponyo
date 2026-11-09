@@ -4,11 +4,15 @@ import Image from "next/image";
 import { useState } from "react";
 import locale from "@/ponyo-shopify/locales/en.default.json";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
+import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
 export function NewsletterPanel() {
   const [subscribed, setSubscribed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [email, setEmail] = useState<string | null>(null);
+  const [emailEdited, setEmailEdited] = useState(false);
+  const { customer } = useCustomerSession();
   const copy = locale.home.newsletter;
 
   async function subscribe(event: React.FormEvent<HTMLFormElement>) {
@@ -39,7 +43,7 @@ export function NewsletterPanel() {
         {subscribed ? <p className="newsletter-success" role="status">{copy.success}</p> : (
           <form onSubmit={subscribe}>
             <label className="sr-only" htmlFor="store-newsletter-email">{copy.placeholder}</label>
-            <input id="store-newsletter-email" name="email" type="email" required autoComplete="email" placeholder={copy.placeholder} />
+            <input id="store-newsletter-email" name="email" type="email" required autoComplete="email" placeholder={copy.placeholder} value={emailEdited ? email ?? "" : email ?? customer?.email ?? ""} onChange={(event) => { setEmailEdited(true); setEmail(event.target.value); }} />
             <button type="submit" disabled={isSubmitting}>{isSubmitting ? "Please wait…" : copy.submit}</button>
           </form>
         )}

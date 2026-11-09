@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useLocalization } from "@/components/layout/localization-provider";
 import { getLocalOrdersSnapshot, subscribeToLocalOrders, type LocalOrder } from "@/lib/local-orders";
-import { ApiNotConfiguredError, ponyoApi, PONYO_API_BASE_URL, type BackendOrder, type CheckoutReceipt } from "@/services/ponyo-api.client";
+import { ApiNotConfiguredError, ApiRequestError, ponyoApi, PONYO_API_BASE_URL, type BackendOrder, type CheckoutReceipt } from "@/services/ponyo-api.client";
+import { AccountAuthForm } from "@/components/account/account-auth-form";
 
 function fromBackendOrder(order: BackendOrder): LocalOrder {
   const normalizedStatus = order.status.toLowerCase();
@@ -17,6 +18,8 @@ function fromBackendOrder(order: BackendOrder): LocalOrder {
     payment: order.paymentStatus,
     customerEmail: order.customerEmail,
     deliveryAddress: order.deliveryAddress,
+    trackingNumber: order.trackingNumber ?? undefined,
+    trackingCarrier: order.trackingCarrier ?? undefined,
     total: order.totalAmount,
     currency: order.currency,
     items: order.items.map((item) => ({
@@ -42,6 +45,10 @@ function getCheckoutSessionId() {
   return new URLSearchParams(window.location.search).get("session_id");
 }
 
+function getPreviewOrderId() {
+  return new URLSearchParams(window.location.search).get("order_id");
+}
+
 export function LocalOrdersPanel() {
   const { formatPrice } = useLocalization();
   const serialized = useSyncExternalStore(subscribeToLocalOrders, getLocalOrdersSnapshot, () => "[]");
@@ -51,10 +58,13 @@ export function LocalOrdersPanel() {
   }, [serialized]);
   const [backendOrders, setBackendOrders] = useState<LocalOrder[] | null>(null);
   const [apiError, setApiError] = useState("");
+  const [needsSignIn, setNeedsSignIn] = useState(false);
   const checkoutSessionId = useSyncExternalStore(subscribeToLocation, getCheckoutSessionId, () => null);
+  const previewOrderId = useSyncExternalStore(subscribeToLocation, getPreviewOrderId, () => null);
   const [checkoutReceipt, setCheckoutReceipt] = useState<CheckoutReceipt | null>(null);
 
   useEffect(() => {
+    if (previewOrderId) return;
     if (!PONYO_API_BASE_URL) return;
     let active = true;
     if (checkoutSessionId) {
@@ -73,12 +83,18 @@ export function LocalOrdersPanel() {
       .then((result) => { if (active) setBackendOrders(result.map(fromBackendOrder)); })
       .catch((error: unknown) => {
         if (!active) return;
+        if (error instanceof ApiRequestError && error.status === 401) {
+          setNeedsSignIn(true);
+          setBackendOrders([]);
+          return;
+        }
         if (!(error instanceof ApiNotConfiguredError)) setApiError(error instanceof Error ? error.message : "Unable to load order history.");
         setBackendOrders([]);
       });
     return () => { active = false; };
-  }, [checkoutSessionId]);
-  const visibleOrders = backendOrders ?? orders;
+  }, [checkoutSessionId, previewOrderId]);
+  const visibleOrders = previewOrderId ? orders : backendOrders ?? orders;
+  const previewOrder = previewOrderId ? orders.find((order) => order.id === previewOrderId) : undefined;
 
   return (
     <section className="orders-panel" aria-labelledby="orders-heading">
@@ -87,13 +103,19 @@ export function LocalOrdersPanel() {
         <Link className="orders-profile-link" href="/account">Account overview <span aria-hidden="true">→</span></Link>
       </div>
       {checkoutReceipt && <div className="order-history-card" role="status"><h2>Thanks for your order, {checkoutReceipt.orderNumber}!</h2><p>Payment: {checkoutReceipt.paymentStatus.replaceAll("_", " ")} · Status: {checkoutReceipt.status.replaceAll("_", " ")}</p><p>Total: {formatPrice(checkoutReceipt.totalAmount, checkoutReceipt.currency)}</p></div>}
+      {previewOrder && <div className="order-history-card order-preview-confirmation" role="status"><h2>Sample order {previewOrder.id} is ready to track.</h2><p>This is demo order data. No payment was collected.</p>{previewOrder.trackingNumber && <p><strong>{previewOrder.trackingCarrier ?? "Demo carrier"} · Tracking number:</strong> {previewOrder.trackingNumber}</p>}</div>}
       {apiError && <p className="api-form-error" role="alert">{apiError}</p>}
-      {visibleOrders.length ? (
+      {needsSignIn ? <div className="orders-signin-card"><span aria-hidden="true">🪼</span><h2>Your orders are tucked away</h2><p>Sign in to the account connected to your Ponyo orders, or create one to get started.</p><AccountAuthForm mode="login" onAuthenticated={() => {
+        setNeedsSignIn(false);
+        setBackendOrders(null);
+        ponyoApi.getOrders().then((result) => setBackendOrders(result.map(fromBackendOrder))).catch((error: unknown) => setApiError(error instanceof Error ? error.message : "Unable to load order history."));
+      }} /></div> : visibleOrders.length ? (
         <div className="order-history-list">
           {visibleOrders.map((order) => (
             <article className="order-history-card" key={order.id}>
               <header><div><span>ORDER PLACED</span><strong>{new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(order.createdAt))}</strong></div><div><span>ORDER NUMBER</span><strong>{order.id}</strong></div><div className="order-status"><span>STATUS</span><strong>{order.status}</strong></div><div className="order-total"><span>TOTAL</span><strong>{formatPrice(order.total, order.currency)}</strong></div></header>
               {(order.deliveryAddress || order.customerEmail) && <div className="order-delivery-summary"><span>DELIVERY DETAILS</span><p>{order.customerEmail}{order.customerEmail && order.deliveryAddress ? " · " : ""}{order.deliveryAddress}</p></div>}
+              {order.trackingNumber && <div className="order-delivery-summary order-tracking-summary"><span>TRACKING · {order.trackingCarrier ?? "CARRIER"}</span><p>{order.trackingNumber} <small>Demo tracking reference</small></p></div>}
               <div className="order-history-items">{order.items.map((item) => <div className="order-history-item" key={`${order.id}-${item.id}`}><Image src={item.image} alt={item.imageAlt} width={72} height={72} /><span><strong>{item.name}</strong><small>Qty {item.qty} · {item.maker}</small></span><b>{formatPrice(item.price * item.qty, item.currency)}</b></div>)}</div>
             </article>
           ))}

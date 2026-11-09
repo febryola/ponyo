@@ -7,6 +7,8 @@ export type LocalOrder = {
 	payment: string;
 	customerEmail?: string;
 	deliveryAddress?: string;
+	trackingNumber?: string;
+	trackingCarrier?: string;
 	total: number;
 	currency: string;
 	items: CartItem[];

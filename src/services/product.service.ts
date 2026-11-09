@@ -18,7 +18,7 @@ const elephantImage = `${themeFiles}/ponyo-6.png?v=1793843378`;
 const foxImage = `${themeFiles}/ponyo-7.png?v=1793843379`;
 
 // Catalog-only wireframe data. Replace these examples with supplier-approved records.
-const sampleProducts: Product[] = [
+const sampleProducts: Array<Omit<Product, "sku">> = [
 	{
 		id: "sample-hoshi-cloud-bear",
 		slug: "hoshi-cloud-bear",
@@ -233,6 +233,7 @@ const storefrontPreviewMetadata: Record<
 		| "sizeTier"
 		| "dimensions"
 		| "availabilityStatus"
+		| "priceHistory"
 		| "supplierName"
 		| "image"
 	>
@@ -281,6 +282,7 @@ const storefrontPreviewMetadata: Record<
 		shopifyProductId: 15723436212335,
 		variantId: "68204266389615",
 		productType: "Cat",
+		availabilityStatus: "Waitlist",
 		tags: ["cat", "new-arrival"],
 		supplierName: "Ponyo",
 		size: "Cat",
@@ -291,6 +293,7 @@ const storefrontPreviewMetadata: Record<
 		shopifyProductId: 15723435884655,
 		variantId: "68204264554607",
 		productType: "Panda",
+		availabilityStatus: "Unavailable",
 		tags: ["panda", "premium"],
 		supplierName: "Ponyo",
 		size: "Panda",
@@ -301,6 +304,7 @@ const storefrontPreviewMetadata: Record<
 		shopifyProductId: 15723316150383,
 		variantId: "68203761762415",
 		productType: "XL Plush",
+		availabilityStatus: "Coming Soon",
 		tags: ["character", "domina-xl"],
 		size: "XL · 70 cm",
 		sizeTier: "XL",
@@ -313,6 +317,7 @@ const storefrontPreviewMetadata: Record<
 		shopifyProductId: 15723316052079,
 		variantId: "68203761664111",
 		productType: "XL Plush",
+		availabilityStatus: "Unavailable",
 		tags: ["character", "domina-xl"],
 		size: "XL · 120 cm",
 		sizeTier: "XL",
@@ -329,7 +334,7 @@ const storefrontPreviewMetadata: Record<
 		size: "XL · 100 cm",
 		sizeTier: "XL",
 		dimensions: "100 cm",
-		availabilityStatus: "Limited",
+		availabilityStatus: "Available",
 		supplierName: "Domina",
 		image:
 			"https://cdn.shopify.com/s/files/1/0821/0690/8783/files/maker-bunny.jpg?v=1793843383",
@@ -396,9 +401,58 @@ const storefrontPreviewMetadata: Record<
 	},
 };
 
+const storefrontPreviewColors: Record<string, string> = {
+	"hoshi-cloud-bear": "Cream",
+	"haneul-bunny": "Cream",
+	"mint-dino": "Mint green",
+	"bluebell-penguin": "Blue and white",
+	"good-things-ahead-kitty": "Cream and taupe",
+	"better-days-panda": "Cream and charcoal",
+	"biscuit-bow-pup": "Cream and caramel",
+	"cloud-cat": "Cream and caramel",
+	"sunny-chick": "Sunny yellow",
+	"cherry-blossom-bunny": "Pink",
+	"hoshi-cloud-bear-xl": "Cream",
+	"haneul-bunny-xl": "Cream",
+	"baluran-elephant-xl": "Grey",
+	"clement-the-fox-xl": "Orange and cream",
+};
+
+const storefrontPreviewStatuses: Record<
+	string,
+	NonNullable<Product["availabilityStatus"]>
+> = {
+	"hoshi-cloud-bear": "Available",
+	"haneul-bunny": "Coming Soon",
+	"mint-dino": "Available",
+	"bluebell-penguin": "Available",
+	"good-things-ahead-kitty": "Waitlist",
+	"better-days-panda": "Unavailable",
+	"biscuit-bow-pup": "Available",
+	"cloud-cat": "Available",
+	"sunny-chick": "Available",
+	"cherry-blossom-bunny": "Waitlist",
+	"hoshi-cloud-bear-xl": "Available",
+	"haneul-bunny-xl": "Waitlist",
+	"baluran-elephant-xl": "Unavailable",
+	"clement-the-fox-xl": "Coming Soon",
+};
+
+const storefrontPreviewPriceHistory: Product["priceHistory"] = [
+	{ date: "2026-11-09", price: 18800 },
+];
+
 export const storefrontPreviewProducts = sampleProducts.map((product) => ({
 	...product,
+	color: storefrontPreviewColors[product.slug],
+	sku: `PNY-${product.slug
+		.toUpperCase()
+		.replace(/[^A-Z0-9]+/g, "-")
+		.replace(/^-|-$/g, "")}`,
 	...storefrontPreviewMetadata[product.slug],
+	availabilityStatus: storefrontPreviewStatuses[product.slug],
+	priceHistory:
+		product.slug === "hoshi-cloud-bear" ? storefrontPreviewPriceHistory : [],
 	publishedAt: "2026-11-05T15:00:00+09:00",
 	isNew: true,
 	galleryImages: [
@@ -412,24 +466,25 @@ export const storefrontPreviewProducts = sampleProducts.map((product) => ({
 			alt: product.imageAlt,
 		},
 	],
-	availability: "available" as const,
+	availability: (storefrontPreviewMetadata[product.slug]?.availabilityStatus ===
+		"Available" || !storefrontPreviewMetadata[product.slug]?.availabilityStatus
+		? "available"
+		: "unavailable") as Product["availability"],
 }));
 
-export async function getProducts(): Promise<Product[]> {
-	if (PONYO_API_BASE_URL) return ponyoApi.listProducts();
+export async function getProducts(query = ""): Promise<Product[]> {
+	if (PONYO_API_BASE_URL) return ponyoApi.listProducts(query);
 	return storefrontPreviewProducts;
 }
 
-export async function getProductBySlug(
-	slug: string,
-): Promise<Product | undefined> {
+export async function getProductById(id: string): Promise<Product | undefined> {
 	if (PONYO_API_BASE_URL) {
 		try {
-			return await ponyoApi.getProduct(slug);
+			return await ponyoApi.getProduct(id);
 		} catch {
 			return undefined;
 		}
 	}
 	const products = await getProducts();
-	return products.find((product) => product.slug === slug);
+	return products.find((product) => product.id === id);
 }

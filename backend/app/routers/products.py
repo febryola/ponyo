@@ -1,24 +1,43 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
+from uuid import UUID
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
-from app.models import Product, ProductVariant
-from app.schemas import ProductOut, VariantOut
+from app.models import Customer, Order, OrderItem, OutboxEvent, Product, ProductReview, ProductVariant, ProductWaitlistEntry
+from app.schemas import ProductOut, ProductReviewCreate, ProductWaitlistRequest, VariantOut
+from app.security import get_current_customer, get_optional_customer, require_csrf
+from app.rate_limit import enforce_rate_limit
 
 router = APIRouter(prefix="/products", tags=["catalog"])
+
+
+async def product_by_id(product_id: UUID, db: AsyncSession) -> Product:
+    product = await db.scalar(
+        select(Product).where(Product.id == product_id, Product.published.is_(True))
+        .options(selectinload(Product.variants))
+    )
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found.")
+    return product
 
 
 def product_response(product: Product) -> ProductOut:
     variants = [
         VariantOut(
             id=str(variant.id),
+            sku=variant.sku,
             title=variant.title,
             priceAmount=variant.price_amount,
             currency=variant.currency,
             compareAtAmount=variant.compare_at_amount,
             availability="available" if variant.active and variant.stock_quantity > 0 else "unavailable",
+            options=variant.options or {},
         )
         for variant in product.variants
         if variant.active
@@ -27,6 +46,7 @@ def product_response(product: Product) -> ProductOut:
     availability = "available" if default_variant and default_variant.availability == "available" else "unavailable"
     return ProductOut(
         id=str(product.id),
+        sku=product.sku,
         slug=product.slug,
         name=product.name,
         description=product.description,
@@ -35,6 +55,7 @@ def product_response(product: Product) -> ProductOut:
         currency=default_variant.currency if default_variant else product.currency,
         availability=availability,
         availabilityStatus=product.availability_status,
+        priceHistory=product.price_history or [],
         categoryName=product.category_name,
         productType=product.product_type,
         supplierName=product.supplier_name,
@@ -101,11 +122,135 @@ async def list_products(
     return {"data": [product_response(product).model_dump(mode="json") for product in rows], "page": page, "limit": limit, "total": total}
 
 
-@router.get("/{slug}", response_model=dict)
-async def get_product(slug: str, db: AsyncSession = Depends(get_db)):
+@router.get("/{product_id}", response_model=dict)
+async def get_product(product_id: str, db: AsyncSession = Depends(get_db)):
+    try:
+        identifier = UUID(product_id)
+        product_filter = Product.id == identifier
+    except ValueError:
+        # Accept legacy product handles so storefront routes can redirect old links to canonical IDs.
+        product_filter = Product.slug == product_id
     product = await db.scalar(
-        select(Product).where(Product.slug == slug, Product.published.is_(True)).options(selectinload(Product.variants))
+        select(Product).where(product_filter, Product.published.is_(True)).options(selectinload(Product.variants))
     )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found.")
     return {"data": product_response(product).model_dump(mode="json")}
+
+
+@router.get("/{product_id}/reviews", response_model=dict)
+async def list_product_reviews(product_id: UUID, db: AsyncSession = Depends(get_db)):
+    await product_by_id(product_id, db)
+    reviews = await db.scalars(
+        select(ProductReview).where(ProductReview.product_id == product_id, ProductReview.published.is_(True))
+        .order_by(ProductReview.created_at.desc()).limit(100)
+    )
+    rows = list(reviews)
+    review_count = int(await db.scalar(
+        select(func.count(ProductReview.id)).where(ProductReview.product_id == product_id, ProductReview.published.is_(True))
+    ) or 0)
+    average = float(await db.scalar(
+        select(func.avg(ProductReview.rating)).where(ProductReview.product_id == product_id, ProductReview.published.is_(True))
+    ) or 0)
+    return {"data": {
+        "averageRating": round(average, 1),
+        "reviewCount": review_count,
+        "reviews": [{
+            "id": str(review.id), "reviewerName": review.reviewer_name,
+            "rating": review.rating, "title": review.title, "body": review.body,
+            "photos": review.photos or [],
+            "verifiedPurchase": review.verified_purchase, "createdAt": review.created_at.isoformat(),
+        } for review in rows],
+    }}
+
+
+@router.post("/{product_id}/reviews", response_model=dict)
+async def create_product_review(
+    product_id: UUID,
+    payload: ProductReviewCreate,
+    request: Request,
+    customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_db),
+):
+    require_csrf(request)
+    await enforce_rate_limit(request, "product-review", 5, 3600)
+    await product_by_id(product_id, db)
+    review = await db.scalar(select(ProductReview).where(
+        ProductReview.product_id == product_id,
+        ProductReview.customer_id == customer.id,
+    ))
+    if not review:
+        verified_purchase = bool(await db.scalar(
+            select(OrderItem.id)
+            .join(Order, Order.id == OrderItem.order_id)
+            .join(ProductVariant, ProductVariant.id == OrderItem.variant_id)
+            .where(
+                Order.customer_id == customer.id,
+                ProductVariant.product_id == product_id,
+                Order.payment_status == "paid",
+            ).limit(1)
+        ))
+        review = ProductReview(
+            product_id=product_id,
+            customer_id=customer.id,
+            reviewer_name=customer.first_name.strip() or "Ponyo customer",
+            verified_purchase=verified_purchase,
+        )
+        db.add(review)
+    review.rating = payload.rating
+    review.title = payload.title.strip()
+    review.body = payload.body.strip()
+    review.photos = payload.photos
+    review.reviewer_name = customer.first_name.strip() or "Ponyo customer"
+    review.published = True
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Your review could not be saved. Please try again.") from None
+    await db.refresh(review)
+    return {"data": {
+        "id": str(review.id), "reviewerName": review.reviewer_name,
+        "rating": review.rating, "title": review.title, "body": review.body,
+        "photos": review.photos or [],
+        "verifiedPurchase": review.verified_purchase, "createdAt": review.created_at.isoformat(),
+    }}
+
+
+@router.post("/{product_id}/waitlist", response_model=dict)
+async def join_product_waitlist(
+    product_id: UUID,
+    payload: ProductWaitlistRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    customer: Customer | None = Depends(get_optional_customer),
+):
+    require_csrf(request)
+    await enforce_rate_limit(request, "product-waitlist", 10, 3600)
+    product = await product_by_id(product_id, db)
+    email = str(payload.email).lower().strip()
+    existing = await db.scalar(select(ProductWaitlistEntry).where(
+        ProductWaitlistEntry.product_id == product_id,
+        ProductWaitlistEntry.email == email,
+    ))
+    if existing:
+        if customer and existing.customer_id is None and customer.email == email:
+            existing.customer_id = customer.id
+            existing.first_name = payload.firstName.strip() or customer.first_name
+            await db.commit()
+        return {"data": {"accepted": True}}
+    entry = ProductWaitlistEntry(
+        product_id=product_id,
+        customer_id=customer.id if customer and customer.email == email else None,
+        email=email,
+        first_name=payload.firstName.strip() or (customer.first_name if customer and customer.email == email else ""),
+    )
+    db.add(entry)
+    db.add(OutboxEvent(event_type="product.waitlist_joined", payload={
+        "productId": str(product.id), "productName": product.name, "email": email,
+    }))
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+    return {"data": {"accepted": True}}

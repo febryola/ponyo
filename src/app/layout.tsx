@@ -4,6 +4,7 @@ import { Libre_Baskerville, Nunito_Sans } from "next/font/google";
 import { StoreSplash } from "@/components/layout/store-splash";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
 import { LocalizationProvider } from "@/components/layout/localization-provider";
+import { CustomerSessionProvider } from "@/components/layout/customer-session-provider";
 import "./globals.css";
 import "@/ponyo-shopify/assets/styles.min.css";
 import "./storefront.css";
@@ -41,9 +42,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang={initialLanguage} className="h-full antialiased">
       <body className={`min-h-full ${bodyFont.variable} ${headingFont.variable}`}>
         <LocalizationProvider initialLanguage={initialLanguage} initialCurrency={initialCurrency} initialCountry={initialCountry} initialDeliveryNoticeDismissed={initialDeliveryNoticeDismissed}>
-          <StoreSplash />
-          <CookieConsentBanner initialConsent={initialCookieConsent} initialAnalyticsConsent={initialAnalyticsConsent} initialMarketingConsent={initialMarketingConsent} />
-          {children}
+          <CustomerSessionProvider>
+            <StoreSplash />
+            <CookieConsentBanner initialConsent={initialCookieConsent} initialAnalyticsConsent={initialAnalyticsConsent} initialMarketingConsent={initialMarketingConsent} />
+            {children}
+          </CustomerSessionProvider>
         </LocalizationProvider>
       </body>
     </html>

@@ -8,7 +8,12 @@ const shopDomain = (
 
 export type ShopifyVariant = {
 	id: string | number;
+	sku?: string | null;
 	title: string;
+	options?: Record<string, string>;
+	option1?: string | null;
+	option2?: string | null;
+	option3?: string | null;
 	price: string;
 	available: boolean;
 	compare_at_price: string | null;
@@ -27,8 +32,10 @@ export type ShopifyProductRecord = {
 	size_tier?: string | null;
 	dimensions?: string | null;
 	dispatch_time?: string | null;
+	optionNames?: string[];
 	variants: ShopifyVariant[];
 	images: { src: string; alt?: string | null }[];
+	options?: { name: string }[];
 };
 
 type ShopifyProductsResponse = { products: ShopifyProductRecord[] };
@@ -93,6 +100,7 @@ export function mapShopifyProduct(
 		: Number.POSITIVE_INFINITY;
 	return {
 		id: String(product.id),
+		sku: variant.sku?.trim() || `PNY-${String(variant.id).split("/").at(-1)}`,
 		shopifyProductId:
 			typeof product.id === "number"
 				? product.id
@@ -119,6 +127,33 @@ export function mapShopifyProduct(
 				: "Available",
 		categoryName: categoryFor(product),
 		productType: product.product_type,
+		color: variant.options?.Color ?? variant.options?.Colour ?? undefined,
+		variants: product.variants.map((item) => ({
+			id: String(item.id).split("/").at(-1) ?? String(item.id),
+			sku: item.sku?.trim() || `PNV-${String(item.id).split("/").at(-1)}`,
+			title: item.title,
+			options:
+				item.options ??
+				Object.fromEntries(
+					[item.option1, item.option2, item.option3]
+						.map((value, index) => [
+							product.optionNames?.[index] ?? `Option ${index + 1}`,
+							value,
+						])
+						.filter(
+							(entry): entry is [string, string] =>
+								typeof entry[1] === "string" &&
+								Boolean(entry[1]) &&
+								entry[1] !== "Default Title",
+						),
+				),
+			priceAmount: Number(item.price),
+			currency: "JPY",
+			compareAtAmount: item.compare_at_price
+				? Number(item.compare_at_price)
+				: undefined,
+			availability: item.available ? "available" : "unavailable",
+		})),
 		tags: product.tags,
 		sizeTier: product.size_tier ?? undefined,
 		supplierName: product.vendor,
@@ -142,7 +177,7 @@ export async function fetchShopifyCatalog({
 }: { fresh?: boolean } = {}): Promise<ShopifyProductRecord[]> {
 	const storefrontToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 	if (storefrontToken) {
-		const query = `query PonyoCatalog { products(first: 250, sortKey: UPDATED_AT, reverse: true) { nodes { id title handle publishedAt descriptionHtml vendor productType tags availabilityStatus: metafield(namespace: "ponyo", key: "availability_status") { value } sizeTier: metafield(namespace: "ponyo", key: "size_tier") { value } dimensions: metafield(namespace: "ponyo", key: "dimensions") { value } dispatchTime: metafield(namespace: "ponyo", key: "dispatch_time") { value } variants(first: 1) { nodes { id title price { amount } compareAtPrice { amount } availableForSale } } images(first: 10) { nodes { url altText } } } } }`;
+		const query = `query PonyoCatalog { products(first: 250, sortKey: UPDATED_AT, reverse: true) { nodes { id title handle publishedAt descriptionHtml vendor productType tags options { name } availabilityStatus: metafield(namespace: "ponyo", key: "availability_status") { value } sizeTier: metafield(namespace: "ponyo", key: "size_tier") { value } dimensions: metafield(namespace: "ponyo", key: "dimensions") { value } dispatchTime: metafield(namespace: "ponyo", key: "dispatch_time") { value } variants(first: 100) { nodes { id title sku selectedOptions { name value } price { amount } compareAtPrice { amount } availableForSale } } images(first: 10) { nodes { url altText } } } } }`;
 		const response = await fetch(
 			`https://${shopDomain}/api/2026-10/graphql.json?query=${encodeURIComponent(query)}`,
 			{
@@ -174,6 +209,7 @@ export async function fetchShopifyCatalog({
 						vendor: string;
 						productType: string;
 						tags: string[];
+						options: { name: string }[];
 						availabilityStatus: { value: string } | null;
 						sizeTier: { value: string } | null;
 						dimensions: { value: string } | null;
@@ -182,6 +218,8 @@ export async function fetchShopifyCatalog({
 							nodes: {
 								id: string;
 								title: string;
+								sku: string | null;
+								selectedOptions: { name: string; value: string }[];
 								price: { amount: string };
 								compareAtPrice: { amount: string } | null;
 								availableForSale: boolean;
@@ -204,6 +242,7 @@ export async function fetchShopifyCatalog({
 			body_html: product.descriptionHtml,
 			vendor: product.vendor,
 			product_type: product.productType,
+			optionNames: product.options.map((option) => option.name),
 			tags: product.tags,
 			availability_status: product.availabilityStatus?.value,
 			size_tier: product.sizeTier?.value,
@@ -211,7 +250,11 @@ export async function fetchShopifyCatalog({
 			dispatch_time: product.dispatchTime?.value,
 			variants: product.variants.nodes.map((variant) => ({
 				id: variant.id,
+				sku: variant.sku,
 				title: variant.title,
+				options: Object.fromEntries(
+					variant.selectedOptions.map((option) => [option.name, option.value]),
+				),
 				price: variant.price.amount,
 				available: variant.availableForSale,
 				compare_at_price: variant.compareAtPrice?.amount ?? null,
@@ -238,7 +281,12 @@ export async function fetchShopifyCatalog({
 		throw error;
 	}
 	const data = (await response.json()) as ShopifyProductsResponse;
-	return Array.isArray(data.products) ? data.products : [];
+	return Array.isArray(data.products)
+		? data.products.map((product) => ({
+				...product,
+				optionNames: product.options?.map((option) => option.name),
+			}))
+		: [];
 }
 
 export async function getShopifyProducts(): Promise<Product[]> {

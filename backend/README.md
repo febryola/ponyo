@@ -17,7 +17,9 @@ Use Python 3.12+ and install the project with its `test` extra. Start PostgreSQL
 ## Routes
 
 - `GET /v1/health`, catalog, product detail
-- CSRF token, register, login, reset request, current account
+- CSRF token, register, login, current account/profile updates, saved addresses, and persistent customer wishlist
+- Product ratings/reviews and durable per-product coming-soon waitlists
+- One-hour, single-use password reset requests and confirmation (`SMTP_HOST`, `SMTP_FROM_EMAIL`, and SMTP credentials must be configured for delivery)
 - Authenticated order history and detail
 - Guest/account checkout with server-priced variants and Stripe-hosted payment
 - Newsletter/contact submissions

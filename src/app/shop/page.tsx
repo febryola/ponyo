@@ -99,7 +99,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   return (
     <SiteFrame className="store-page collection-page">
       <header className={`collection-heading collection-tone-${category || "all"}`}>
-        <div className="collection-heading-copy"><nav className="store-breadcrumb"><Link href="/">Home</Link><span>›</span><span>{heading}</span></nav><h1>{heading}</h1>
+        <div className="collection-heading-copy"><h1>{heading}</h1>
           <p>{collectionDescription(category)}</p>
           <div className="collection-size-chips"><span>{sorted.length} plush</span>{["Small", "Medium", "Large", "XL"].map((tier) => <Link key={tier} href={`/shop?${new URLSearchParams({ ...(category ? { category } : {}), size: tier }).toString()}`} className={size === tier ? "is-selected" : ""}>{tier}</Link>)}</div>
         </div><div className="collection-heading-image"><Image src={collectionImage(category)} alt="" fill sizes="(max-width: 700px) 100vw, 45vw" priority /></div>

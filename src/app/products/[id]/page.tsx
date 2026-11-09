@@ -1,0 +1,52 @@
+ import type { Metadata } from "next";
+import Link from "next/link";
+import { cache } from "react";
+import { notFound, redirect } from "next/navigation";
+import { SiteFrame } from "@/components/layout/site-frame";
+import { ProductPurchasePanel } from "@/components/product/product-purchase-panel";
+import { ProductReviews, ProductWaitlistForm } from "@/components/product/product-community";
+import { ProductPriceHistory } from "@/components/product/product-price-history";
+import { ProductGrid } from "@/components/product/product-grid";
+import { ProductGallery } from "@/components/product/product-gallery";
+import { getProductById, getProducts } from "@/services/product.service";
+
+const getProductPageData = cache(async (identifier: string) => {
+  const products = await getProducts("?limit=100");
+  const product = products.find((item) => item.id === identifier)
+    ?? products.find((item) => item.slug === identifier)
+    ?? await getProductById(identifier);
+  return { product, products };
+});
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const { product } = await getProductPageData(id);
+  return product ? { title: `${product.name} – Ponyo`, description: product.description } : { title: "Plush not found" };
+}
+
+export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { product, products } = await getProductPageData(id);
+  if (!product) notFound();
+  if (product.id !== id) redirect(`/products/${encodeURIComponent(product.id)}`);
+
+  const related = products.filter((item) => item.id !== product.id && (item.categoryName === product.categoryName || item.tags?.some((tag) => product.tags?.includes(tag)))).slice(0, 4);
+  const hasWaitlist = product.availability === "unavailable"
+    || ["Coming Soon", "Waitlist", "Unavailable"].includes(product.availabilityStatus ?? "");
+
+  return (
+    <SiteFrame className="store-page product-page">
+      <section className="product-detail-layout">
+        <ProductGallery title={product.name} images={product.galleryImages?.length ? product.galleryImages : [{ src: typeof product.image === "string" ? product.image : product.image.src, alt: product.imageAlt }]} />
+        <div className="product-detail-copy"><ProductPurchasePanel product={product} /><p className="product-payment-caption">Secure checkout powered by Ponyo.</p><ProductPriceHistory history={product.priceHistory ?? []} currency={product.currency} />{hasWaitlist && <ProductWaitlistForm productId={product.id} productName={product.name} />}</div>
+      </section>
+      <section className="product-brand-story" aria-labelledby="product-brand-story-title">
+        <span className="product-brand-story-seal" aria-hidden="true">✦</span>
+        <div className="product-brand-story-copy"><p className="eyebrow">PONYO MARKETPLACE · BRAND SPOTLIGHT</p><h2 id="product-brand-story-title">Meet {product.supplierName}</h2><p><strong>{product.supplierName}</strong> is the brand or maker behind {product.name}. Ponyo brings independent plush brands together in one carefully curated marketplace.</p><Link href="/pages/about">How Ponyo curates its marketplace <span aria-hidden="true">→</span></Link></div>
+        <Link className="product-brand-story-link" href={`/shop?q=${encodeURIComponent(product.supplierName)}`}>More from this brand <span aria-hidden="true">→</span></Link>
+      </section>
+      <ProductReviews productId={product.id} />
+      {related.length > 0 && <section className="related-products store-container"><div className="section-head"><div><p className="eyebrow">A FEW MORE TO LOVE</p><h2>You may also like</h2></div><Link className="text-link" href={`/shop?category=${product.categoryName.toLowerCase().replaceAll(" ", "-")}`}>See all →</Link></div><ProductGrid products={related} /></section>}
+    </SiteFrame>
+  );
+}

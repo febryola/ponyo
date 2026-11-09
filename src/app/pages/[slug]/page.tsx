@@ -37,14 +37,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: "Ponyo" };
 }
 
-function Breadcrumb({ title }: { title: string }) {
-  return <nav className="store-breadcrumb" aria-label="Breadcrumb"><Link href="/">Home</Link><span>›</span><span aria-current="page">{title}</span></nav>;
-}
-
 function AboutPage() {
   return <>
     <section className="content-page store-container about-page">
-      <Breadcrumb title={about.title} />
       <div className="about-hero"><div><span className="about-eyebrow">{about.eyebrow}</span><h1>{about.heading} <em>{about.heading_accent}</em></h1><p>{about.intro}</p><p>{about.intro2}</p><div className="about-actions"><Link className="shop-button shop-button-orange" href="/shop">{about.cta_shop}</Link><Link className="about-secondary-button" href="/pages/domina-xl">{about.cta_domina}</Link></div></div><Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-5.png?v=1793843377" alt="Soft plush toys gathered together" width={600} height={700} priority /></div>
       <h2 className="about-section-title">{about.promise_title}</h2><div className="about-promise-grid">{[[about.v1_title, about.v1_body, "♡"], [about.v2_title, about.v2_body, "⌕"], [about.v3_title, about.v3_body, "↕"]].map(([title, body, icon]) => <article key={title}><span>{icon}</span><h3>{title}</h3><p>{body}</p></article>)}</div>
       <h2 className="about-section-title">Shop by size</h2><div className="about-size-grid">{sizeRows.map(([name, range, href]) => <Link href={href} key={name}><strong>{name}</strong><span>{range}</span></Link>)}</div>
@@ -55,20 +50,19 @@ function AboutPage() {
 
 function FaqPage() {
   return <div className="store-container faq-page">
-    <header className="faq-page-header"><Breadcrumb title={faq.title} /><h1>{faq.title}</h1><p>{faq.sub}</p><nav aria-label={faq.topics}>{faqGroups.map((group) => <a href={`#faq-${group.id}`} key={group.id}>{group.title}</a>)}</nav></header>
+    <header className="faq-page-header"><h1>{faq.title}</h1><p>{faq.sub}</p><nav aria-label={faq.topics}>{faqGroups.map((group) => <a href={`#faq-${group.id}`} key={group.id}>{group.title}</a>)}</nav></header>
     <div className="faq-page-groups">{faqGroups.map((group) => <section id={`faq-${group.id}`} key={group.id} className="faq-topic"><h2>{group.title}</h2><div>{group.questions.map(([question, answer], index) => <details key={question} open={group.id === "ordering" && index === 0}><summary>{question}<span>+</span></summary><p>{answer}</p></details>)}</div>{group.id === "sizes" && <div className="faq-size-table"><table><caption className="sr-only">Ponyo plush size ranges</caption><tbody>{sizeRows.map(([name, range]) => <tr key={name}><th scope="row">{name}</th><td>{range}</td></tr>)}</tbody></table></div>}</section>)}</div>
     <section className="faq-contact-cta"><h2>{faq.contact_title}</h2><p>{faq.contact_body}</p><Link className="shop-button shop-button-orange" href="/pages/contact">{faq.contact_cta}</Link></section>
   </div>;
 }
 
 function ContactPage() {
-  return <div className="store-container contact-page"><Breadcrumb title="Contact Ponyo"/><div className="contact-layout"><div><h1>How can we help?</h1><p>Questions about an order, delivery, or finding a plush? Send us a note and the Ponyo team will get back to you.</p></div><LocalContactForm /></div></div>;
+  return <div className="store-container contact-page"><div className="contact-layout"><div><h1>How can we help?</h1><p>Questions about an order, delivery, or finding a plush? Send us a note and the Ponyo team will get back to you.</p></div><LocalContactForm /></div></div>;
 }
 
 function PartnerPage() {
   return (
     <div className="store-container contact-page partner-page">
-      <Breadcrumb title="Partner with Ponyo" />
       <section className="partner-page-hero">
         <span className="account-auth-eyebrow">MADE FOR FOREVER PLUSH</span>
         <h1>Let’s make room for your creations.</h1>

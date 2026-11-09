@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 
 export type CartItem = {
 	id: string;
+	catalogId?: string;
 	productId?: number;
 	variantId?: string;
 	slug: string;

@@ -49,3 +49,39 @@ async def send_contact_notification(name: str, email: str, request_type: str, me
     except Exception:
         logger.exception("Ponyo contact notification email failed")
         return False
+
+
+def _send_password_reset_email(email: str, reset_url: str) -> None:
+    sender = settings.smtp_from_email or settings.smtp_username
+    if not settings.smtp_host or not sender:
+        raise RuntimeError("Password reset email transport is not configured")
+
+    message = EmailMessage()
+    message["Subject"] = "Reset your Ponyo password"
+    message["From"] = sender
+    message["To"] = email
+    message.set_content(
+        "We received a request to reset the password for your Ponyo account.\n\n"
+        f"Choose a new password here (this link expires in one hour):\n{reset_url}\n\n"
+        "If you did not ask for this, you can safely ignore this email."
+    )
+
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=settings.smtp_timeout_seconds) as smtp:
+        smtp.ehlo()
+        if settings.smtp_starttls:
+            smtp.starttls(context=ssl.create_default_context())
+            smtp.ehlo()
+        if settings.smtp_username:
+            smtp.login(settings.smtp_username, settings.smtp_password or "")
+        smtp.send_message(message)
+
+
+async def send_password_reset_email(email: str, reset_url: str) -> bool:
+    if not settings.contact_email_configured:
+        return False
+    try:
+        await asyncio.to_thread(_send_password_reset_email, email, reset_url)
+        return True
+    except Exception:
+        logger.exception("Ponyo password reset email failed")
+        return False

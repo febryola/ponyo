@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, Uuid, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -11,6 +11,14 @@ from app.db import Base
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def new_product_sku() -> str:
+    return f"PNY-{uuid4().hex[:16].upper()}"
+
+
+def new_variant_sku() -> str:
+    return f"PNV-{uuid4().hex[:16].upper()}"
 
 
 class Customer(Base):
@@ -26,10 +34,77 @@ class Customer(Base):
     orders: Mapped[list[Order]] = relationship(back_populates="customer")
 
 
+class CustomerAddress(Base):
+    __tablename__ = "customer_addresses"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    customer_id: Mapped[UUID] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    first_name: Mapped[str] = mapped_column(String(120))
+    last_name: Mapped[str] = mapped_column(String(120))
+    address1: Mapped[str] = mapped_column(String(240))
+    address2: Mapped[str] = mapped_column(String(240), default="")
+    city: Mapped[str] = mapped_column(String(120))
+    region: Mapped[str] = mapped_column(String(120), default="")
+    postal_code: Mapped[str] = mapped_column(String(40))
+    country_code: Mapped[str] = mapped_column(String(2))
+    phone: Mapped[str] = mapped_column(String(40), default="")
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    customer_id: Mapped[UUID] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class WishlistItem(Base):
+    __tablename__ = "wishlist_items"
+
+    customer_id: Mapped[UUID] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), primary_key=True)
+    product_id: Mapped[UUID] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ProductReview(Base):
+    __tablename__ = "product_reviews"
+    __table_args__ = (UniqueConstraint("product_id", "customer_id", name="uq_product_reviews_customer"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    product_id: Mapped[UUID] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[UUID] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    reviewer_name: Mapped[str] = mapped_column(String(120))
+    rating: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(140), default="")
+    body: Mapped[str] = mapped_column(Text, default="")
+    photos: Mapped[list[str]] = mapped_column(JSON, default=list)
+    verified_purchase: Mapped[bool] = mapped_column(Boolean, default=False)
+    published: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ProductWaitlistEntry(Base):
+    __tablename__ = "product_waitlist_entries"
+    __table_args__ = (UniqueConstraint("product_id", "email", name="uq_product_waitlist_product_email"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    product_id: Mapped[UUID] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True)
+    customer_id: Mapped[UUID | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    first_name: Mapped[str] = mapped_column(String(120), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    sku: Mapped[str] = mapped_column(String(120), unique=True, default=new_product_sku)
     slug: Mapped[str] = mapped_column(String(180), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(240), index=True)
     description: Mapped[str] = mapped_column(Text, default="")
@@ -38,6 +113,7 @@ class Product(Base):
     compare_at_amount: Mapped[int | None] = mapped_column(Integer, nullable=True)
     availability: Mapped[str] = mapped_column(String(32), default="available")
     availability_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    price_history: Mapped[list[dict]] = mapped_column(JSON, default=list)
     category_name: Mapped[str] = mapped_column(String(100), default="Plushie")
     product_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     supplier_name: Mapped[str] = mapped_column(String(180), default="Ponyo")
@@ -58,7 +134,8 @@ class ProductVariant(Base):
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     product_id: Mapped[UUID] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True)
     title: Mapped[str] = mapped_column(String(120), default="Default")
-    sku: Mapped[str | None] = mapped_column(String(120), unique=True, nullable=True)
+    sku: Mapped[str] = mapped_column(String(120), unique=True, default=new_variant_sku)
+    options: Mapped[dict] = mapped_column(JSON, default=dict)
     currency: Mapped[str] = mapped_column(String(3), default="JPY")
     price_amount: Mapped[int] = mapped_column(Integer)
     compare_at_amount: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -84,6 +161,8 @@ class Order(Base):
     payment_method: Mapped[str] = mapped_column(String(32))
     payment_provider: Mapped[str] = mapped_column(String(32), default="stripe")
     stripe_session_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    tracking_number: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    tracking_carrier: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     customer: Mapped[Customer | None] = relationship(back_populates="orders")

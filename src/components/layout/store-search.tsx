@@ -87,7 +87,7 @@ export function StoreSearch({ compactHeader = false }: { compactHeader?: boolean
       setActiveIndex(-1);
     } else if (event.key === "Enter" && activeIndex >= 0 && results[activeIndex]) {
       event.preventDefault();
-      router.push(`/products/${results[activeIndex].slug}`);
+      router.push(`/products/${results[activeIndex].id}`);
     }
   }
 
@@ -111,7 +111,7 @@ export function StoreSearch({ compactHeader = false }: { compactHeader?: boolean
           {normalized && <Link className="predictive-query-suggestion" href={`/search?q=${encodeURIComponent(query)}`} onClick={closeSearch}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="m15.2 15.2 4.8 4.8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg><span>Search for “{query}”</span><b aria-hidden="true">↗</b></Link>}
           {results.length ? <ul>{results.map((product, index) => {
             const source = typeof product.image === "string" ? product.image : product.image.src;
-            return <li key={product.id} role="option" aria-selected={index === activeIndex} id={`ponyo-search-option-${index}`} data-search-active={index === activeIndex || undefined}><Link href={`/products/${product.slug}`} tabIndex={-1} onClick={closeSearch}><Image src={source} alt={product.imageAlt} width={52} height={52} /><span><strong>{product.name}</strong><small>{product.size ?? product.categoryName}</small><b>{formatLocalizedPrice(product.priceAmount, product.currency)}</b></span><i aria-hidden="true">›</i></Link></li>;
+            return <li key={product.id} role="option" aria-selected={index === activeIndex} id={`ponyo-search-option-${index}`} data-search-active={index === activeIndex || undefined}><Link href={`/products/${product.id}`} tabIndex={-1} onClick={closeSearch}><Image src={source} alt={product.imageAlt} width={52} height={52} /><span><strong>{product.name}</strong><small>{product.size ?? product.categoryName}</small><b>{formatLocalizedPrice(product.priceAmount, product.currency)}</b></span><i aria-hidden="true">›</i></Link></li>;
           })}</ul> : <p className="predictive-no-results">{normalized ? `No plush found for “${query}”.` : "No suggestions yet."}</p>}
           {normalized && <Link className="predictive-view-all" href={`/search?q=${encodeURIComponent(query)}`} onClick={closeSearch}>View all results for “{query}” →</Link>}
         </div>

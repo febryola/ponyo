@@ -18,6 +18,15 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
   const discountPercent = product.compareAtAmount && product.compareAtAmount > product.priceAmount
     ? Math.round((product.compareAtAmount - product.priceAmount) / product.compareAtAmount * 100)
     : 0;
+  const statusLabel = product.availabilityStatus === "Coming Soon"
+    ? "Coming soon"
+    : product.availabilityStatus === "Waitlist"
+      ? "Join waitlist"
+      : product.availabilityStatus === "Unavailable" || product.availability === "unavailable"
+        ? "Currently unavailable"
+        : product.availabilityStatus === "Available" || product.availability === "available"
+          ? "Available to order"
+        : "";
 
   function toggleWishlist() {
     const next = isWishlisted ? savedHandles.filter((slug) => slug !== product.slug) : [product.slug, ...savedHandles];
@@ -26,9 +35,8 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
 
   const labels = [...new Set([
     ...(badge ? [badge] : []),
-    ...(!product.availability || product.availability === "unavailable" ? ["Sold out"] : []),
+    ...(statusLabel ? [statusLabel] : []),
     ...(isNew ? ["New"] : []),
-    ...(product.availabilityStatus === "Limited" ? ["Limited"] : []),
     ...(discountPercent ? [`Save ${discountPercent}%`] : []),
     ...(tags.includes("premium") ? ["Premium"] : []),
     ...(tags.includes("rare") ? ["Rare"] : []),
@@ -38,7 +46,7 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
   return (
     <article className={`shop-product-card${compact ? " is-compact" : ""}`}>
       <div className="shop-product-image">
-        <Link href={`/products/${product.slug}`} aria-label={`View ${product.name}`}>
+        <Link href={`/products/${product.id}`} aria-label={`View ${product.name}`}>
           <Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 600px) 46vw, (max-width: 1000px) 30vw, 23vw" />
         </Link>
         <div className="product-labels">
@@ -49,9 +57,9 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
         </button>
       </div>
       <div className="shop-product-info">
-        <Link href={`/products/${product.slug}`} className="shop-product-title">{product.name}</Link>
+        <Link href={`/products/${product.id}`} className="shop-product-title">{product.name}</Link>
         <div className="shop-product-meta"><span>{categoryLabel}</span></div>
-        <div className="shop-product-bottom"><strong>{product.compareAtAmount && product.compareAtAmount > product.priceAmount ? <><span>{formatPrice(product.priceAmount, product.currency)}</span><del>{formatPrice(product.compareAtAmount, product.currency)}</del></> : formatPrice(product.priceAmount, product.currency)}</strong><Link href={`/products/${product.slug}`} aria-label={`View ${product.name}`} className="product-card-arrow">→</Link></div>
+        <div className="shop-product-bottom"><strong>{product.compareAtAmount && product.compareAtAmount > product.priceAmount ? <><span>{formatPrice(product.priceAmount, product.currency)}</span><del>{formatPrice(product.compareAtAmount, product.currency)}</del></> : formatPrice(product.priceAmount, product.currency)}</strong><Link href={`/products/${product.id}`} aria-label={`View ${product.name}`} className="product-card-arrow">→</Link></div>
         {product.dispatchTime && <p className="shop-product-dispatch">{product.dispatchTime}</p>}
       </div>
     </article>

@@ -1,7 +1,13 @@
 import { useSyncExternalStore } from "react";
+import {
+	ApiRequestError,
+	ponyoApi,
+	PONYO_API_BASE_URL,
+} from "@/services/ponyo-api.client";
 
 export const wishlistStorageKey = "ponyo:wishlist";
 const legacyWishlistStorageKey = "ponyo-wishlist-v1";
+let wishlistSyncQueue: Promise<void> = Promise.resolve();
 
 export function readWishlist(): string[] {
 	try {
@@ -30,6 +36,18 @@ export function saveWishlist(handles: string[]) {
 	window.dispatchEvent(
 		new CustomEvent("ponyo:wishlist-updated", { detail: handles }),
 	);
+	if (PONYO_API_BASE_URL) {
+		wishlistSyncQueue = wishlistSyncQueue
+			.then(async () => {
+				await ponyoApi.getMe();
+				await ponyoApi.updateWishlist(handles);
+			})
+			.catch((error: unknown) => {
+				if (!(error instanceof ApiRequestError && error.status === 401)) {
+					console.error("Ponyo wishlist could not be synced.", error);
+				}
+			});
+	}
 }
 
 export function useWishlistHandles() {

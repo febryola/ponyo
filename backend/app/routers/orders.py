@@ -19,6 +19,8 @@ def order_payload(order: Order) -> dict:
         for part in (
             f"{address.get('firstName', '')} {address.get('lastName', '')}".strip(),
             address.get("address1", ""),
+            address.get("address2", ""),
+            address.get("region", ""),
             address.get("city", ""),
             address.get("postalCode", ""),
             address.get("countryCode", ""),
@@ -34,6 +36,8 @@ def order_payload(order: Order) -> dict:
         "fulfillmentStatus": order.fulfillment_status,
         "customerEmail": order.customer_email,
         "deliveryAddress": address_text,
+        "trackingNumber": order.tracking_number,
+        "trackingCarrier": order.tracking_carrier,
         "totalAmount": order.total_amount,
         "currency": order.currency,
         "items": [

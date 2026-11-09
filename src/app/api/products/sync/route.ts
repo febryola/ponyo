@@ -81,6 +81,7 @@ export async function POST(request: Request) {
 				.upsert(
 					{
 						slug: product.slug,
+						sku: product.sku,
 						name: product.name,
 						description: product.description,
 						published_at: record.published_at ?? null,

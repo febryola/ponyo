@@ -5,10 +5,13 @@ export type SupplierAvailability =
 	| "unavailable"
 	| "needs_confirmation";
 export type ProductImage = string | StaticImageData;
+export type ProductPriceHistoryEntry = { date: string; price: number };
 
 export type ProductVariant = {
 	id: string;
+	sku: string;
 	title: string;
+	options?: Record<string, string>;
 	priceAmount: number;
 	currency: string;
 	compareAtAmount?: number;
@@ -17,6 +20,7 @@ export type ProductVariant = {
 
 export type Product = {
 	id: string;
+	sku: string;
 	shopifyProductId?: number;
 	variantId?: string;
 	variants?: ProductVariant[];
@@ -27,9 +31,16 @@ export type Product = {
 	compareAtAmount?: number;
 	currency: string;
 	availability: SupplierAvailability;
-	availabilityStatus?: "Available" | "Limited" | "Coming Soon";
+	availabilityStatus?:
+		| "Available"
+		| "Limited"
+		| "Coming Soon"
+		| "Waitlist"
+		| "Unavailable";
+	priceHistory?: ProductPriceHistoryEntry[];
 	categoryName: string;
 	productType?: string;
+	color?: string;
 	tags?: string[];
 	sizeTier?: string;
 	supplierName: string;

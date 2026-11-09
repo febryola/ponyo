@@ -17,7 +17,10 @@ The storefront is a Next.js client. It must call only the public HTTPS FastAPI A
 | --- | --- | --- |
 | GET | `/v1/health` | readiness for deployment checks |
 | GET | `/v1/products` | public, published catalog; supports `q`, `category`, `min_price`, `max_price`, `size`, `sort`, `page`, `limit` |
-| GET | `/v1/products/{slug}` | published product detail and variants |
+| GET | `/v1/products/{product_id}` | published product detail and variants; UUID is canonical, legacy slugs remain readable for redirects |
+| GET | `/v1/products/{product_id}/reviews` | public rating summary and published customer reviews |
+| POST | `/v1/products/{product_id}/reviews` | submit or update a signed-in customer's review (CSRF protected) |
+| POST | `/v1/products/{product_id}/waitlist` | save an email for a coming-soon product (CSRF protected; deduplicated per product/email) |
 | POST | `/v1/auth/register` | create account; sets session cookie |
 | POST | `/v1/auth/login` | sign in; sets session cookie |
 | POST | `/v1/auth/logout` | clear session cookie |
@@ -32,7 +35,7 @@ The storefront is a Next.js client. It must call only the public HTTPS FastAPI A
 
 ### Product response
 
-`GET /v1/products` returns `{ "data": Product[], "page": 1, "limit": 24, "total": 123 }`. A product has `id`, `slug`, `name`, `description`, `priceAmount` (integer minor units), `currency`, `availability`, `categoryName`, `supplierName` (public label only), `image`, `imageAlt`, `tags`, optional size/dimensions/dispatch metadata, `variantId` for the default purchasable variant, and `variants[]` with opaque `id`, title, price, currency, and availability. Never expose supplier credentials/internal costs.
+`GET /v1/products` returns `{ "data": Product[], "page": 1, "limit": 24, "total": 123 }`. A product has unique database `id` (canonical detail URL identifier), unique `sku`, `slug` (catalog handle, not the canonical URL), `name`, `description`, `priceAmount` (integer minor units), `currency`, `availability`, `categoryName`, `supplierName` (public label only), `image`, `imageAlt`, `tags`, optional size/dimensions/dispatch metadata, `variantId` for the default purchasable variant, and `variants[]` with opaque `id`, unique `sku`, title, price, currency, and availability. Never expose supplier credentials/internal costs.
 
 ### Authentication response
 

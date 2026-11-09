@@ -45,6 +45,14 @@ function SearchGlyph() {
 function BagGlyph() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 13H6L5 8Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M9 8a3 3 0 0 1 6 0" fill="none" stroke="currentColor" strokeWidth="1.7"/></svg>;
 }
+function TrashGlyph() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M9 7V4.8h6V7m2.8 0-.8 13H7L6.2 7m3.3 3.2v6.2m4.9-6.2v6.2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+function CartDrawerImage({ src, alt }: { src: string; alt: string }) {
+  const [imageSource, setImageSource] = useState(src);
+  return <img src={imageSource} alt={alt} // eslint-disable-line @next/next/no-img-element
+    onError={() => { if (imageSource !== "/images/plushies-home-2.png") setImageSource("/images/plushies-home-2.png"); }} />;
+}
 function HeartGlyph() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5-8.8 11-8.8 11s-8.8-6-8.8-11A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.8 2.5Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>;
 }
@@ -210,7 +218,7 @@ export function SiteHeader() {
           <div className="store-actions">
             <LocalizationPicker />
             <Link href="/collections/all?view=wishlist" className="store-icon-button" aria-label={`My Wishlist${wishlistCount ? `, ${wishlistCount} saved` : ""}`}><HeartGlyph />{wishlistCount > 0 && <span className="wishlist-count">{wishlistCount}</span>}</Link>
-            <button type="button" className="store-icon-button account-icon-trigger" aria-label={t("general.account", "Account")} onClick={openAccountDrawer}><PersonGlyph /></button>
+            <button type="button" className="store-icon-button account-icon-trigger" aria-label="My profile" title="My profile" onClick={openAccountDrawer}><PersonGlyph /></button>
             <button className="store-icon-button bag-button" type="button" aria-label={`Cart (${itemCount} items)`} aria-expanded={bagOpen} onClick={() => setBagOpen(true)}><BagGlyph />{itemCount > 0 && <span className="bag-count">{itemCount}</span>}</button>
           </div>
         </div>
@@ -236,7 +244,7 @@ export function SiteHeader() {
           <div className="smart-header-actions">
             <LocalizationPicker compact />
             <Link href="/collections/all?view=wishlist" className="smart-icon-trigger" aria-label={`My Wishlist${wishlistCount ? `, ${wishlistCount} saved` : ""}`}><HeartGlyph />{wishlistCount > 0 && <span>{wishlistCount}</span>}</Link>
-            <button type="button" className="smart-icon-trigger" aria-label={t("general.account", "Account")} onClick={openAccountDrawer}><PersonGlyph /></button>
+            <button type="button" className="smart-icon-trigger smart-profile-trigger" aria-label="My profile" title="My profile" onClick={openAccountDrawer}><PersonGlyph /></button>
             <button type="button" className="smart-icon-trigger smart-cart-trigger" aria-label={`Cart (${itemCount} items)`} onClick={() => setBagOpen(true)}><BagGlyph />{itemCount > 0 && <span>{itemCount}</span>}</button>
           </div>
         </div>
@@ -286,8 +294,8 @@ export function SiteHeader() {
 
       <dialog ref={cartDialog} className="cart-drawer" aria-label="Shopping cart" onClose={() => setBagOpen(false)} onClick={(event) => { if (event.target === cartDialog.current) setBagOpen(false); }}>
         <div className="cart-drawer-heading"><div><span className="eyebrow">A little bundle of joy</span><h2>Your cart <span>({itemCount})</span></h2></div><button type="button" className="store-icon-button" aria-label="Close cart" onClick={() => setBagOpen(false)}>×</button></div>
-        {cart.length === 0 ? <div className="cart-empty"><span>♡</span><p>Your cart is empty.</p><p>Find a rare, premium or giant plush friend to take home.</p><Link className="shop-button" href="/shop" onClick={() => setBagOpen(false)}>Continue shopping</Link><div className="cart-empty-links"><span>Shop by type</span><Link href="/shop?category=bears">Bears</Link><Link href="/shop?category=bunnies">Bunnies</Link><Link href="/shop?category=new-arrival">New Discoveries</Link><Link href="/shop?category=domina-xl">Domina XL</Link></div></div> : <div className="cart-drawer-items">{cart.map((item) => <div className="cart-drawer-item" key={item.id}><Link href={`/products/${item.slug}`} onClick={() => setBagOpen(false)}><Image src={item.image} alt={item.imageAlt} width={84} height={84} /></Link><div className="cart-drawer-item-info"><span>{item.maker}</span><Link href={`/products/${item.slug}`} onClick={() => setBagOpen(false)}>{item.name}</Link><div className="cart-line-controls"><button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={item.qty <= 1} onClick={() => saveQuantity(item.id, item.qty - 1)}>−</button><span>{item.qty}</span><button type="button" aria-label={`Increase ${item.name} quantity`} onClick={() => saveQuantity(item.id, item.qty + 1)}>+</button><button type="button" className="cart-remove" onClick={() => removeCartItem(item.id)} aria-label={`Remove ${item.name}`}>Remove</button></div></div><b>{formatPrice(item.price * item.qty, item.currency)}</b></div>)}</div>}
-        <div className="cart-drawer-footer"><div><span>Subtotal</span><strong>{formatPrice(subtotal, cart[0]?.currency ?? "JPY")}</strong></div><p>Shipping and discounts calculated at checkout.</p><Link className="shop-button shop-button-orange" href={cart.length ? "/cart" : "/collections/all"} onClick={() => setBagOpen(false)}>{cart.length ? "View cart" : "Continue shopping"}<b>→</b></Link></div>
+        {cart.length === 0 ? <div className="cart-empty"><span>♡</span><p>Your cart is empty.</p><p>Find a rare, premium or giant plush friend to take home.</p><Link className="shop-button" href="/shop" onClick={() => setBagOpen(false)}>Continue shopping</Link><div className="cart-empty-links"><span>Shop by type</span><Link href="/shop?category=bears">Bears</Link><Link href="/shop?category=bunnies">Bunnies</Link><Link href="/shop?category=new-arrival">New Discoveries</Link><Link href="/shop?category=domina-xl">Domina XL</Link></div></div> : <div className="cart-drawer-items">{cart.map((item) => <div className="cart-drawer-item" key={item.id}>{item.catalogId ? <Link className="cart-drawer-item-image" href={`/products/${item.catalogId}`} onClick={() => setBagOpen(false)}><CartDrawerImage src={item.image} alt={item.imageAlt} /></Link> : <span className="cart-drawer-item-image"><CartDrawerImage src={item.image} alt={item.imageAlt} /></span>}<div className="cart-drawer-item-info"><span>{item.maker}</span>{item.catalogId ? <Link href={`/products/${item.catalogId}`} onClick={() => setBagOpen(false)}>{item.name}</Link> : <span className="cart-drawer-item-title">{item.name}</span>}<strong className="cart-drawer-item-price">{formatPrice(item.price, item.currency)} <small>each</small></strong><div className="cart-drawer-item-actions"><div className="cart-line-controls"><button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={item.qty <= 1} onClick={() => saveQuantity(item.id, item.qty - 1)}>−</button><span>{item.qty}</span><button type="button" aria-label={`Increase ${item.name} quantity`} onClick={() => saveQuantity(item.id, item.qty + 1)}>+</button></div><button type="button" className="cart-remove" onClick={() => removeCartItem(item.id)} aria-label={`Remove ${item.name}`} title="Remove item"><TrashGlyph /><span>Remove</span></button></div></div><b className="cart-drawer-item-total">{formatPrice(item.price * item.qty, item.currency)}</b></div>)}</div>}
+        <div className="cart-drawer-footer"><div><span>Subtotal</span><strong>{formatPrice(subtotal, cart[0]?.currency ?? "JPY")}</strong></div><p>Shipping and taxes are calculated at checkout.</p><Link className="shop-button shop-button-orange" href={cart.length ? "/cart" : "/collections/all"} onClick={() => setBagOpen(false)}>{cart.length ? "View cart" : "Continue shopping"}<b>→</b></Link></div>
       </dialog>
     </>
   );

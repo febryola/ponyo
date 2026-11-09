@@ -1,5 +1,6 @@
 import asyncio
 import re
+from datetime import datetime, timezone
 from uuid import uuid5, NAMESPACE_URL
 
 from sqlalchemy import select
@@ -17,6 +18,26 @@ PRODUCTS = [
     {"slug": "baluran-elephant-xl", "name": "Baluran Elephant XL", "description": "An extra-large 120 cm elephant plush from Domina, the centrepiece of any room.", "price": 89000, "category": "Giant plush", "type": "XL Plush", "tags": ["character", "domina-xl"], "size": "XL", "dimensions": "120 cm", "supplier": "Domina", "image": "https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-6.png?v=1793843378", "alt": "An oversized elephant plush", "stock": 3},
 ]
 
+PRODUCT_COLORS = {
+    "hoshi-cloud-bear": "Cream",
+    "haneul-bunny": "Cream",
+    "mint-dino": "Mint green",
+    "bluebell-penguin": "Blue and white",
+    "hoshi-cloud-bear-xl": "Cream",
+    "haneul-bunny-xl": "Cream",
+    "baluran-elephant-xl": "Grey",
+}
+
+PRODUCT_STATUSES = {
+    "hoshi-cloud-bear": "Available",
+    "haneul-bunny": "Coming Soon",
+    "mint-dino": "Available",
+    "bluebell-penguin": "Available",
+    "hoshi-cloud-bear-xl": "Available",
+    "haneul-bunny-xl": "Waitlist",
+    "baluran-elephant-xl": "Unavailable",
+}
+
 
 def stable_id(value: str):
     return uuid5(NAMESPACE_URL, f"https://ponyo.example/products/{value}")
@@ -26,17 +47,20 @@ async def seed_products() -> None:
     async with SessionLocal() as db:
         for item in PRODUCTS:
             product_id = stable_id(item["slug"])
+            status = PRODUCT_STATUSES[item["slug"]]
+            stock_quantity = item["stock"] if status == "Available" else 0
             product = await db.scalar(select(Product).where(Product.slug == item["slug"]))
             if product is None:
                 product = Product(
                     id=product_id,
+                    sku=f"PNY-{re.sub(r'[^A-Z0-9]+', '-', item['slug'].upper()).strip('-')}",
                     slug=item["slug"],
                     name=item["name"],
                     description=item["description"],
                     currency="JPY",
                     price_amount=item["price"],
-                    availability="available",
-                    availability_status="Available",
+                    availability="available" if status == "Available" else "unavailable",
+                    availability_status=status,
                     category_name=item["category"],
                     product_type=item["type"],
                     supplier_name=item["supplier"],
@@ -51,12 +75,13 @@ async def seed_products() -> None:
                 db.add(product)
                 await db.flush()
             else:
+                product.sku = f"PNY-{re.sub(r'[^A-Z0-9]+', '-', item['slug'].upper()).strip('-')}"
                 product.name = item["name"]
                 product.description = item["description"]
                 product.currency = "JPY"
                 product.price_amount = item["price"]
-                product.availability = "available"
-                product.availability_status = "Available"
+                product.availability = "available" if status == "Available" else "unavailable"
+                product.availability_status = status
                 product.category_name = item["category"]
                 product.product_type = item["type"]
                 product.supplier_name = item["supplier"]
@@ -67,22 +92,33 @@ async def seed_products() -> None:
                 product.dimensions = item["dimensions"]
                 product.dispatch_time = "Ships in 1–3 business days"
                 product.published = True
+            history = list(product.price_history or [])
+            today = datetime.now(timezone.utc).date().isoformat()
+            if history and history[-1].get("date") == today:
+                history[-1] = {"date": today, "price": item["price"]}
+            elif not history or history[-1].get("price") != item["price"]:
+                history.append({"date": today, "price": item["price"]})
+            product.price_history = history
             variant = await db.scalar(select(ProductVariant).where(ProductVariant.product_id == product.id, ProductVariant.title == "Default"))
             if variant is None:
                 db.add(ProductVariant(
                     id=stable_id(f"{item['slug']}-default"),
                     product_id=product.id,
                     title="Default",
-                    sku=f"PNY-{re.sub(r'[^A-Z0-9]+', '-', item['slug'].upper())}",
+                    sku=f"PNV-{re.sub(r'[^A-Z0-9]+', '-', item['slug'].upper()).strip('-')}-DEFAULT",
+                    options={"Size": item["size"], "Color": PRODUCT_COLORS[item["slug"]]},
                     currency="JPY",
                     price_amount=item["price"],
-                    stock_quantity=item["stock"],
+                    stock_quantity=stock_quantity,
                     active=True,
                 ))
             else:
+                variant.sku = f"PNV-{re.sub(r'[^A-Z0-9]+', '-', item['slug'].upper()).strip('-')}-DEFAULT"
+                variant.options = {"Size": item["size"], "Color": PRODUCT_COLORS[item["slug"]]}
+                variant.options = {"Size": item["size"], "Color": PRODUCT_COLORS[item["slug"]]}
                 variant.currency = "JPY"
                 variant.price_amount = item["price"]
-                variant.stock_quantity = item["stock"]
+                variant.stock_quantity = stock_quantity
                 variant.active = True
         await db.commit()
 

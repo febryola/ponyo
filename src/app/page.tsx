@@ -4,7 +4,6 @@ import { SiteFrame } from "@/components/layout/site-frame";
 import { HomeCarousel } from "@/components/home/home-carousel";
 import { HomeSparkleRain } from "@/components/home/home-sparkle-rain";
 import { AnimalTabs } from "@/components/home/animal-tabs";
-import { RecentlyViewed } from "@/components/home/recently-viewed";
 import { HomeStatCount } from "@/components/home/home-stat-count";
 import { HomeInterestForms } from "@/components/layout/local-store-forms";
 import { ProductShelf } from "@/components/product/product-shelf";
@@ -48,7 +47,7 @@ function AisleCard({ title, description, titleKey, descriptionKey, href, product
     <article className="marketplace-aisle">
       <LocalizedText as="h3" translationKey={titleKey} fallback={title} /><LocalizedText as="p" translationKey={descriptionKey} fallback={description} />
       <div className="marketplace-aisle-grid">
-        {products.slice(0, 4).map((product) => <Link href={`/products/${product.slug}`} className="aisle-product" key={product.id}><span className="aisle-product-image"><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 640px) 42vw, 130px" /></span><span className="aisle-product-title">{product.name}</span><strong><LocalizedPrice amount={product.priceAmount} sourceCurrency={product.currency} /></strong></Link>)}
+        {products.slice(0, 4).map((product) => <Link href={`/products/${product.id}`} className="aisle-product" key={product.id}><span className="aisle-product-image"><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 640px) 42vw, 130px" /></span><span className="aisle-product-title">{product.name}</span><strong><LocalizedPrice amount={product.priceAmount} sourceCurrency={product.currency} /></strong></Link>)}
         {products.length > 0 && products.length < 4 && <Link href={href} className="aisle-see-all"><span>→</span>See all</Link>}
       </div>
       <Link href={href} className="aisle-link"><LocalizedText translationKey="home.aisles.see_more" fallback={`Shop more ${title} →`} values={{ title }} /></Link>
@@ -120,15 +119,13 @@ export default async function Home() {
       {rareSpotlight && <section className="rare-spotlight store-container" id="rare-finds">
         <header><div><h2>Rare Finds</h2><p>Retired, discontinued, and limited-edition plush that is hard to find anywhere else.</p></div><Link href="/collections/rare-finds">See all →</Link></header>
         <div className="rare-spotlight-grid">
-          <Link className="rare-featured-product" href={`/products/${rareSpotlight.slug}`}><Image src={rareSpotlight.image} alt={rareSpotlight.imageAlt} fill sizes="(max-width: 1024px) 100vw, 52vw" /><span className="rare-spotlight-shade"/><span className="rare-spotlight-badge">✦ Spotlight</span><span className="rare-featured-copy"><strong>{rareSpotlight.name}</strong>{rareSpotlight.size && <small>{rareSpotlight.size}</small>}<b><LocalizedPrice amount={rareSpotlight.priceAmount} sourceCurrency={rareSpotlight.currency} /> <i>View plush →</i></b></span></Link>
-          <div className="rare-supporting-grid">{rareSupporting.map((product) => <Link href={`/products/${product.slug}`} key={product.slug}><span className="rare-supporting-image"><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 700px) 44vw, 24vw"/></span><span className="rare-supporting-badge">{product.tags?.includes("rare") && "✦ Rare · New"}</span><strong>{product.name}</strong><small>{product.size ?? product.sizeTier ?? product.productType ?? product.categoryName}</small><b><LocalizedPrice amount={product.priceAmount} sourceCurrency={product.currency} /></b></Link>)}</div>
+          <Link className="rare-featured-product" href={`/products/${rareSpotlight.id}`}><Image src={rareSpotlight.image} alt={rareSpotlight.imageAlt} fill sizes="(max-width: 1024px) 100vw, 52vw" /><span className="rare-spotlight-shade"/><span className="rare-spotlight-badge">✦ Spotlight</span><span className="rare-featured-copy"><strong>{rareSpotlight.name}</strong>{rareSpotlight.size && <small>{rareSpotlight.size}</small>}<b><LocalizedPrice amount={rareSpotlight.priceAmount} sourceCurrency={rareSpotlight.currency} /> <i>View plush →</i></b></span></Link>
+          <div className="rare-supporting-grid">{rareSupporting.map((product) => <Link href={`/products/${product.id}`} key={product.id}><span className="rare-supporting-image"><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 700px) 44vw, 24vw"/></span><span className="rare-supporting-badge">{product.tags?.includes("rare") && "✦ Rare · New"}</span><strong>{product.name}</strong><small>{product.size ?? product.sizeTier ?? product.productType ?? product.categoryName}</small><b><LocalizedPrice amount={product.priceAmount} sourceCurrency={product.currency} /></b></Link>)}</div>
         </div>
       </section>}
 
       <ProductShelf className="home-live-shelf" id="new-arrivals" eyebrow="Just landed" title="Just landed" description="The newest plush on Ponyo. Swipe to see them all." products={arrivals} href="/collections/new-arrivals" linkLabel="See all →" rail compact />
       <ProductShelf className="home-live-shelf" id="more-plush" eyebrow="Trending now" title="More plush to discover" description="A fresh mix from across the Ponyo catalog." products={allTrending} href="/collections/all" linkLabel="See all →" />
-      <RecentlyViewed products={products} />
-
       <AnimalTabs products={products} />
 
       <section className="lifestyle-break">
@@ -139,6 +136,7 @@ export default async function Home() {
       <section className="size-guide store-container" id="sizes">
         <header><h2>How big is big?</h2><p>From pocket pals to room-filling giants. Tap a size to shop it.</p></header>
         <div className="size-guide-tiles">
+          <span className="size-guide-jellyfish" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M12 29C12 16 20 7 32 7s20 9 20 22c0 5-4 8-8 8H20c-4 0-8-3-8-8Z"/><circle cx="26" cy="24" r="2.5"/><circle cx="38" cy="24" r="2.5"/><path d="M22 30c2 2 4 2 6 0M19 39c0 5-2 7-2 11m10-11c0 5 2 7 0 12m8-12c0 5-1 7 1 12m7-12c0 5 2 7 1 11"/></svg></span>
           {[{ name: "Small", range: "Under 25 cm", image: images.chick, size: "Small" }, { name: "Medium", range: "25–45 cm", image: images.bear, size: "Medium" }, { name: "Large", range: "45–70 cm", image: images.dog, size: "Large" }, { name: "XL", range: "70 cm +", image: images.xlCat, size: "XL" }].map((tile) => <Link href={`/collections/all?filter.p.m.ponyo.size_tier=${tile.size}`} key={tile.name}><span><Image src={tile.image} alt={`${tile.name} plush size example`} fill sizes="(max-width: 640px) 30vw, 230px" /></span><strong>{tile.name}</strong><small>{tile.range}</small></Link>)}
         </div>
       </section>

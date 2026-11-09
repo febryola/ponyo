@@ -6,7 +6,7 @@ import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
 import { LocalizationProvider } from "@/components/layout/localization-provider";
 import { CustomerSessionProvider } from "@/components/layout/customer-session-provider";
 import "./globals.css";
-import "@/ponyo-shopify/assets/styles.min.css";
+import "./ponyo-foundation.css";
 import "./storefront.css";
 import "./theme-parity.css";
 import "./theme-parity-polish.css";

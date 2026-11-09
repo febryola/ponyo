@@ -10,23 +10,23 @@ import { ProductShelf } from "@/components/product/product-shelf";
 import { getProducts } from "@/services/product.service";
 import { LocalizedPrice, LocalizedText } from "@/components/layout/localization-provider";
 import type { Product } from "@/types/product";
-import locale from "@/ponyo-shopify/locales/en.default.json";
+import locale from "@/locales/en.default.json";
 
 const images = {
-  bunny: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-bunny.jpg?v=1793843383",
-  bear: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-bear.jpg?v=1793843383",
-  cat: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-cat.jpg?v=1793843383",
-  dinosaur: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-dinosaur.jpg?v=1793843384",
-  dog: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-dog.jpg?v=1793843384",
-  penguin: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-penguin.jpg?v=1793843384",
-  chick: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-chick.jpg?v=1793843383",
-  panda: "https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-12.png?v=1793843385",
-  premium: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-5.png?v=1793843377",
-  xlCat: "https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-11.png?v=1793843380",
+  bunny: "/images/catalog/maker-bunny.jpg",
+  bear: "/images/catalog/maker-bear.jpg",
+  cat: "/images/catalog/maker-cat.jpg",
+  dinosaur: "/images/catalog/maker-dinosaur.jpg",
+  dog: "/images/catalog/maker-dog.jpg",
+  penguin: "/images/catalog/maker-penguin.jpg",
+  chick: "/images/catalog/maker-chick.jpg",
+  panda: "/images/catalog/ponyo-12.png",
+  premium: "/images/catalog/ponyo-5.png",
+  xlCat: "/images/catalog/ponyo-11.png",
 };
 
 const categories = [
-  { title: "Giant plush", href: "/pages/domina-xl", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" },
+  { title: "Giant plush", href: "/pages/domina-xl", image: "/images/catalog/ponyo-3.png" },
   { title: "Bears", href: "/collections/bears", image: images.bear },
   { title: "Bunnies", href: "/collections/bunnies", image: images.bunny },
   { title: "Cats", href: "/collections/cats", image: images.cat },
@@ -129,7 +129,7 @@ export default async function Home() {
       <AnimalTabs products={products} />
 
       <section className="lifestyle-break">
-        <Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-6.png?v=1793843378" alt="A pile of plush friends on a cosy pastel bed" fill sizes="100vw" />
+        <Image src="/images/catalog/ponyo-6.png" alt="A pile of plush friends on a cosy pastel bed" fill sizes="100vw" />
         <div><span aria-hidden="true">🧸</span><h2>Every plush has a story. Find yours.</h2><Link href="/shop">Shop all plush →</Link></div>
       </section>
 
@@ -147,7 +147,7 @@ export default async function Home() {
 
       <section className="domina-band" id="domina">
         <div className="domina-band-copy"><span className="domina-eyebrow">DOMINA BY PONYO</span><h2>Room for Something Extraordinary.</h2><p>Meet Domina XL — oversized plush companions to bring comfort, character, and a little wonder into your space.</p><Link href="/pages/domina-xl">Shop giant plush →</Link></div>
-        <figure><div className="domina-band-image"><Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" alt="A person holding an oversized cream bunny plush to show its real-world scale" fill sizes="(max-width: 767px) 90vw, 560px"/></div><figcaption>A plush with presence.</figcaption></figure>
+        <figure><div className="domina-band-image"><Image src="/images/catalog/ponyo-3.png" alt="A person holding an oversized cream bunny plush to show its real-world scale" fill sizes="(max-width: 767px) 90vw, 560px"/></div><figcaption>A plush with presence.</figcaption></figure>
       </section>
 
       <ProductShelf className="home-live-shelf" id="domina-products" eyebrow="Big plush, memorable presence" title="XL Goodies" products={domina} href="/collections/domina-xl" linkLabel="See all →" />

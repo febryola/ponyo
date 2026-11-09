@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     environment: str = "local"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    storefront_base_url: str = "http://localhost:3000"
     frontend_origins: str = "http://localhost:3000,http://localhost:3003"
     database_url: str = "postgresql+asyncpg://ponyo:ponyo@localhost:5433/ponyo"
     database_host: str | None = None

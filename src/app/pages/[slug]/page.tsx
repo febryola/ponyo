@@ -6,7 +6,7 @@ import { LocalContactForm } from "@/components/layout/local-store-forms";
 import { PartnerInquiryForm } from "@/components/layout/partner-inquiry-form";
 import { ProductGrid } from "@/components/product/product-grid";
 import { getProducts } from "@/services/product.service";
-import locale from "@/ponyo-shopify/locales/en.default.json";
+import locale from "@/locales/en.default.json";
 
 const faq = locale.pg.faq;
 const about = locale.pg.about;
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 function AboutPage() {
   return <>
     <section className="content-page store-container about-page">
-      <div className="about-hero"><div><span className="about-eyebrow">{about.eyebrow}</span><h1>{about.heading} <em>{about.heading_accent}</em></h1><p>{about.intro}</p><p>{about.intro2}</p><div className="about-actions"><Link className="shop-button shop-button-orange" href="/shop">{about.cta_shop}</Link><Link className="about-secondary-button" href="/pages/domina-xl">{about.cta_domina}</Link></div></div><Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-5.png?v=1793843377" alt="Soft plush toys gathered together" width={600} height={700} priority /></div>
+      <div className="about-hero"><div><span className="about-eyebrow">{about.eyebrow}</span><h1>{about.heading} <em>{about.heading_accent}</em></h1><p>{about.intro}</p><p>{about.intro2}</p><div className="about-actions"><Link className="shop-button shop-button-orange" href="/shop">{about.cta_shop}</Link><Link className="about-secondary-button" href="/pages/domina-xl">{about.cta_domina}</Link></div></div><Image src="/images/catalog/ponyo-5.png" alt="Soft plush toys gathered together" width={600} height={700} priority /></div>
       <h2 className="about-section-title">{about.promise_title}</h2><div className="about-promise-grid">{[[about.v1_title, about.v1_body, "♡"], [about.v2_title, about.v2_body, "⌕"], [about.v3_title, about.v3_body, "↕"]].map(([title, body, icon]) => <article key={title}><span>{icon}</span><h3>{title}</h3><p>{body}</p></article>)}</div>
       <h2 className="about-section-title">Shop by size</h2><div className="about-size-grid">{sizeRows.map(([name, range, href]) => <Link href={href} key={name}><strong>{name}</strong><span>{range}</span></Link>)}</div>
       <section className="about-closing"><h2>{about.closing_title}</h2><p>{about.closing_body}</p><Link className="shop-button shop-button-orange" href="/shop">{about.cta_shop}</Link></section>
@@ -83,7 +83,7 @@ function PartnerPage() {
 async function DominaPage() {
   const products = (await getProducts()).filter((product) => product.tags?.includes("domina-xl"));
   return <div className="domina-page">
-    <section className="domina-page-hero"><div className="domina-page-hero-copy"><span>OVERSIZED PLUSH</span><h1>Domina XL</h1><p>Oversized plush companions that bring comfort, character, and a little wonder into your space.</p><a href="#domina-products">Shop Domina XL →</a></div><Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" alt="An oversized bunny plush shown beside a person for scale" fill priority sizes="(max-width: 700px) 100vw, 52vw"/></section>
+    <section className="domina-page-hero"><div className="domina-page-hero-copy"><span>OVERSIZED PLUSH</span><h1>Domina XL</h1><p>Oversized plush companions that bring comfort, character, and a little wonder into your space.</p><a href="#domina-products">Shop Domina XL →</a></div><Image src="/images/catalog/ponyo-3.png" alt="An oversized bunny plush shown beside a person for scale" fill priority sizes="(max-width: 700px) 100vw, 52vw"/></section>
     <section className="domina-trust store-container" aria-label="Domina XL details">{[["↕", "See the scale", "Every Domina XL listing shows its full height so you can picture it in your room before it arrives."], ["♡", "Product details", "Sizes from 60 cm to 120 cm, with materials and care listed on each plush."], ["¥", "Compare prices", "Prices are shown in your currency, with duties confirmed before checkout."], ["↗", "Delivery info", "XL plush ship in large-format boxes. Options and estimates depend on your destination."]].map(([icon, title, text]) => <article key={title}><span>{icon}</span><h2>{title}</h2><p>{text}</p></article>)}</section>
     <section className="store-container domina-products" id="domina-products"><header><p className="eyebrow">Big plush, memorable presence</p><h2>XL Goodies</h2></header><ProductGrid products={products}/></section>
   </div>;

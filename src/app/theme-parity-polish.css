@@ -708,7 +708,7 @@ body {
 }
 
 
-/* Native Shopify drawer behavior: focus-trapped, Escape-closeable dialog. */
+/* Native cart drawer behavior: focus-trapped, Escape-closeable dialog. */
 
 .cart-drawer {
     position: fixed;
@@ -1546,7 +1546,7 @@ body {
 }
 
 
-/* Shopify FAQ, content page and Domina templates. */
+/* FAQ, content page and Domina layouts. */
 
 .faq-page {
     padding-bottom: 50px;
@@ -3174,7 +3174,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    background: linear-gradient(160deg, rgb(46 33 29 / 8%), rgb(46 33 29 / 82%)), url("https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-2.png?v=1793843375") center / cover;
+    background: linear-gradient(160deg, rgb(46 33 29 / 8%), rgb(46 33 29 / 82%)), url("/images/catalog/ponyo-2.png") center / cover;
     color: white;
 }
 
@@ -4132,10 +4132,10 @@ body {
 }
 
 
-/* Phone header follows the Shopify theme: brand/actions row, full-width search below. */
+/* Phone header: brand/actions row, full-width search below. */
 
 @media (max-width: 767px) {
-    /* Match the Shopify header's phone structure: utility strip, brand/actions row,
+    /* Match the storefront phone structure: utility strip, brand/actions row,
        full-width search row, Domina strip, then the moving announcement ribbon. */
     .store-announcement {
         min-height: 42px;
@@ -5796,7 +5796,7 @@ body {
 }
 
 
-/* Keep the homepage hero within the Shopify reference proportions. */
+/* Keep the homepage hero within the designed storefront proportions. */
 
 .store-home .store-hero-carousel {
     min-height: 0;
@@ -10138,7 +10138,7 @@ body {
 }
 
 
-/* Journal listing and article pages follow the Shopify blog/article templates. */
+/* Journal listing and article pages use the storefront's editorial layout. */
 
 .journal-hero {
     width: min(1320px, calc(100% - 48px));

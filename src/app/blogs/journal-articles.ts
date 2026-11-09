@@ -1,4 +1,4 @@
-import locale from "@/ponyo-shopify/locales/en.default.json";
+import locale from "@/locales/en.default.json";
 
 export type JournalArticle = {
 	slug: string;
@@ -13,7 +13,7 @@ export type JournalArticle = {
 	sections: { heading: string; paragraphs: string[]; bullets?: string[] }[];
 };
 
-const cdn = "https://ponyo-plushies.myshopify.com/cdn/shop/files/";
+const asset = (filename: string) => `/images/catalog/${filename}`;
 
 export const journalArticles: JournalArticle[] = [
 	{
@@ -22,7 +22,7 @@ export const journalArticles: JournalArticle[] = [
 		title: locale.home.journal.card1_title,
 		excerpt:
 			"A few simple measurements and styling ideas can help a larger-than-life plush feel right at home.",
-		image: `${cdn}ponyo-3.png?v=1793843376`,
+		image: asset("ponyo-3.png"),
 		imageAlt: "An oversized bunny plush shown beside a person for scale",
 		date: "2026-10-28",
 		author: "Ponyo Journal",
@@ -62,7 +62,7 @@ export const journalArticles: JournalArticle[] = [
 		title: locale.home.journal.card2_title,
 		excerpt:
 			"From soft finishes to thoughtful stitching, small details are what make a plush feel especially personal.",
-		image: `${cdn}ponyo-5.png?v=1793843377`,
+		image: asset("ponyo-5.png"),
 		imageAlt: "Close-up details of a soft teddy bear plush",
 		date: "2026-10-21",
 		author: "Ponyo Journal",
@@ -102,7 +102,7 @@ export const journalArticles: JournalArticle[] = [
 		title: locale.home.journal.card3_title,
 		excerpt:
 			"Gentle everyday habits can help a favorite plush stay fresh, soft, and ready for many more hugs.",
-		image: `${cdn}ponyo-2.png?v=1793843375`,
+		image: asset("ponyo-2.png"),
 		imageAlt: "A selection of plush characters arranged together",
 		date: "2026-10-14",
 		author: "Ponyo Journal",

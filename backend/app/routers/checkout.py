@@ -12,6 +12,7 @@ from app.config import settings
 from app.currency import SUPPORTED_CURRENCIES, convert_minor_amount, get_jpy_rates
 from app.db import get_db
 from app.models import Customer, Order, OrderItem, ProductVariant
+from app.media import storefront_image_url
 from app.rate_limit import enforce_rate_limit
 from app.schemas import CheckoutReceiptOut, CheckoutSessionRequest
 from app.security import get_optional_customer, require_csrf
@@ -138,7 +139,7 @@ async def create_checkout_session(
                 "unit_amount": converted_prices[variant.id],
                 "product_data": {
                     "name": variant.product.name,
-                    "images": [variant.product.image_url] if variant.product.image_url.startswith("https://") else [],
+                    "images": [f"{settings.storefront_base_url.rstrip('/')}{storefront_image_url(variant.product.image_url)}"] if settings.storefront_base_url.startswith("https://") else [],
                 },
             },
         })
@@ -146,7 +147,7 @@ async def create_checkout_session(
             variant_id=variant.id,
             product_name=variant.product.name,
             supplier_name=variant.product.supplier_name,
-            image_url=variant.product.image_url,
+            image_url=storefront_image_url(variant.product.image_url),
             image_alt=variant.product.image_alt,
             quantity=requested.quantity,
             unit_price=converted_prices[variant.id],

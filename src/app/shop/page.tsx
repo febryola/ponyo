@@ -45,12 +45,12 @@ function headingFor(category: string, search: string) {
 }
 
 function collectionImage(category: string) {
-  if (["rare-finds", "rare"].includes(category)) return "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-penguin.jpg?v=1793843384";
-  if (["domina-xl", "giant-plush"].includes(category)) return "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376";
-  if (["new-arrivals", "new-arrival"].includes(category)) return "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-6.png?v=1793843378";
-  if (category === "premium") return "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-5.png?v=1793843377";
-  if (["collectibles", "characters"].includes(category)) return "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-7.png?v=1793843379";
-  return "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-2.png?v=1793843375";
+  if (["rare-finds", "rare"].includes(category)) return "/images/catalog/maker-penguin.jpg";
+  if (["domina-xl", "giant-plush"].includes(category)) return "/images/catalog/ponyo-3.png";
+  if (["new-arrivals", "new-arrival"].includes(category)) return "/images/catalog/ponyo-6.png";
+  if (category === "premium") return "/images/catalog/ponyo-5.png";
+  if (["collectibles", "characters"].includes(category)) return "/images/catalog/ponyo-7.png";
+  return "/images/catalog/ponyo-2.png";
 }
 
 function collectionDescription(category: string) {

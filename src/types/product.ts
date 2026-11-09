@@ -21,7 +21,6 @@ export type ProductVariant = {
 export type Product = {
 	id: string;
 	sku: string;
-	shopifyProductId?: number;
 	variantId?: string;
 	variants?: ProductVariant[];
 	slug: string;

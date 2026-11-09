@@ -17,7 +17,7 @@ export async function GET(
 
 	try {
 		const source = await readFile(
-			join(process.cwd(), "src/ponyo-shopify/locales", filename),
+			join(process.cwd(), "src/locales", filename),
 			"utf8",
 		);
 		const json = source.replace(/^\/\*[\s\S]*?\*\/\s*/, "");

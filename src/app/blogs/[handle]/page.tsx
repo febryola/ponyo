@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFrame } from "@/components/layout/site-frame";
-import locale from "@/ponyo-shopify/locales/en.default.json";
+import locale from "@/locales/en.default.json";
 import { journalArticles } from "../journal-articles";
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }) {
@@ -25,7 +25,7 @@ export default async function JournalPage({ params }: { params: Promise<{ handle
           <p>{copy.journal_sub}</p>
         </div>
         <div className="journal-hero-image">
-          <Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-2.png?v=1793843375" alt="A selection of plush characters arranged together" fill priority sizes="(min-width: 768px) 50vw, 100vw" />
+          <Image src="/images/catalog/ponyo-2.png" alt="A selection of plush characters arranged together" fill priority sizes="(min-width: 768px) 50vw, 100vw" />
         </div>
       </section>
 

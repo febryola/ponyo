@@ -1,4 +1,4 @@
-/* Adapted from the provided Shopify theme's generated tokens and active templates. */
+/* Ponyo's shared theme tokens and page-level design system. */
 
 :root {
     --color-surface: #faf7f4;
@@ -42,7 +42,7 @@ body:has(.store-header) {
 }
 
 
-/* Shared Shopify theme shell */
+/* Shared storefront shell */
 
 .store-announcement {
     min-height: 32px;
@@ -1027,7 +1027,7 @@ body:has(.store-header) {
 }
 
 
-/* Homepage composed from the Shopify template order and responsive rail/grid rules. */
+/* Homepage structure and responsive rail/grid rules. */
 
 .store-hero-carousel {
     min-height: 0;

@@ -44,7 +44,6 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
     return {
         id: product.id,
         catalogId: product.id,
-        productId: product.shopifyProductId,
         variantId: selectedVariant?.id ?? product.variantId,
         slug: product.slug,
         name: product.name,

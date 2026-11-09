@@ -325,12 +325,12 @@
 /* Fill the second decorative circle in the collections hero with a real plush photo. */
 
 .collections-landing-hero-bubble {
-    width: clamp(104px, 12vw, 150px);
+    width: clamp(104px, 9vw, 132px);
     aspect-ratio: 1;
     position: absolute;
-    z-index: 0;
+    z-index: 2;
     top: clamp(14px, 2.5vw, 32px);
-    right: clamp(18px, 5vw, 64px);
+    right: 12px;
     overflow: hidden;
     border: 6px solid rgb(255 255 255 / 84%);
     border-radius: 50%;

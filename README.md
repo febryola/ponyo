@@ -9,7 +9,7 @@ A responsive Next.js storefront and FastAPI backend in one repository. The provi
 
 Install dependencies and run the development server with `npm run dev`. Open http://localhost:3000. No environment variables are required for preview mode.
 
-Optional backend connection: start the local backend from [backend/README.md](backend/README.md), then copy the root `.env.example` to `.env.local` and set `NEXT_PUBLIC_PONYO_API_BASE_URL` to `http://localhost:8000`. For deployment, use the HTTPS API URL output by Terraform and the exact `PONYO_MEDIA_HOST` if media is served from an allowed CDN. The frontend contract is documented in [docs/backend-api-contract.md](docs/backend-api-contract.md). Never add AWS, database, supplier, or payment secrets to the frontend or to a `NEXT_PUBLIC_` variable.
+Optional backend connection: start the local backend from [backend/README.md](backend/README.md), then copy the root `.env.example` to `.env.local` and set `NEXT_PUBLIC_PONYO_API_BASE_URL` to `http://localhost:8000`. All storefront imagery is served from Ponyo's local [public/images](public/images) assets, including the 16 catalog/reference photos in [public/images/catalog](public/images/catalog). Runtime translations and styles are also app-owned under `src/locales` and `src/app`; `src/ponyo-shopify` is read-only design reference only. The frontend contract is documented in [docs/backend-api-contract.md](docs/backend-api-contract.md). Never add AWS, database, supplier, or payment secrets to the frontend or to a `NEXT_PUBLIC_` variable.
 
 ## Main routes
 

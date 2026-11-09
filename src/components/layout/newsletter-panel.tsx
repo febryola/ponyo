@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import locale from "@/ponyo-shopify/locales/en.default.json";
+import locale from "@/locales/en.default.json";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
@@ -34,7 +34,7 @@ export function NewsletterPanel() {
         {[22, 16, 20, 15, 22].map((size, index) => <svg key={`${size}-${index}`} width={size} height={size} viewBox="0 0 64 64" style={{ animationDelay: `${index * -0.55}s` }}><path d="M12 28C12 15 20 6 32 6C44 6 52 15 52 28C52 33 48 36 44 36H20C16 36 12 33 12 28Z" fill="currentColor"/><circle cx="26" cy="23" r="2.4" fill="#4a3530"/><circle cx="38" cy="23" r="2.4" fill="#4a3530"/><path d="M19 38c0 4-2 6-2 10M27 38c0 5 2 7 0 12M35 38c0 5-1 7 1 12M43 38c0 4 2 6 1 10" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>)}
       </div>
       <div className="newsletter-mascot">
-        <Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-penguin.jpg?v=1793843384" alt="" width={90} height={90} />
+        <Image src="/images/catalog/maker-penguin.jpg" alt="" width={90} height={90} />
         <strong>{copy.kicker}</strong>
         <small>{copy.kicker_sub}</small>
       </div>

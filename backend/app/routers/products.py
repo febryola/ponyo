@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
+from app.media import storefront_image_url
 from app.models import Customer, Order, OrderItem, OutboxEvent, Product, ProductReview, ProductVariant, ProductWaitlistEntry
 from app.schemas import ProductOut, ProductReviewCreate, ProductWaitlistRequest, VariantOut
 from app.security import get_current_customer, get_optional_customer, require_csrf
@@ -59,7 +60,7 @@ def product_response(product: Product) -> ProductOut:
         categoryName=product.category_name,
         productType=product.product_type,
         supplierName=product.supplier_name,
-        image=product.image_url,
+        image=storefront_image_url(product.image_url),
         imageAlt=product.image_alt,
         tags=product.tags or [],
         sizeTier=product.size_tier,

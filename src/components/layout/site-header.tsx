@@ -22,12 +22,12 @@ const mainLinks = [
 ] as const;
 
 const animalCategories = [
-  { title: "Bears", href: "/collections/bears", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-bear.jpg?v=1793843383" },
-  { title: "Bunnies", href: "/collections/bunnies", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-bunny.jpg?v=1793843383" },
-  { title: "Cats", href: "/collections/cats", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-cat.jpg?v=1793843383" },
-  { title: "Cute Characters", href: "/collections/characters", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-dinosaur.jpg?v=1793843384" },
-  { title: "Pandas", href: "/collections/pandas", image: "https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-12.png?v=1793843385" },
-  { title: "Penguins", href: "/collections/penguins", image: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-penguin.jpg?v=1793843384" },
+  { title: "Bears", href: "/collections/bears", image: "/images/catalog/maker-bear.jpg" },
+  { title: "Bunnies", href: "/collections/bunnies", image: "/images/catalog/maker-bunny.jpg" },
+  { title: "Cats", href: "/collections/cats", image: "/images/catalog/maker-cat.jpg" },
+  { title: "Cute Characters", href: "/collections/characters", image: "/images/catalog/maker-dinosaur.jpg" },
+  { title: "Pandas", href: "/collections/pandas", image: "/images/catalog/ponyo-12.png" },
+  { title: "Penguins", href: "/collections/penguins", image: "/images/catalog/maker-penguin.jpg" },
 ];
 
 const ticker = [
@@ -276,7 +276,7 @@ export function SiteHeader() {
               </nav>
               <p className="mobile-menu-label">Shop by type</p>
               <div className="mobile-category-tiles">{animalCategories.map((item) => <Link href={item.href} key={item.title} onClick={() => setMenuOpen(false)}><Image src={item.image} alt="" width={56} height={56} /><span>{item.title}</span></Link>)}</div>
-              <Link className="mobile-domina-card" href="/pages/domina-xl" onClick={() => setMenuOpen(false)}><Image src="https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" alt="" width={68} height={68} /><span><b>DOMINA by Ponyo</b><small>Giant plush from 70 to 120 cm</small></span><i>›</i></Link>
+              <Link className="mobile-domina-card" href="/pages/domina-xl" onClick={() => setMenuOpen(false)}><Image src="/images/catalog/ponyo-3.png" alt="" width={68} height={68} /><span><b>DOMINA by Ponyo</b><small>Giant plush from 70 to 120 cm</small></span><i>›</i></Link>
               <p className="mobile-menu-label">Help</p>
               <nav className="mobile-help-links"><button type="button" onClick={() => { setMenuOpen(false); setBagOpen(true); }}><span>Your cart</span><span className="mobile-help-link-meta">{itemCount > 0 && <b>{itemCount}</b>}<i aria-hidden="true">›</i></span></button><Link href="/collections/all?view=wishlist" onClick={() => setMenuOpen(false)}><span>♡ My Wishlist</span>{wishlistCount > 0 && <b>{wishlistCount}</b>}</Link><Link href="/blogs/news" onClick={() => setMenuOpen(false)}>The Plush Journal</Link><Link href="/pages/faq" onClick={() => setMenuOpen(false)}>FAQ &amp; Shipping</Link><Link href="/pages/contact" onClick={() => setMenuOpen(false)}>Contact us</Link><Link href="/pages/about" onClick={() => setMenuOpen(false)}>About Ponyo</Link></nav>
             </> : <div className="mobile-submenu-grid">{animalCategories.map((item) => <Link href={item.href} key={item.title} onClick={() => setMenuOpen(false)}><Image src={item.image} alt="" width={40} height={40} />{item.title}<span>›</span></Link>)}</div>}

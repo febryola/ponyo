@@ -6,20 +6,20 @@ import { getProducts } from "@/services/product.service";
 import type { Product } from "@/types/product";
 
 const featuredCollections = [
-	{ title: "RARE Finds", slug: "rare-finds", tag: "rare", eyebrow: "Hard to find", description: "Discontinued favorites and limited-edition plush.", tone: "rare", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-pink-bunny.jpg?v=1793843384" },
-	{ title: "Premium Plushies", slug: "premium", tag: "premium", eyebrow: "A little extra lovely", description: "Distinctive details, soft finishes, lasting favorites.", tone: "premium", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-5.png?v=1793843377" },
-	{ title: "XL Goodies", slug: "domina-xl", tag: "domina-xl", eyebrow: "Think bigger", description: "Big-hearted companions, from 70 cm to 120 cm.", tone: "xl", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-3.png?v=1793843376" },
-	{ title: "New Arrivals", slug: "new-arrivals", tag: "new-arrival", eyebrow: "Just landed", description: "Meet the newest plush friends to join Ponyo.", tone: "new", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/ponyo-6.png?v=1793843378" },
+	{ title: "RARE Finds", slug: "rare-finds", tag: "rare", eyebrow: "Hard to find", description: "Discontinued favorites and limited-edition plush.", tone: "rare", fallback: "/images/catalog/maker-pink-bunny.jpg" },
+	{ title: "Premium Plushies", slug: "premium", tag: "premium", eyebrow: "A little extra lovely", description: "Distinctive details, soft finishes, lasting favorites.", tone: "premium", fallback: "/images/catalog/ponyo-5.png" },
+	{ title: "XL Goodies", slug: "domina-xl", tag: "domina-xl", eyebrow: "Think bigger", description: "Big-hearted companions, from 70 cm to 120 cm.", tone: "xl", fallback: "/images/catalog/ponyo-3.png" },
+	{ title: "New Arrivals", slug: "new-arrivals", tag: "new-arrival", eyebrow: "Just landed", description: "Meet the newest plush friends to join Ponyo.", tone: "new", fallback: "/images/catalog/ponyo-6.png" },
 ] as const;
 
 const animalCollections = [
-	{ title: "Bears", slug: "bears", tag: "bear", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-bear.jpg?v=1793843383" },
-	{ title: "Bunnies", slug: "bunnies", tag: "bunny", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-bunny.jpg?v=1793843383" },
-	{ title: "Cats", slug: "cats", tag: "cat", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-cat.jpg?v=1793843383" },
-	{ title: "Cute Characters", slug: "characters", tag: "character", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-dinosaur.jpg?v=1793843384" },
-	{ title: "Pandas", slug: "pandas", tag: "panda", fallback: "https://cdn.shopify.com/s/files/1/0821/0690/8783/files/ponyo-12.png?v=1793843385" },
-	{ title: "Puppies", slug: "puppies", tag: "puppy", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-dog.jpg?v=1793843384" },
-	{ title: "Penguins", slug: "penguins", tag: "penguin", fallback: "https://ponyo-plushies.myshopify.com/cdn/shop/files/maker-penguin.jpg?v=1793843384" },
+	{ title: "Bears", slug: "bears", tag: "bear", fallback: "/images/catalog/maker-bear.jpg" },
+	{ title: "Bunnies", slug: "bunnies", tag: "bunny", fallback: "/images/catalog/maker-bunny.jpg" },
+	{ title: "Cats", slug: "cats", tag: "cat", fallback: "/images/catalog/maker-cat.jpg" },
+	{ title: "Cute Characters", slug: "characters", tag: "character", fallback: "/images/catalog/maker-dinosaur.jpg" },
+	{ title: "Pandas", slug: "pandas", tag: "panda", fallback: "/images/catalog/ponyo-12.png" },
+	{ title: "Puppies", slug: "puppies", tag: "puppy", fallback: "/images/catalog/maker-dog.jpg" },
+	{ title: "Penguins", slug: "penguins", tag: "penguin", fallback: "/images/catalog/maker-penguin.jpg" },
 ] as const;
 
 function productsForTag(products: Product[], tag: string) {
@@ -46,7 +46,7 @@ export default async function CollectionsPage() {
 							<a className="collections-size-link" href="#shop-by-size">Explore by size <span aria-hidden="true">↓</span></a>
 						</div>
 					</div>
-					<div className="collections-landing-hero-bubble" aria-hidden="true"><Image src={heroImages[1]?.image ?? heroImages[0]?.image ?? "/images/plushies-home-2.png"} alt="" fill sizes="150px" /></div>
+					<div className="collections-landing-hero-bubble" aria-hidden="true"><Image src="/images/catalog/maker-penguin.jpg" alt="" fill sizes="150px" /></div>
 					<div className="collections-landing-hero-art" aria-hidden="true"><span className="collections-landing-orbit"/><Image src={heroImages[0]?.image ?? "/images/plushies-home-2.png"} alt="" fill sizes="(max-width: 767px) 34vw, 320px" priority/><span className="collections-landing-stamp">Picked with<br/>a little love</span></div>
 				</header>
 

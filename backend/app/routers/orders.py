@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
+from app.media import storefront_image_url
 from app.models import Customer, Order
 from app.security import get_current_customer
 
@@ -44,7 +45,7 @@ def order_payload(order: Order) -> dict:
             {
                 "id": str(item.id),
                 "name": item.product_name,
-                "image": item.image_url,
+                "image": storefront_image_url(item.image_url),
                 "imageAlt": item.image_alt,
                 "maker": item.supplier_name,
                 "quantity": item.quantity,

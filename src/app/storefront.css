@@ -1,4 +1,4 @@
-/* Ponyo storefront system — designed to follow the current Shopify storefront across desktop and mobile. */
+/* Ponyo storefront system — responsive layout and component styles. */
 
 .store-announcement {
     min-height: 56px;
@@ -2787,7 +2787,7 @@
 }
 
 
-/* Shopify collection experience and campaign carousel parity. */
+/* Collection experience and campaign carousel styles. */
 
 .store-hero-carousel {
     position: relative;

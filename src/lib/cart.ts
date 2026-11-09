@@ -3,7 +3,6 @@ import { useSyncExternalStore } from "react";
 export type CartItem = {
 	id: string;
 	catalogId?: string;
-	productId?: number;
 	variantId?: string;
 	slug: string;
 	name: string;
@@ -73,19 +72,4 @@ export function saveCart(items: CartItem[]) {
 		// The cart remains usable in memory if browser storage is unavailable.
 	}
 }
-
-export function shopifyCartUrl(items: CartItem[]) {
-	const lines = items
-		.filter((item) => item.variantId && item.qty > 0)
-		.map((item) => `${encodeURIComponent(item.variantId!)}:${item.qty}`)
-		.join(",");
-	const domain = (
-		process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN ??
-		"ponyo-plushies.myshopify.com"
-	)
-		.replace(/^https?:\/\//, "")
-		.replace(/\/$/, "");
-	return lines
-		? `https://${domain}/cart/${lines}`
-		: `https://${domain}/collections/all`;
-}
+// Checkout sessions are created by the Ponyo API; cart persistence stays local.

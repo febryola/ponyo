@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import locale from "@/ponyo-shopify/locales/en.default.json";
+import locale from "@/locales/en.default.json";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
 

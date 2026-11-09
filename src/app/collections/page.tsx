@@ -46,7 +46,7 @@ export default async function CollectionsPage() {
 							<a className="collections-size-link" href="#shop-by-size">Explore by size <span aria-hidden="true">↓</span></a>
 						</div>
 					</div>
-					<div className="collections-landing-hero-bubble" aria-hidden="true"><Image src="/images/catalog/maker-penguin.jpg" alt="" fill sizes="150px" /></div>
+					<div className="collections-landing-hero-bubble" aria-hidden="true"><Image src="/images/catalog/maker-penguin.jpg" alt="" fill priority sizes="(max-width: 767px) 68px, 132px" /></div>
 					<div className="collections-landing-hero-art" aria-hidden="true"><span className="collections-landing-orbit"/><Image src={heroImages[0]?.image ?? "/images/plushies-home-2.png"} alt="" fill sizes="(max-width: 767px) 34vw, 320px" priority/><span className="collections-landing-stamp">Picked with<br/>a little love</span></div>
 				</header>
 

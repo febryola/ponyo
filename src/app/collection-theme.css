@@ -349,7 +349,12 @@
 
 @media (max-width: 767px) {
     .collections-landing-hero-bubble {
-        display: none;
+        width: 68px;
+        height: 68px;
+        aspect-ratio: auto;
+        top: 10px;
+        right: 10px;
+        border-width: 4px;
     }
 }
 

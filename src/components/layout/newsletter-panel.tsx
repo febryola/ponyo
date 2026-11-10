@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import locale from "@/locales/en.default.json";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
+import { useLocalization } from "@/components/layout/localization-provider";
 
 export function NewsletterPanel() {
   const [subscribed, setSubscribed] = useState(false);
@@ -13,7 +13,7 @@ export function NewsletterPanel() {
   const [email, setEmail] = useState<string | null>(null);
   const [emailEdited, setEmailEdited] = useState(false);
   const { customer } = useCustomerSession();
-  const copy = locale.home.newsletter;
+  const { t } = useLocalization();
 
   async function subscribe(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,21 +35,21 @@ export function NewsletterPanel() {
       </div>
       <div className="newsletter-mascot">
         <Image src="/images/catalog/maker-penguin.jpg" alt="" width={90} height={90} />
-        <strong>{copy.kicker}</strong>
-        <small>{copy.kicker_sub}</small>
+        <strong>{t("home.newsletter.kicker", "Stay in the loop!")}</strong>
+        <small>{t("home.newsletter.kicker_sub", "New plush finds & notes")}</small>
       </div>
       <div className="store-newsletter-copy">
-        <h2 id="store-newsletter-title">{copy.title}</h2>
-        {subscribed ? <p className="newsletter-success" role="status">{copy.success}</p> : (
+        <h2 id="store-newsletter-title">{t("home.newsletter.title", "Get first dibs on new plush drops.")}</h2>
+        {subscribed ? <p className="newsletter-success" role="status">{t("home.newsletter.success", "Thanks for subscribing! Watch your inbox for new plush drops.")}</p> : (
           <form onSubmit={subscribe}>
-            <label className="sr-only" htmlFor="store-newsletter-email">{copy.placeholder}</label>
-            <input id="store-newsletter-email" name="email" type="email" required autoComplete="email" placeholder={copy.placeholder} value={emailEdited ? email ?? "" : email ?? customer?.email ?? ""} onChange={(event) => { setEmailEdited(true); setEmail(event.target.value); }} />
-            <button type="submit" disabled={isSubmitting}>{isSubmitting ? "Please wait…" : copy.submit}</button>
+            <label className="sr-only" htmlFor="store-newsletter-email">{t("home.newsletter.placeholder", "Your email address")}</label>
+            <input id="store-newsletter-email" name="email" type="email" required autoComplete="email" placeholder={t("home.newsletter.placeholder", "Your email address")} value={emailEdited ? email ?? "" : email ?? customer?.email ?? ""} onChange={(event) => { setEmailEdited(true); setEmail(event.target.value); }} />
+            <button type="submit" disabled={isSubmitting}>{isSubmitting ? t("home.forms.wait", "Please wait…") : t("home.newsletter.submit", "Subscribe")}</button>
           </form>
         )}
         {errorMessage && <p className="api-form-error" role="alert">{errorMessage}</p>}
       </div>
-      <div className="store-newsletter-brand"><strong>PONYO</strong><span>{copy.tagline}</span></div>
+      <div className="store-newsletter-brand"><strong>PONYO</strong><span>{t("home.newsletter.tagline", "Softness for a kinder world ♡")}</span></div>
     </section>
   );
 }

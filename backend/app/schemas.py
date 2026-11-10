@@ -57,6 +57,16 @@ class ProductListOut(BaseModel):
     total: int
 
 
+class TranslationEntry(BaseModel):
+    key: str = Field(min_length=1, max_length=160)
+    text: str = Field(min_length=1, max_length=500)
+
+
+class TranslationBatchRequest(BaseModel):
+    locale: str = Field(min_length=2, max_length=12)
+    entries: list[TranslationEntry] = Field(min_length=1, max_length=24)
+
+
 class AuthCredentials(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)

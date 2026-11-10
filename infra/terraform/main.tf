@@ -441,6 +441,7 @@ resource "aws_iam_role_policy" "task_resources" {
     Statement = [
       { Effect = "Allow", Action = ["sqs:SendMessage"], Resource = [aws_sqs_queue.orders.arn] },
       { Effect = "Allow", Action = ["events:PutEvents"], Resource = [aws_cloudwatch_event_bus.main.arn] },
+      { Effect = "Allow", Action = ["translate:TranslateText"], Resource = ["*"] },
       { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = ["${aws_s3_bucket.media.arn}/*"] },
       { Effect = "Allow", Action = ["s3:ListBucket"], Resource = [aws_s3_bucket.media.arn] }
     ]
@@ -484,6 +485,8 @@ resource "aws_ecs_task_definition" "api" {
       { name = "REDIS_HOST", value = aws_elasticache_replication_group.main.primary_endpoint_address },
       { name = "REDIS_PORT", value = "6379" },
       { name = "AWS_REGION", value = var.aws_region },
+      { name = "TRANSLATION_PROVIDER", value = "aws_translate" },
+      { name = "TRANSLATION_TIMEOUT_SECONDS", value = "8" },
       { name = "S3_BUCKET", value = aws_s3_bucket.media.id },
       { name = "SQS_ORDER_EVENTS_URL", value = aws_sqs_queue.orders.url },
       { name = "EVENTBRIDGE_BUS_NAME", value = aws_cloudwatch_event_bus.main.name }

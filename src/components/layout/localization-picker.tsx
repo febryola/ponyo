@@ -52,7 +52,7 @@ export function LocalizationPicker({ compact = false }: { compact?: boolean }) {
       <button
         type="button"
         className="store-localization-trigger"
-        aria-label={`Language ${selectedLanguage.label}, currency ${selectedCurrency.label}. Change language or currency`}
+        aria-label={t("localization.change_language", `Language ${selectedLanguage.label}, currency ${selectedCurrency.label}. Change language or currency`, { language: selectedLanguage.label, currency: selectedCurrency.label })}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
@@ -75,18 +75,18 @@ export function LocalizationPicker({ compact = false }: { compact?: boolean }) {
         </div>
         <label className="localization-search">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.7"/><path d="m15.2 15.2 4.8 4.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
-          <input autoFocus type="search" aria-label={t("general.search", "Search")} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("search.placeholder", tab === "language" ? "Search languages or countries" : "Search currencies or countries")} />
+          <input autoFocus type="search" aria-label={t("general.search", "Search")} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t(tab === "language" ? "localization.search_language" : "localization.search_currency", tab === "language" ? "Search languages or countries" : "Search currencies or countries")} />
         </label>
-        <div className="localization-options" role="listbox" aria-label={tab === "language" ? "Languages" : "Currencies"}>
+        <div className="localization-options" role="listbox" aria-label={t(tab === "language" ? "localization.languages" : "localization.currencies", tab === "language" ? "Languages" : "Currencies")}>
           {tab === "language" ? filteredLanguages.map((item) => <button type="button" role="option" aria-selected={language === item.code} className="localization-option" key={item.code} onClick={async () => { await setLanguage(item.code); setOpen(false); }}>
             <span className="localization-flag" aria-hidden="true">{item.flag}</span><span className="localization-option-copy"><b>{item.label}</b><small>{item.country}</small></span><span className="localization-option-code">{item.code.toUpperCase()}</span>{language === item.code && <span className="localization-check" aria-hidden="true">✓</span>}
           </button>) : filteredCurrencies.map((item) => <button type="button" role="option" aria-selected={currency === item.code} className="localization-option" key={item.code} onClick={async () => { await setCurrency(item.code); setOpen(false); }}>
             <span className="localization-flag" aria-hidden="true">{item.flag}</span><span className="localization-option-copy"><b>{item.label}</b><small>{item.country}</small></span><span className="localization-option-code">{item.code}</span>{currency === item.code && <span className="localization-check" aria-hidden="true">✓</span>}
           </button>)}
-          {tab === "currency" && !rates[currency] && currency !== "JPY" && <p className="localization-rates-note">Exchange rates are temporarily unavailable. Display prices use the catalog currency until rates load.</p>}
-          {((tab === "language" && filteredLanguages.length === 0) || (tab === "currency" && filteredCurrencies.length === 0)) && <p className="localization-empty">No matches yet. Try another search.</p>}
+          {tab === "currency" && !rates[currency] && currency !== "JPY" && <p className="localization-rates-note">{t("localization.rates_unavailable", "Exchange rates are temporarily unavailable. Display prices use the catalog currency until rates load.")}</p>}
+          {((tab === "language" && filteredLanguages.length === 0) || (tab === "currency" && filteredCurrencies.length === 0)) && <p className="localization-empty">{t("localization.no_matches", "No matches yet. Try another search.")}</p>}
         </div>
-        <p className="localization-popover-footnote">Prices are converted from JPY using daily reference rates.</p>
+        <p className="localization-popover-footnote">{t("localization.rates_note", "Prices are converted from JPY using daily reference rates.")}</p>
       </section>}
     </div>
   );

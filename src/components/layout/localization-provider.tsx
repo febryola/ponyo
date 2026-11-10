@@ -1,12 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ElementType, type HTMLAttributes, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ElementType, type HTMLAttributes, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { currencies, deliveryCountries, languages, type CurrencyOption } from "@/lib/localization-options";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
+import { appTranslations } from "@/locales/app-translations";
 
 type Dictionary = Record<string, unknown>;
 type RatePayload = { base: string; date: string; rates: Record<string, number> };
+type PendingTranslation = { language: string; key: string; text: string };
 type LocalizationContextValue = {
   language: string;
   currency: string;
@@ -46,12 +48,16 @@ export function LocalizationProvider({ children, initialLanguage = "en", initial
   const [country, setCountryState] = useState(deliveryCountries.some((item) => item.code === initialCountry) ? initialCountry : "JP");
   const [deliveryNoticeDismissed, setDeliveryNoticeDismissed] = useState(initialDeliveryNoticeDismissed);
   const [dictionary, setDictionary] = useState<{ language: string; value: Dictionary } | null>(null);
+  const [automaticTranslations, setAutomaticTranslations] = useState<Record<string, string>>({});
   const [rates, setRates] = useState<Record<string, number>>({ JPY: 1 });
+  const pendingTranslations = useRef<Map<string, PendingTranslation>>(new Map());
+  const requestedTranslations = useRef<Set<string>>(new Set());
+  const translationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     document.documentElement.lang = language;
     let alive = true;
-    fetch(`/api/locales/${encodeURIComponent(language)}`, { cache: "force-cache" })
+    fetch(`/api/locales/${encodeURIComponent(language)}`, { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<Dictionary> : null)
       .then((payload) => { if (alive && payload) setDictionary({ language, value: payload }); });
     return () => { alive = false; };
@@ -92,7 +98,7 @@ export function LocalizationProvider({ children, initialLanguage = "en", initial
   const setLanguage = useCallback(async (next: string) => {
     if (!languages.some((item) => item.code === next)) return;
     setLanguageState(next);
-    void savePreference({ language: next });
+    await savePreference({ language: next });
     router.refresh();
   }, [router, savePreference]);
 
@@ -138,11 +144,65 @@ export function LocalizationProvider({ children, initialLanguage = "en", initial
     }
   }, [convertMajorAmount, currency, language]);
 
+  const flushTranslations = useCallback(async () => {
+    translationTimer.current = null;
+    const queued = [...pendingTranslations.current.entries()];
+    pendingTranslations.current.clear();
+    const grouped = new Map<string, Array<{ requestId: string; key: string; text: string }>>();
+    for (const [requestId, entry] of queued) {
+      const entries = grouped.get(entry.language) ?? [];
+      entries.push({ requestId, key: entry.key, text: entry.text });
+      grouped.set(entry.language, entries);
+    }
+
+    for (const [locale, entries] of grouped) {
+      for (let index = 0; index < entries.length; index += 24) {
+        const batch = entries.slice(index, index + 24);
+        try {
+          const response = await fetch("/api/localization/translations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ locale, entries: batch.map(({ key, text }) => ({ key, text })) }),
+          });
+          if (!response.ok) continue;
+          const payload = await response.json() as { data?: { translations?: Record<string, string> } };
+          const translations = payload.data?.translations;
+          if (translations) {
+            setAutomaticTranslations((current) => {
+              const next = { ...current };
+              for (const [key, text] of Object.entries(translations)) {
+                next[`${locale}:${key}`] = text;
+              }
+              return next;
+            });
+          }
+        } catch {
+          // Keep the existing locale dictionary or English fallback when AWS is unavailable.
+        }
+      }
+    }
+  }, []);
+
+  const queueTranslation = useCallback((locale: string, key: string, text: string) => {
+    if (typeof window === "undefined" || locale === "en" || !text.trim()) return;
+    const requestId = `${locale}:${key}:${text}`;
+    if (requestedTranslations.current.has(requestId)) return;
+    requestedTranslations.current.add(requestId);
+    pendingTranslations.current.set(requestId, { language: locale, key, text });
+    if (translationTimer.current === null) {
+      translationTimer.current = setTimeout(() => { void flushTranslations(); }, 120);
+    }
+  }, [flushTranslations]);
+
   const t = useCallback((key: string, fallback: string, values?: Record<string, string | number>) => {
     const activeDictionary = dictionary?.language === language ? dictionary.value : null;
-    const value = getValue(activeDictionary, key);
+    const automaticValue = automaticTranslations[`${language}:${key}`];
+    if (!automaticValue) queueTranslation(language, key, fallback);
+    const appValue = appTranslations[language]?.[key];
+    const dictionaryValue = getValue(activeDictionary, key);
+    const value = automaticValue ?? appValue ?? dictionaryValue;
     return substitute(typeof value === "string" && value.trim() ? value : fallback, values);
-  }, [dictionary, language]);
+  }, [automaticTranslations, dictionary, language, queueTranslation]);
 
   const contextValue = useMemo(() => ({ language, currency, country, deliveryNoticeDismissed, languages, currencies, deliveryCountries, rates, setLanguage, setCurrency, setDeliveryCountry, dismissDeliveryNotice, t, formatPrice, convertMajorAmount }), [language, currency, country, deliveryNoticeDismissed, rates, setLanguage, setCurrency, setDeliveryCountry, dismissDeliveryNotice, t, formatPrice, convertMajorAmount]);
   return <LocalizationContext.Provider value={contextValue}>{children}</LocalizationContext.Provider>;

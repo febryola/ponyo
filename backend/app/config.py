@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     stripe_cancel_url: str = "http://localhost:3000/checkout?checkout=cancelled"
 
     aws_region: str = "ap-northeast-1"
-    translation_provider: Literal["disabled", "aws_translate"] = "disabled"
+    translation_provider: Literal["disabled", "aws_translate"] = "aws_translate"
     translation_timeout_seconds: int = 8
     s3_bucket: str | None = None
     sqs_order_events_url: str | None = None

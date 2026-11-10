@@ -5,6 +5,7 @@ import { StoreSplash } from "@/components/layout/store-splash";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
 import { LocalizationProvider } from "@/components/layout/localization-provider";
 import { CustomerSessionProvider } from "@/components/layout/customer-session-provider";
+import { languages } from "@/lib/localization-options";
 import "./globals.css";
 import "./ponyo-foundation.css";
 import "./storefront.css";
@@ -30,7 +31,8 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const cookieStore = await cookies();
-  const initialLanguage = cookieStore.get("ponyo-language")?.value ?? "en";
+  const savedLanguage = cookieStore.get("ponyo-language")?.value;
+  const initialLanguage = languages.some((language) => language.code === savedLanguage) ? savedLanguage! : "en";
   const initialCurrency = cookieStore.get("ponyo-currency")?.value ?? "JPY";
   const initialCountry = cookieStore.get("ponyo-country")?.value ?? "JP";
   const initialDeliveryNoticeDismissed = cookieStore.get("ponyo-delivery-notice-dismissed")?.value === "1";

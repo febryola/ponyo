@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.models import Product, ProductTranslation
+from app.models import AppTranslation, Product, ProductTranslation
 
 
 AWS_TRANSLATE_CODES = {
@@ -27,6 +27,19 @@ def source_hash(product: Product) -> str:
     return hashlib.sha256(source.encode("utf-8")).hexdigest()
 
 
+def copy_source_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _aws_credentials_available() -> bool:
+    try:
+        import boto3
+
+        return boto3.Session().get_credentials() is not None
+    except Exception:
+        return False
+
+
 def _translate_with_aws(text: str, target_language: str) -> str:
     import boto3
 
@@ -39,7 +52,7 @@ def _translate_with_aws(text: str, target_language: str) -> str:
 
 
 async def _translate_product(product: Product, target_language: str) -> tuple[str, str] | None:
-    if settings.translation_provider != "aws_translate":
+    if settings.translation_provider != "aws_translate" or not _aws_credentials_available():
         return None
     try:
         name, description = await asyncio.gather(
@@ -86,3 +99,70 @@ async def get_product_translation(
     cached.source_hash = current_hash
     cached.provider = "aws_translate"
     return cached
+
+
+async def get_app_translations(
+    entries: list[tuple[str, str]],
+    locale: str,
+    db: AsyncSession,
+) -> dict[str, str]:
+    target_language = AWS_TRANSLATE_CODES.get(locale)
+    if not target_language or settings.translation_provider != "aws_translate":
+        return {}
+
+    unique_entries = dict(entries)
+    keys = list(unique_entries)
+    cached_rows = await db.scalars(select(AppTranslation).where(
+        AppTranslation.locale == locale,
+        AppTranslation.translation_key.in_(keys),
+    ))
+    cached_by_key = {row.translation_key: row for row in cached_rows}
+    translations: dict[str, str] = {}
+    pending: list[tuple[str, str, str]] = []
+    for key, text in unique_entries.items():
+        source_hash = copy_source_hash(text)
+        row = cached_by_key.get(key)
+        if row and row.source_hash == source_hash:
+            translations[key] = row.translated_text
+        else:
+            pending.append((key, text, source_hash))
+
+    # Avoid repeated failing calls when local AWS credentials are not configured.
+    if not pending or not _aws_credentials_available():
+        return translations
+
+    semaphore = asyncio.Semaphore(6)
+
+    async def translate_one(key: str, text: str, digest: str) -> tuple[str, str, str] | None:
+        async with semaphore:
+            try:
+                result = await asyncio.wait_for(
+                    asyncio.to_thread(_translate_with_aws, text, target_language),
+                    timeout=settings.translation_timeout_seconds,
+                )
+                return key, digest, result
+            except Exception:
+                return None
+
+    results = await asyncio.gather(*(translate_one(*entry) for entry in pending))
+    for result in results:
+        if result is None:
+            continue
+        key, digest, translated_text = result
+        translations[key] = translated_text
+        row = cached_by_key.get(key)
+        if row is None:
+            row = AppTranslation(
+                locale=locale,
+                translation_key=key,
+                source_hash=digest,
+                translated_text=translated_text,
+                provider="aws_translate",
+            )
+            db.add(row)
+            cached_by_key[key] = row
+        else:
+            row.source_hash = digest
+            row.translated_text = translated_text
+            row.provider = "aws_translate"
+    return translations

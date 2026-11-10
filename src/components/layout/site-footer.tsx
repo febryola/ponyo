@@ -1,32 +1,38 @@
+"use client";
+
 import Link from "next/link";
+import { useLocalization } from "@/components/layout/localization-provider";
 
 const footerGroups = [
   {
+    titleKey: "home.footer.shop",
     title: "Shop",
     links: [
-      ["Shop All", "/collections/all"],
-      ["Rare Finds", "/collections/rare-finds"],
-      ["Premium Plushies", "/collections/premium"],
-      ["XL Goodies", "/collections/domina-xl"],
-      ["New Arrivals", "/collections/new-arrivals"],
-      ["Cute Characters", "/collections/characters"],
+      ["home.footer.shop_all", "Shop All", "/collections/all"],
+      ["home.footer.rare", "Rare Finds", "/collections/rare-finds"],
+      ["home.footer.premium", "Premium Plushies", "/collections/premium"],
+      ["home.footer.domina", "XL Goodies", "/collections/domina-xl"],
+      ["home.footer.new", "New Arrivals", "/collections/new-arrivals"],
+      ["home.footer.characters", "Cute Characters", "/collections/characters"],
     ],
   },
   {
+    titleKey: "home.footer.explore",
     title: "Explore",
     links: [
-      ["About Ponyo", "/pages/about"],
-      ["The Plush Journal", "/blogs/news"],
-      ["Request a plush", "/pages/contact"],
-      ["Partner with Ponyo", "/pages/partners"],
+      ["home.footer.about_link", "About Ponyo", "/pages/about"],
+      ["home.footer.journal", "The Plush Journal", "/blogs/news"],
+      ["home.footer.request", "Request a plush", "/pages/contact"],
+      ["home.footer.partners", "Partner with Ponyo", "/pages/partners"],
     ],
   },
   {
+    titleKey: "home.footer.support",
     title: "Support",
     links: [
-      ["FAQ & Shipping", "/pages/faq"],
-      ["Rare drop alerts", "/#drops"],
-      ["Contact Us", "/pages/contact"],
+      ["home.footer.faq", "FAQ & Shipping", "/pages/faq"],
+      ["home.footer.drops", "Rare drop alerts", "/#drops"],
+      ["home.footer.contact", "Contact Us", "/pages/contact"],
     ],
   },
 ] as const;
@@ -47,6 +53,7 @@ function Jellyfish({ size, dimmed = false }: { size: number; dimmed?: boolean })
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  const { t } = useLocalization();
 
   return (
     <footer className="store-footer">
@@ -63,21 +70,21 @@ export function SiteFooter() {
               <span className="footer-brand-mark"><Jellyfish size={28} /></span>
               <Link href="/" className="footer-wordmark">PONYO</Link>
             </div>
-            <p>A curated, multi-brand plush marketplace for rare finds, premium plushies and XL goodies. ♡</p>
+            <p>{t("home.footer.about", "A curated, multi-brand plush marketplace for rare finds, premium plushies and XL goodies. ♡")}</p>
           </div>
           {footerGroups.map((group) => (
-            <nav className="footer-column" key={group.title} aria-label={group.title}>
-              <h2>{group.title}</h2>
-              {group.links.map(([label, href]) => <Link href={href} key={label}>{label}</Link>)}
+            <nav className="footer-column" key={group.title} aria-label={t(group.titleKey, group.title)}>
+              <h2>{t(group.titleKey, group.title)}</h2>
+              {group.links.map(([key, fallback, href]) => <Link href={href} key={key}>{t(key, fallback)}</Link>)}
             </nav>
           ))}
         </div>
         <div className="footer-legal">
-          <p>© {year} Ponyo. All rights reserved.</p>
-          <nav aria-label="Policies">
-            <Link href="/pages/faq">Privacy</Link>
-            <Link href="/pages/faq">Terms</Link>
-            <Link href="/pages/faq">Shipping</Link>
+          <p>© {year} Ponyo. {t("home.footer.rights", "All rights reserved.")}</p>
+          <nav aria-label={t("home.footer.policies", "Policies")}>
+            <Link href="/pages/faq">{t("home.footer.privacy", "Privacy")}</Link>
+            <Link href="/pages/faq">{t("home.footer.terms", "Terms")}</Link>
+            <Link href="/pages/faq">{t("home.footer.shipping", "Shipping")}</Link>
           </nav>
         </div>
       </div>

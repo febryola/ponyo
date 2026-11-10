@@ -89,11 +89,22 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const badges = Object.fromEntries(products.map((product) => [product.slug,
     product.tags?.includes("rare") ? "Rare" : product.tags?.includes("premium") ? "Premium" : product.tags?.includes("new-arrival") ? "New" : "",
   ]).filter((entry) => entry[1]));
+  const filterUrl = (removedKeys: string[] = []) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (removedKeys.includes(key) || key === "page") continue;
+      const entry = first(value);
+      if (entry !== undefined) params.set(key, entry);
+    }
+    const suffix = params.toString();
+    return `/collections/all${suffix ? `?${suffix}` : ""}`;
+  };
+  const clearFiltersUrl = filterUrl(["size", "filter.p.m.ponyo.size_tier", "filter.v.availability", "min", "max", "filter.v.price.gte", "filter.v.price.lte"]);
   const activeFilters = [
-    ...(size ? [{ label: `Size: ${size}`, remove: `/shop?${new URLSearchParams({ ...(category ? { category } : {}) }).toString()}` }] : []),
-    ...(availability ? [{ label: "In stock", remove: `/shop?${new URLSearchParams({ ...(category ? { category } : {}), ...(size ? { size } : {}) }).toString()}` }] : []),
-    ...(minimum ? [{ label: `From ¥${minimum.toLocaleString("en-US")}`, remove: "/shop" }] : []),
-    ...(Number.isFinite(maximum) ? [{ label: `Up to ¥${maximum.toLocaleString("en-US")}`, remove: "/shop" }] : []),
+    ...(size ? [{ label: `Size: ${size}`, remove: filterUrl(["size", "filter.p.m.ponyo.size_tier"]) }] : []),
+    ...(availability ? [{ label: "In stock", remove: filterUrl(["filter.v.availability"]) }] : []),
+    ...(minimum ? [{ label: `From ¥${minimum.toLocaleString("en-US")}`, remove: filterUrl(["min", "filter.v.price.gte"]) }] : []),
+    ...(Number.isFinite(maximum) ? [{ label: `Up to ¥${maximum.toLocaleString("en-US")}`, remove: filterUrl(["max", "filter.v.price.lte"]) }] : []),
   ];
 
   return (
@@ -122,9 +133,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           <div className="collection-toolbar">
             <details className="all-filters"><summary><span aria-hidden="true">☷</span> All filters <b>⌄</b></summary><div className="all-filters-panel"><h2>Filters</h2><p>Category</p><div className="filter-chip-wrap">{collections.map((item) => <Link key={item.slug} href={`/shop?category=${item.slug}`} className={category === item.slug ? "is-selected" : ""}>{item.title}</Link>)}</div><p>Size</p><div className="filter-chip-wrap">{["Small", "Medium", "Large", "XL"].map((tier) => <Link key={tier} href={`/shop?${new URLSearchParams({ ...(category ? { category } : {}), size: tier }).toString()}`} className={size === tier ? "is-selected" : ""}>{tier}</Link>)}</div><p>Availability</p><Link className={availability === "1" ? "is-selected" : ""} href={`/shop?${new URLSearchParams({ ...(category ? { category } : {}), "filter.v.availability": "1" }).toString()}`}>In stock</Link></div></details>
             <span className="collection-count">{sorted.length} products</span>
-            <SortSelect value={sort} category={category} search={search} />
+            <SortSelect value={sort} category={category} search={search} preservedFilters={{ ...(minimum ? { min: String(minimum) } : {}), ...(Number.isFinite(maximum) ? { max: String(maximum) } : {}), ...(size ? { size } : {}), ...(availability ? { "filter.v.availability": availability } : {}) }} />
           </div>
-          {activeFilters.length > 0 && <div className="active-filter-chips" aria-label="Active filters">{activeFilters.map((filter) => <Link href={filter.remove} key={filter.label}>{filter.label}<span aria-hidden="true">×</span></Link>)}<Link href="/shop" className="clear-all-filters">Clear all</Link></div>}
+          {activeFilters.length > 0 && <div className="active-filter-chips" aria-label="Active filters">{activeFilters.map((filter) => <Link href={filter.remove} key={filter.label} aria-label={`Remove filter: ${filter.label}`}>{filter.label}<span aria-hidden="true">×</span></Link>)}<Link href={clearFiltersUrl} className="clear-all-filters">Clear all</Link></div>}
           <p className="mobile-product-count">{sorted.length} products</p>
           <ProductGrid products={sorted} badges={badges} fillSlots />
           {sorted.length === 0 && <div className="empty-collection"><strong>No plush found just yet.</strong><p>Try a different search or clear your filters.</p><Link className="shop-button shop-button-orange" href="/shop">See all plush</Link></div>}

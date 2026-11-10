@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import locale from "@/locales/en.default.json";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
+import { useLocalization } from "@/components/layout/localization-provider";
 
 export function HomeInterestForms() {
   const [alertsJoined, setAlertsJoined] = useState(false);
@@ -15,6 +16,7 @@ export function HomeInterestForms() {
   const [requestName, setRequestName] = useState<string | null>(null);
   const [requestEmail, setRequestEmail] = useState<string | null>(null);
   const { customer } = useCustomerSession();
+  const { t } = useLocalization();
   const copy = locale.home;
 
   function submit(type: "newsletter" | "request") {
@@ -55,30 +57,30 @@ export function HomeInterestForms() {
     <section className="home-forms store-container" id="drops" aria-label="Rare drop alerts and plush requests">
       <div className="rare-drop-form-panel">
         <span className="form-sparkle" aria-hidden="true">✦</span>
-        <h2>{copy.v2.drops_title}</h2>
-        <p>{copy.v2.drops_body}</p>
-        {alertsJoined ? <p className="local-form-success" role="status">{copy.v2.drops_success}</p> : (
+        <h2>{t("home.forms.drops_title", copy.v2.drops_title)}</h2>
+        <p>{t("home.forms.drops_body", copy.v2.drops_body)}</p>
+        {alertsJoined ? <p className="local-form-success" role="status">{t("home.forms.drops_success", copy.v2.drops_success)}</p> : (
           <form onSubmit={submit("newsletter")}>
-            <label className="sr-only" htmlFor="drops-email">{copy.v2.email_label}</label>
-            <div><input id="drops-email" name="email" type="email" required autoComplete="email" placeholder={copy.v2.email_placeholder} value={newsletterEmail ?? customer?.email ?? ""} onChange={(event) => setNewsletterEmail(event.target.value)} /><button type="submit" disabled={submitting}>{submitting ? "Please wait…" : copy.v2.drops_cta}</button></div>
+            <label className="sr-only" htmlFor="drops-email">{t("home.forms.email_label", copy.v2.email_label)}</label>
+            <div><input id="drops-email" name="email" type="email" required autoComplete="email" placeholder={t("home.forms.email_placeholder", copy.v2.email_placeholder)} value={newsletterEmail ?? customer?.email ?? ""} onChange={(event) => setNewsletterEmail(event.target.value)} /><button type="submit" disabled={submitting}>{submitting ? t("home.forms.wait", "Please wait…") : t("home.forms.drops_cta", copy.v2.drops_cta)}</button></div>
             {formError && !alertsJoined && <p className="api-form-error" role="alert">{formError}</p>}
           </form>
         )}
       </div>
       <div className="plush-request-panel">
-        <h2>{copy.v2.request_title}</h2>
-        <p>{copy.v2.request_body}</p>
+        <h2>{t("home.forms.request_title", copy.v2.request_title)}</h2>
+        <p>{t("home.forms.request_body", copy.v2.request_body)}</p>
         {requestSent ? <p className="local-form-success" role="status">{requestOutcome === "saved-notified" ? "Your request is saved, and an email notification was sent to Ponyo." : requestOutcome === "saved-no-email" ? "Your request is saved in the Ponyo database. Email notification is not set up yet." : "Preview only: this request was not sent to the backend or by email."}</p> : (
           <form onSubmit={submit("request")}>
             <div>
-              <label className="sr-only" htmlFor="request-name">{copy.v2.name_label}</label>
-              <input id="request-name" name="name" autoComplete="name" placeholder={copy.v2.name_label} value={requestName ?? [customer?.firstName, customer?.lastName].filter(Boolean).join(" ")} onChange={(event) => setRequestName(event.target.value)} />
-              <label className="sr-only" htmlFor="request-email">{copy.v2.email_label}</label>
-              <input id="request-email" name="email" type="email" required autoComplete="email" placeholder={copy.v2.email_placeholder} value={requestEmail ?? customer?.email ?? ""} onChange={(event) => setRequestEmail(event.target.value)} />
+              <label className="sr-only" htmlFor="request-name">{t("home.forms.name_label", copy.v2.name_label)}</label>
+              <input id="request-name" name="name" autoComplete="name" placeholder={t("home.forms.name_label", copy.v2.name_label)} value={requestName ?? [customer?.firstName, customer?.lastName].filter(Boolean).join(" ")} onChange={(event) => setRequestName(event.target.value)} />
+              <label className="sr-only" htmlFor="request-email">{t("home.forms.email_label", copy.v2.email_label)}</label>
+              <input id="request-email" name="email" type="email" required autoComplete="email" placeholder={t("home.forms.email_placeholder", copy.v2.email_placeholder)} value={requestEmail ?? customer?.email ?? ""} onChange={(event) => setRequestEmail(event.target.value)} />
             </div>
-            <label className="sr-only" htmlFor="request-body">{copy.v2.request_label}</label>
-            <textarea id="request-body" name="message" required rows={3} placeholder={copy.v2.request_placeholder} />
-            <button type="submit" disabled={submitting}>{submitting ? "Please wait…" : copy.v2.request_cta}</button>
+            <label className="sr-only" htmlFor="request-body">{t("home.forms.request_label", copy.v2.request_label)}</label>
+            <textarea id="request-body" name="message" required rows={3} placeholder={t("home.forms.request_placeholder", copy.v2.request_placeholder)} />
+            <button type="submit" disabled={submitting}>{submitting ? t("home.forms.wait", "Please wait…") : t("home.forms.request_cta", copy.v2.request_cta)}</button>
             {formError && !requestSent && <p className="api-form-error" role="alert">{formError}</p>}
           </form>
         )}

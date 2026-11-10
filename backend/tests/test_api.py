@@ -14,7 +14,7 @@ from app.db import Base, get_db
 from app.main import app
 from app.models import ContactRequest as ContactRequestModel
 from app.models import CustomerAddress, ProductReview, ProductWaitlistEntry, WishlistItem
-from app.models import Order, OrderItem, OutboxEvent, ProcessedWebhook, Product, ProductTranslation, ProductVariant
+from app.models import AppTranslation, Order, OrderItem, OutboxEvent, ProcessedWebhook, Product, ProductTranslation, ProductVariant
 from app.config import settings
 
 
@@ -108,6 +108,7 @@ async def test_product_translation_is_cached_and_invalidated_by_source_changes(t
         return f"{target_language}:{text}"
 
     monkeypatch.setattr(settings, "translation_provider", "aws_translate")
+    monkeypatch.setattr("app.translations._aws_credentials_available", lambda: True)
     monkeypatch.setattr("app.translations._translate_with_aws", fake_translate)
 
     first = await client.get("/v1/products?locale=ja")
@@ -128,6 +129,37 @@ async def test_product_translation_is_cached_and_invalidated_by_source_changes(t
         cached = await db.scalar(select(ProductTranslation).where(ProductTranslation.product_id == product_id))
         assert cached is not None
         assert cached.name == "ja:Updated Bunny"
+
+
+@pytest.mark.asyncio
+async def test_ui_copy_translation_is_cached_and_invalidated_by_source_changes(test_client, monkeypatch):
+    client, session_factory = test_client
+    calls = []
+
+    def fake_translate(text, target_language):
+        calls.append((text, target_language))
+        return f"{target_language}:{text}"
+
+    monkeypatch.setattr(settings, "translation_provider", "aws_translate")
+    monkeypatch.setattr("app.translations._aws_credentials_available", lambda: True)
+    monkeypatch.setattr("app.translations._translate_with_aws", fake_translate)
+    payload = {"locale": "ja", "entries": [{"key": "home.test", "text": "Find a friend"}]}
+
+    first = await client.post("/v1/localization/translations", json=payload)
+    second = await client.post("/v1/localization/translations", json=payload)
+    assert first.status_code == second.status_code == 200
+    assert first.json()["data"]["translations"]["home.test"] == "ja:Find a friend"
+    assert second.json()["data"]["translations"]["home.test"] == "ja:Find a friend"
+    assert len(calls) == 1
+
+    payload["entries"][0]["text"] = "Find a new friend"
+    updated = await client.post("/v1/localization/translations", json=payload)
+    assert updated.json()["data"]["translations"]["home.test"] == "ja:Find a new friend"
+    assert len(calls) == 2
+    async with session_factory() as db:
+        cached = await db.scalar(select(AppTranslation).where(AppTranslation.translation_key == "home.test"))
+        assert cached is not None
+        assert cached.translated_text == "ja:Find a new friend"
 
 
 @pytest.mark.asyncio

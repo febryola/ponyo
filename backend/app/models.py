@@ -143,6 +143,20 @@ class ProductTranslation(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 
+class AppTranslation(Base):
+    __tablename__ = "app_translations"
+    __table_args__ = (UniqueConstraint("locale", "translation_key", name="uq_app_translations_locale_key"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    locale: Mapped[str] = mapped_column(String(12), index=True)
+    translation_key: Mapped[str] = mapped_column(String(160))
+    source_hash: Mapped[str] = mapped_column(String(64))
+    translated_text: Mapped[str] = mapped_column(Text)
+    provider: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
 class ProductVariant(Base):
     __tablename__ = "product_variants"
 

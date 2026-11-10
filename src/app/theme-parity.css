@@ -2025,7 +2025,14 @@ body:has(.store-header) {
     display: none;
 }
 
-.quick-faq-list summary span {
+.quick-faq-list summary .quick-faq-question {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.quick-faq-list summary .quick-faq-toggle {
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -2036,7 +2043,7 @@ body:has(.store-header) {
     transition: transform .2s ease;
 }
 
-.quick-faq-list details[open] summary span {
+.quick-faq-list details[open] summary .quick-faq-toggle {
     transform: rotate(45deg);
 }
 

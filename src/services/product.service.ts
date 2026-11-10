@@ -427,19 +427,19 @@ export const storefrontPreviewProducts = sampleProducts.map((product) => ({
 		: "unavailable") as Product["availability"],
 }));
 
-export async function getProducts(query = ""): Promise<Product[]> {
-	if (PONYO_API_BASE_URL) return ponyoApi.listProducts(query);
+export async function getProducts(query = "", locale = "en"): Promise<Product[]> {
+	if (PONYO_API_BASE_URL) return ponyoApi.listProducts(query, locale);
 	return storefrontPreviewProducts;
 }
 
-export async function getProductById(id: string): Promise<Product | undefined> {
+export async function getProductById(id: string, locale = "en"): Promise<Product | undefined> {
 	if (PONYO_API_BASE_URL) {
 		try {
-			return await ponyoApi.getProduct(id);
+			return await ponyoApi.getProduct(id, locale);
 		} catch {
 			return undefined;
 		}
 	}
-	const products = await getProducts();
+	const products = await getProducts("", locale);
 	return products.find((product) => product.id === id);
 }

@@ -14,7 +14,7 @@ from app.db import Base, get_db
 from app.main import app
 from app.models import ContactRequest as ContactRequestModel
 from app.models import CustomerAddress, ProductReview, ProductWaitlistEntry, WishlistItem
-from app.models import Order, OrderItem, OutboxEvent, ProcessedWebhook, Product, ProductVariant
+from app.models import Order, OrderItem, OutboxEvent, ProcessedWebhook, Product, ProductTranslation, ProductVariant
 from app.config import settings
 
 
@@ -81,6 +81,53 @@ async def test_products_catalog_envelope(test_client):
     assert detail.status_code == 200
     assert detail.json()["data"]["id"] == payload["data"][0]["id"]
     assert (await client.get("/v1/products/test-bunny")).json()["data"]["id"] == payload["data"][0]["id"]
+
+
+@pytest.mark.asyncio
+async def test_product_locale_falls_back_to_english_when_translation_is_disabled(test_client, monkeypatch):
+    client, session_factory = test_client
+    await add_product(session_factory)
+    monkeypatch.setattr(settings, "translation_provider", "disabled")
+
+    response = await client.get("/v1/products?locale=ja")
+
+    assert response.status_code == 200
+    assert response.json()["data"][0]["name"] == "Test-Bunny"
+    async with session_factory() as db:
+        assert await db.scalar(select(ProductTranslation.id)) is None
+
+
+@pytest.mark.asyncio
+async def test_product_translation_is_cached_and_invalidated_by_source_changes(test_client, monkeypatch):
+    client, session_factory = test_client
+    product_id, _ = await add_product(session_factory)
+    calls = []
+
+    def fake_translate(text, target_language):
+        calls.append((text, target_language))
+        return f"{target_language}:{text}"
+
+    monkeypatch.setattr(settings, "translation_provider", "aws_translate")
+    monkeypatch.setattr("app.translations._translate_with_aws", fake_translate)
+
+    first = await client.get("/v1/products?locale=ja")
+    second = await client.get(f"/v1/products/{product_id}?locale=ja")
+    assert first.json()["data"][0]["name"] == "ja:Test-Bunny"
+    assert second.json()["data"]["name"] == "ja:Test-Bunny"
+    assert len(calls) == 2
+
+    async with session_factory() as db:
+        product = await db.get(Product, product_id)
+        product.name = "Updated Bunny"
+        await db.commit()
+
+    updated = await client.get(f"/v1/products/{product_id}?locale=ja")
+    assert updated.json()["data"]["name"] == "ja:Updated Bunny"
+    assert len(calls) == 4
+    async with session_factory() as db:
+        cached = await db.scalar(select(ProductTranslation).where(ProductTranslation.product_id == product_id))
+        assert cached is not None
+        assert cached.name == "ja:Updated Bunny"
 
 
 @pytest.mark.asyncio

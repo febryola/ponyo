@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getProducts } from "@/services/product.service";
+import { getLocalizedProducts } from "@/services/localized-products.server";
 
 export async function GET() {
-	const products = await getProducts();
+	const products = await getLocalizedProducts();
 	return NextResponse.json({ data: products });
 }

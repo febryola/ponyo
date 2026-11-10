@@ -8,13 +8,13 @@ import { ProductReviews, ProductWaitlistForm } from "@/components/product/produc
 import { ProductPriceHistory } from "@/components/product/product-price-history";
 import { ProductGrid } from "@/components/product/product-grid";
 import { ProductGallery } from "@/components/product/product-gallery";
-import { getProductById, getProducts } from "@/services/product.service";
+import { getLocalizedProductById, getLocalizedProducts } from "@/services/localized-products.server";
 
 const getProductPageData = cache(async (identifier: string) => {
-  const products = await getProducts("?limit=100");
+  const products = await getLocalizedProducts("?limit=100");
   const product = products.find((item) => item.id === identifier)
     ?? products.find((item) => item.slug === identifier)
-    ?? await getProductById(identifier);
+    ?? await getLocalizedProductById(identifier);
   return { product, products };
 });
 

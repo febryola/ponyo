@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { LocalCartProvider } from "@/components/layout/local-cart-provider";
 
 export function SiteFrame({ children, className = "", showNewsletter }: { children: ReactNode; className?: string; showNewsletter?: boolean }) {
-  const showPageJellyfish = !className.includes("store-home") && !className.includes("product-page") && !className.includes("cart-page") && !className.includes("checkout-page") && !className.includes("account") && !className.includes("collections-landing-page") && !className.includes("journal-page") && !className.includes("journal-article-page");
+  const showPageJellyfish = !className.includes("product-page") && !className.includes("cart-page") && !className.includes("checkout-page") && !className.includes("account") && !className.includes("collections-landing-page") && !className.includes("journal-page") && !className.includes("journal-article-page");
   const shouldShowNewsletter = showNewsletter ?? (
     !className.includes("product-page")
     && !className.includes("cart-page")

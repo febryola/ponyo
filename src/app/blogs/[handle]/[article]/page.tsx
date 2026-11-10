@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFrame } from "@/components/layout/site-frame";
 import { ProductGrid } from "@/components/product/product-grid";
-import { getProducts } from "@/services/product.service";
+import { getLocalizedProducts } from "@/services/localized-products.server";
 import { getJournalArticle, journalArticles } from "../../journal-articles";
 
 const allowedBlogs = new Set(["news", "journal"]);
@@ -21,7 +21,7 @@ export default async function JournalArticlePage({ params }: { params: Promise<{
   const article = getJournalArticle(articleSlug);
   if (!article) notFound();
 
-  const allProducts = await getProducts();
+  const allProducts = await getLocalizedProducts();
   const relatedProducts = allProducts.filter((product) => {
     const searchable = `${product.categoryName} ${product.tags?.join(" ") ?? ""}`.toLowerCase();
     return article.tags.some((tag) => searchable.includes(tag.toLowerCase()));

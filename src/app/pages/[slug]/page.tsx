@@ -5,7 +5,7 @@ import { SiteFrame } from "@/components/layout/site-frame";
 import { LocalContactForm } from "@/components/layout/local-store-forms";
 import { PartnerInquiryForm } from "@/components/layout/partner-inquiry-form";
 import { ProductGrid } from "@/components/product/product-grid";
-import { getProducts } from "@/services/product.service";
+import { getLocalizedProducts } from "@/services/localized-products.server";
 import locale from "@/locales/en.default.json";
 
 const faq = locale.pg.faq;
@@ -81,7 +81,7 @@ function PartnerPage() {
 }
 
 async function DominaPage() {
-  const products = (await getProducts()).filter((product) => product.tags?.includes("domina-xl"));
+  const products = (await getLocalizedProducts()).filter((product) => product.tags?.includes("domina-xl"));
   return <div className="domina-page">
     <section className="domina-page-hero"><div className="domina-page-hero-copy"><span>OVERSIZED PLUSH</span><h1>Domina XL</h1><p>Oversized plush companions that bring comfort, character, and a little wonder into your space.</p><a href="#domina-products">Shop Domina XL →</a></div><Image src="/images/catalog/ponyo-3.png" alt="An oversized bunny plush shown beside a person for scale" fill priority sizes="(max-width: 700px) 100vw, 52vw"/></section>
     <section className="domina-trust store-container" aria-label="Domina XL details">{[["↕", "See the scale", "Every Domina XL listing shows its full height so you can picture it in your room before it arrives."], ["♡", "Product details", "Sizes from 60 cm to 120 cm, with materials and care listed on each plush."], ["¥", "Compare prices", "Prices are shown in your currency, with duties confirmed before checkout."], ["↗", "Delivery info", "XL plush ship in large-format boxes. Options and estimates depend on your destination."]].map(([icon, title, text]) => <article key={title}><span>{icon}</span><h2>{title}</h2><p>{text}</p></article>)}</section>

@@ -128,6 +128,21 @@ class Product(Base):
     variants: Mapped[list[ProductVariant]] = relationship(back_populates="product", cascade="all, delete-orphan")
 
 
+class ProductTranslation(Base):
+    __tablename__ = "product_translations"
+    __table_args__ = (UniqueConstraint("product_id", "locale", name="uq_product_translations_product_locale"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    product_id: Mapped[UUID] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True)
+    locale: Mapped[str] = mapped_column(String(12), index=True)
+    source_hash: Mapped[str] = mapped_column(String(64))
+    name: Mapped[str] = mapped_column(String(240))
+    description: Mapped[str] = mapped_column(Text, default="")
+    provider: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
 class ProductVariant(Base):
     __tablename__ = "product_variants"
 

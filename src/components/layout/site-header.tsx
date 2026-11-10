@@ -30,6 +30,8 @@ const animalCategories = [
   { title: "Penguins", href: "/collections/penguins", image: "/images/catalog/maker-penguin.jpg" },
 ];
 
+const collectibleCategories = animalCategories;
+
 const ticker = [
   { text: "NEW: DOMINA GIANT PLUSH UP TO 120 CM", key: "home.announce_2", href: "/pages/domina-xl" },
   { text: "JOIN RARE DROP ALERTS AND BE FIRST TO KNOW", key: "home.announce_3", href: "/#drops" },
@@ -228,7 +230,7 @@ export function SiteHeader() {
         <div className={`store-category-row${categoryPinned ? " is-pinned" : ""}`} style={categoryPinned ? { top: smartHeaderVisible ? 64 : 0 } : undefined}>
           <nav className="store-navigation" aria-label="Main navigation">
             {mainLinks.map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? "page" : undefined}>{t(item.key, item.title)}</Link>)}
-            <details className="desktop-collectibles-menu"><summary>Collectibles <span aria-hidden="true">⌄</span></summary><div className="desktop-collectibles-panel">{animalCategories.slice(1, 5).map((item) => <Link key={item.title} href={item.href}>{item.title}</Link>)}<Link href="/shop?category=penguins">Penguins</Link></div></details>
+            <details className="desktop-collectibles-menu"><summary>{t("home.header.collectibles", "Collectibles")} <span aria-hidden="true">⌄</span></summary><div className="desktop-collectibles-panel">{collectibleCategories.map((item) => <Link key={item.title} href={item.href}><Image src={item.image} alt="" width={44} height={44} /><span>{t(`home.categories.${item.title === "Cute Characters" ? "characters" : item.title.toLowerCase()}`, item.title)}</span><span className="desktop-collectibles-arrow" aria-hidden="true">→</span></Link>)}</div></details>
           </nav>
           <Link href="/pages/domina-xl" className="domina-link"><span>DOMINA by Ponyo</span><span className="domina-promo-copy">· Giant plush from 70 to 120 cm</span><span className="domina-arrow" aria-hidden="true">›</span></Link>
         </div>
@@ -253,7 +255,7 @@ export function SiteHeader() {
         <div className="smart-header-category">
           <nav aria-label="Sticky main navigation">
             {mainLinks.map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? "page" : undefined}>{t(item.key, item.title)}</Link>)}
-            <details className="desktop-collectibles-menu"><summary>Collectibles <span aria-hidden="true">⌄</span></summary><div className="desktop-collectibles-panel">{animalCategories.slice(1, 5).map((item) => <Link key={item.title} href={item.href}>{item.title}</Link>)}<Link href="/shop?category=penguins">Penguins</Link></div></details>
+            <details className="desktop-collectibles-menu"><summary>{t("home.header.collectibles", "Collectibles")} <span aria-hidden="true">⌄</span></summary><div className="desktop-collectibles-panel">{collectibleCategories.map((item) => <Link key={item.title} href={item.href}><Image src={item.image} alt="" width={44} height={44} /><span>{t(`home.categories.${item.title === "Cute Characters" ? "characters" : item.title.toLowerCase()}`, item.title)}</span><span className="desktop-collectibles-arrow" aria-hidden="true">→</span></Link>)}</div></details>
           </nav>
           <Link href="/pages/domina-xl" className="smart-domina-link">DOMINA by Ponyo</Link>
         </div>

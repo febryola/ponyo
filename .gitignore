@@ -18,6 +18,8 @@
 __pycache__/
 *.py[cod]
 /.venv/
+*.db
+*.sqlite3
 
 # next.js
 /.next/

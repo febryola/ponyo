@@ -234,15 +234,91 @@
     "live_no_results_announcement": "No results found for {{ terms }}"
   },
   "localization": {
-    "form_label": "Region and language",
-    "language": "Language",
-    "country_region_currency": "Country/region and currency",
+    "form_label": "Personaliza tu experiencia",
+    "language": "Idioma",
+    "currency": "Moneda",
+    "country_region_currency": "Elige tu idioma y moneda",
     "update_language": "Actualizar"
   },
   "home": {
-    "hero": {
-      "title": "Novedades",
-      "subtitle": "Explora la colección"
+    "announcement": "Conoce a tu próximo peluche favorito.",
+    "header": {
+      "help": "¿Cómo podemos ayudarte?",
+      "delivery": "Información de entrega",
+      "discover": "Descubrir",
+      "search_placeholder": "Buscar conejitos, ositos y peluches gigantes...",
+      "collectibles": "Coleccionables"
+    },
+    "footer": {
+      "shop_all": "Comprar todo",
+      "rare": "Hallazgos únicos",
+      "premium": "Peluche prémium",
+      "domina": "Peluche XL",
+      "new": "Novedades"
+    },
+    "announce_label": "Novedades",
+    "announce_2": "Novedad: peluches gigantes Domina de hasta 120 cm",
+    "announce_3": "Únete a las alertas de novedades exclusivas",
+    "announce_4": "Peluche exclusivo y limitado, elegido para ti",
+    "categories": {
+      "bears": "Ositos",
+      "bunnies": "Conejitos",
+      "cats": "Gatos",
+      "characters": "Personajes adorables",
+      "pandas": "Pandas",
+      "penguins": "Pingüinos"
+    },
+    "aisles": {
+      "title": "Encuentra tu peluche ideal",
+      "sub": "Hallazgos únicos, peluches prémium y tamaños XL en un solo lugar.",
+      "rare_title": "Hallazgos únicos",
+      "rare_sub": "Peluche exclusivo y de edición limitada.",
+      "premium_title": "Peluche prémium",
+      "premium_sub": "Peluche de calidad con acabados muy suaves.",
+      "xl_title": "Peluche XL",
+      "xl_sub": "Peluches gigantes que abrazan de vuelta.",
+      "animal_title": "Comprar por animal",
+      "animal_sub": "Ositos, conejitos, gatos y muchos más.",
+      "see_more": "Ver {{ title }}"
+    },
+    "slides": {
+      "label": "Peluche destacado",
+      "previous": "Diapositiva anterior",
+      "next": "Diapositiva siguiente",
+      "go_to": "Ir a la diapositiva {{ number }}",
+      "rare_eyebrow": "Difíciles de encontrar",
+      "rare_cta": "Ver hallazgos únicos",
+      "xl_eyebrow": "Domina de Ponyo",
+      "xl_cta": "Ver peluches XL",
+      "collectibles_eyebrow": "Para coleccionistas",
+      "collectibles_cta": "Ver coleccionables",
+      "new_eyebrow": "Recién llegados",
+      "new_cta": "Ver novedades",
+      "premium_eyebrow": "Hechos para durar",
+      "premium_cta": "Ver peluche prémium"
+    },
+    "pillars": {
+      "rare_title": "Hallazgos únicos",
+      "rare_body": "Peluche descatalogado, exclusivo y de edición limitada.",
+      "xl_title": "Peluche XL",
+      "xl_body": "Peluches gigantes que llenan una habitación, también Domina.",
+      "collectibles_title": "Coleccionables",
+      "collectibles_body": "Figuras y juguetes de colección.",
+      "new_title": "Nuevos descubrimientos",
+      "new_body": "Novedades de marcas y creadores.",
+      "premium_title": "Peluche prémium",
+      "premium_body": "Peluche suave y bien hecho, elegido por sus materiales y acabados."
+    },
+    "v2": {
+      "new_title": "Recién llegados",
+      "new_sub": "Los peluches más nuevos de Ponyo. Desliza para verlos todos."
+    },
+    "more_plush": {
+      "title": "Más peluches por descubrir",
+      "sub": "Una selección variada del catálogo de Ponyo."
     }
+  },
+  "search": {
+    "placeholder": "Buscar peluches"
   }
 }

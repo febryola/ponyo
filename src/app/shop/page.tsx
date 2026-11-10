@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SiteFrame } from "@/components/layout/site-frame";
 import { ProductGrid } from "@/components/product/product-grid";
 import { SortSelect } from "@/components/product/sort-select";
-import { getProducts } from "@/services/product.service";
+import { getLocalizedProducts } from "@/services/localized-products.server";
 
 export const metadata = { title: "The Full Collection" };
 
@@ -67,7 +67,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const size = first(query.size) ?? first(query["filter.p.m.ponyo.size_tier"]) ?? "";
   const availability = first(query["filter.v.availability"]) ?? "";
   const sort = first(query.sort_by) ?? "best-selling";
-  const products = await getProducts();
+  const products = await getLocalizedProducts();
   const filtered = products.filter((product) => {
     const haystack = `${product.name} ${product.description} ${product.productType ?? ""} ${(product.tags ?? []).join(" ")}`.toLowerCase();
     const productSize = (product.sizeTier ?? product.size ?? "").toLowerCase();

@@ -7,7 +7,7 @@ import { AnimalTabs } from "@/components/home/animal-tabs";
 import { HomeStatCount } from "@/components/home/home-stat-count";
 import { HomeInterestForms } from "@/components/layout/local-store-forms";
 import { ProductShelf } from "@/components/product/product-shelf";
-import { getProducts } from "@/services/product.service";
+import { getLocalizedProducts } from "@/services/localized-products.server";
 import { LocalizedPrice, LocalizedText } from "@/components/layout/localization-provider";
 import type { Product } from "@/types/product";
 import locale from "@/locales/en.default.json";
@@ -56,7 +56,7 @@ function AisleCard({ title, description, titleKey, descriptionKey, href, product
 }
 
 export default async function Home() {
-  const products = await getProducts();
+  const products = await getLocalizedProducts();
   const rare = byTag(products, "rare", 5);
   const premium = byTag(products, "premium", 12);
   const domina = byTag(products, "domina-xl", 6);

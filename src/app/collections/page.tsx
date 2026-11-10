@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SiteFrame } from "@/components/layout/site-frame";
 import { ProductGrid } from "@/components/product/product-grid";
-import { getProducts } from "@/services/product.service";
+import { getLocalizedProducts } from "@/services/localized-products.server";
 import type { Product } from "@/types/product";
 
 const featuredCollections = [
@@ -29,7 +29,7 @@ function productsForTag(products: Product[], tag: string) {
 export const metadata = { title: "Collections" };
 
 export default async function CollectionsPage() {
-	const products = await getProducts();
+	const products = await getLocalizedProducts();
 	const heroImages = products.filter((product) => Boolean(product.image)).slice(0, 2);
 	const newArrivals = productsForTag(products, "new-arrival");
 	const featuredProducts = [...newArrivals, ...products.filter((product) => !newArrivals.some((arrival) => arrival.id === product.id))].slice(0, 4);

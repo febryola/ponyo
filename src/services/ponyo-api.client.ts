@@ -215,9 +215,13 @@ export const ponyoApi = {
 		apiRequest<{ base: string; date: string; rates: Record<string, number> }>(
 			`/localization/rates?symbols=${encodeURIComponent(symbols)}`,
 		),
-	listProducts: (query = "") => apiRequest<Product[]>(`/products${query}`),
-	getProduct: (id: string) =>
-		apiRequest<Product>(`/products/${encodeURIComponent(id)}`),
+	listProducts: (query = "", locale = "en") => {
+		const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+		params.set("locale", locale);
+		return apiRequest<Product[]>(`/products?${params.toString()}`);
+	},
+	getProduct: (id: string, locale = "en") =>
+		apiRequest<Product>(`/products/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`),
 	getProductReviews: (productId: string) =>
 		apiRequest<ProductReviewSummary>(
 			`/products/${encodeURIComponent(productId)}/reviews`,

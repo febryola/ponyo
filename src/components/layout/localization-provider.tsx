@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ElementType, type HTMLAttributes, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { currencies, deliveryCountries, languages, type CurrencyOption } from "@/lib/localization-options";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 
@@ -39,6 +40,7 @@ function substitute(value: string, values?: Record<string, string | number>) {
 }
 
 export function LocalizationProvider({ children, initialLanguage = "en", initialCurrency = "JPY", initialCountry = "JP", initialDeliveryNoticeDismissed = false }: { children: ReactNode; initialLanguage?: string; initialCurrency?: string; initialCountry?: string; initialDeliveryNoticeDismissed?: boolean }) {
+  const router = useRouter();
   const [language, setLanguageState] = useState(languages.some((item) => item.code === initialLanguage) ? initialLanguage : "en");
   const [currency, setCurrencyState] = useState(currencies.some((item) => item.code === initialCurrency) ? initialCurrency : "JPY");
   const [country, setCountryState] = useState(deliveryCountries.some((item) => item.code === initialCountry) ? initialCountry : "JP");
@@ -90,8 +92,9 @@ export function LocalizationProvider({ children, initialLanguage = "en", initial
   const setLanguage = useCallback(async (next: string) => {
     if (!languages.some((item) => item.code === next)) return;
     setLanguageState(next);
-    await savePreference({ language: next });
-  }, [savePreference]);
+    void savePreference({ language: next });
+    router.refresh();
+  }, [router, savePreference]);
 
   const setCurrency = useCallback(async (next: string) => {
     if (!currencies.some((item) => item.code === next)) return;
@@ -122,7 +125,7 @@ export function LocalizationProvider({ children, initialLanguage = "en", initial
   const formatPrice = useCallback((amount: number, sourceCurrency = "JPY") => {
     const selected = currencies.find((item) => item.code === currency) as CurrencyOption;
     const localizedAmount = convertMajorAmount(amount, sourceCurrency);
-    const formatterLocale = language === "en" ? "en-US" : language;
+    const formatterLocale = language === "en" ? "en-US" : language === "es" ? "es-ES" : language === "pt-BR" ? "pt-BR" : language === "pt-PT" ? "pt-PT" : language;
     try {
       return new Intl.NumberFormat(formatterLocale, {
         style: "currency",

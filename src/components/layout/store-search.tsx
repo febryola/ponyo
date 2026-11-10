@@ -13,7 +13,7 @@ export function StoreSearch({ compactHeader = false }: { compactHeader?: boolean
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { formatPrice: formatLocalizedPrice } = useLocalization();
+  const { formatPrice: formatLocalizedPrice, language } = useLocalization();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<Product[]>(storefrontPreviewProducts);
@@ -63,11 +63,11 @@ export function StoreSearch({ compactHeader = false }: { compactHeader?: boolean
   useEffect(() => {
     if (!PONYO_API_BASE_URL) return;
     let active = true;
-    ponyoApi.listProducts()
+    ponyoApi.listProducts("", language)
       .then((catalog) => { if (active) setProducts(catalog); })
       .catch(() => { if (active) setProducts([]); })
     return () => { active = false; };
-  }, []);
+  }, [language]);
 
   const normalized = query.trim().toLocaleLowerCase();
   const results = normalized

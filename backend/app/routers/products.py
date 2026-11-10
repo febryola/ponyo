@@ -14,6 +14,7 @@ from app.models import Customer, Order, OrderItem, OutboxEvent, Product, Product
 from app.schemas import ProductOut, ProductReviewCreate, ProductWaitlistRequest, VariantOut
 from app.security import get_current_customer, get_optional_customer, require_csrf
 from app.rate_limit import enforce_rate_limit
+from app.translations import AWS_TRANSLATE_CODES, get_product_translation
 
 router = APIRouter(prefix="/products", tags=["catalog"])
 
@@ -28,7 +29,7 @@ async def product_by_id(product_id: UUID, db: AsyncSession) -> Product:
     return product
 
 
-def product_response(product: Product) -> ProductOut:
+def product_response(product: Product, translated_name: str | None = None, translated_description: str | None = None) -> ProductOut:
     variants = [
         VariantOut(
             id=str(variant.id),
@@ -49,8 +50,8 @@ def product_response(product: Product) -> ProductOut:
         id=str(product.id),
         sku=product.sku,
         slug=product.slug,
-        name=product.name,
-        description=product.description,
+        name=translated_name or product.name,
+        description=translated_description if translated_description is not None else product.description,
         priceAmount=default_variant.priceAmount if default_variant else product.price_amount,
         compareAtAmount=default_variant.compareAtAmount if default_variant else product.compare_at_amount,
         currency=default_variant.currency if default_variant else product.currency,
@@ -81,8 +82,10 @@ async def list_products(
     sort: str = "best-selling",
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=24, ge=1, le=100),
+    locale: str = Query(default="en", min_length=2, max_length=12),
     db: AsyncSession = Depends(get_db),
 ):
+    locale = locale if locale == "en" or locale in AWS_TRANSLATE_CODES else "en"
     query = select(Product).where(Product.published.is_(True)).options(selectinload(Product.variants))
     if q:
         term = f"%{q.strip()}%"
@@ -120,11 +123,26 @@ async def list_products(
     count_query = select(func.count()).select_from(query.order_by(None).subquery())
     total = int(await db.scalar(count_query) or 0)
     rows = (await db.scalars(query.offset((page - 1) * limit).limit(limit))).all()
-    return {"data": [product_response(product).model_dump(mode="json") for product in rows], "page": page, "limit": limit, "total": total}
+    data = []
+    for product in rows:
+        translation = await get_product_translation(product, locale, db) if locale != "en" else None
+        data.append(product_response(
+            product,
+            translation.name if translation else None,
+            translation.description if translation else None,
+        ).model_dump(mode="json"))
+    if locale != "en":
+        await db.commit()
+    return {"data": data, "page": page, "limit": limit, "total": total}
 
 
 @router.get("/{product_id}", response_model=dict)
-async def get_product(product_id: str, db: AsyncSession = Depends(get_db)):
+async def get_product(
+    product_id: str,
+    locale: str = Query(default="en", min_length=2, max_length=12),
+    db: AsyncSession = Depends(get_db),
+):
+    locale = locale if locale == "en" or locale in AWS_TRANSLATE_CODES else "en"
     try:
         identifier = UUID(product_id)
         product_filter = Product.id == identifier
@@ -136,7 +154,14 @@ async def get_product(product_id: str, db: AsyncSession = Depends(get_db)):
     )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found.")
-    return {"data": product_response(product).model_dump(mode="json")}
+    translation = await get_product_translation(product, locale, db) if locale != "en" else None
+    if translation:
+        await db.commit()
+    return {"data": product_response(
+        product,
+        translation.name if translation else None,
+        translation.description if translation else None,
+    ).model_dump(mode="json")}
 
 
 @router.get("/{product_id}/reviews", response_model=dict)

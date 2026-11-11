@@ -1,5 +1,5 @@
 .collection-page .collection-heading {
-    width: min(1072px, calc(100% - 80px));
+    width: min(1280px, calc(100% - 64px));
     min-height: 260px;
     margin: 24px auto;
     padding: 0;
@@ -146,7 +146,7 @@
 }
 
 .collection-page .collection-layout {
-    width: min(1072px, calc(100% - 80px));
+    width: min(1280px, calc(100% - 64px));
     margin-inline: auto;
     grid-template-columns: 232px minmax(0, 1fr);
     gap: 32px;
@@ -381,7 +381,7 @@
 /* A real collections landing page: editorial entry points plus browsable animal and size aisles. */
 
 .collections-landing {
-    width: min(1200px, calc(100% - 48px));
+    width: min(1320px, calc(100% - 64px));
     margin: 24px auto 80px;
     color: #3f302b;
 }
@@ -397,26 +397,26 @@
     grid-template-columns: minmax(0, 1.2fr) minmax(220px, .8fr);
     align-items: center;
     gap: 20px;
-    background: radial-gradient(circle at 88% 20%, #fff8f1 0 11%, transparent 11.5%), linear-gradient(120deg, #fff8f2, #f8e9df 58%, #f5dfd3);
+    background: linear-gradient(120deg, #fff8f2, #f8e9df 58%, #f5dfd3);
     box-shadow: 0 8px 0 #f0e2d9, 0 20px 46px rgb(74 53 48 / 7%);
 }
 
 
-/* Fill the second decorative circle in the collections hero with a real plush photo. */
+/* A small, floating editorial photo card complements the hero image without circular cutouts. */
 
 .collections-landing-hero-bubble {
-    width: clamp(104px, 9vw, 132px);
-    aspect-ratio: 1;
+    width: clamp(90px, 10vw, 138px);
+    aspect-ratio: 4 / 5;
     position: absolute;
     z-index: 2;
     top: clamp(14px, 2.5vw, 32px);
     right: 12px;
     overflow: hidden;
-    border: 6px solid rgb(255 255 255 / 84%);
-    border-radius: 50%;
-    background: #fff8f1;
-    box-shadow: 0 8px 24px rgb(76 49 37 / 12%);
-    transform: rotate(-8deg);
+    border: 1px solid rgb(98 65 48 / 18%);
+    border-radius: 18px;
+    background: #ead8ca;
+    box-shadow: 0 12px 26px rgb(76 49 37 / 16%);
+    transform: rotate(7deg);
 }
 
 .collections-landing-hero-bubble img {
@@ -429,12 +429,7 @@
 
 @media (max-width: 767px) {
     .collections-landing-hero-bubble {
-        width: 68px;
-        height: 68px;
-        aspect-ratio: auto;
-        top: 10px;
-        right: 10px;
-        border-width: 4px;
+        display: none;
     }
 }
 
@@ -498,28 +493,23 @@
 }
 
 .collections-landing-hero-art {
-    width: min(100%, 300px);
-    aspect-ratio: 1;
+    width: min(100%, 320px);
+    aspect-ratio: 1.08;
     justify-self: center;
     position: relative;
-    border: 8px solid rgb(255 255 255 / 78%);
-    border-radius: 48% 52% 47% 53% / 54% 46% 54% 46%;
+    border: 0;
+    border-radius: 22px;
     background: #edd9ca;
     box-shadow: 0 12px 28px rgb(76 49 37 / 13%);
-    transform: rotate(3deg);
+    transform: rotate(-2deg);
 }
 
 .collections-landing-hero-art>img {
-    border-radius: inherit;
     object-fit: cover;
 }
 
 .collections-landing-orbit {
-    position: absolute;
-    z-index: 1;
-    inset: -14px;
-    border: 1px dashed rgb(162 80 47 / 35%);
-    border-radius: inherit;
+    display: none;
 }
 
 .collections-landing-stamp {
@@ -530,7 +520,7 @@
     z-index: 2;
     right: -24px;
     bottom: 4px;
-    border: 3px solid #fff9f3;
+    border: 1px solid rgb(116 70 34 / 30%);
     border-radius: 50%;
     display: grid;
     place-items: center;
@@ -842,7 +832,9 @@
     }
     .collections-landing-hero-art {
         width: 80px;
-        border-width: 4px;
+        aspect-ratio: 4 / 5;
+        border-radius: 14px;
+        box-shadow: 0 8px 18px rgb(76 49 37 / 14%);
     }
     .collections-landing-stamp {
         min-width: 47px;
@@ -852,9 +844,6 @@
         bottom: -7px;
         border-width: 2px;
         font-size: 6px;
-    }
-    .collections-landing-orbit {
-        inset: -7px;
     }
     .collections-featured,
     .collections-animal-section,
@@ -1001,5 +990,20 @@
         flex: 0 0 auto;
         font-size: 11px;
         white-space: nowrap;
+    }
+}
+
+@media (min-width: 1200px) {
+    .collections-landing {
+        width: min(1320px, calc(100% - 80px));
+        margin-top: 30px;
+    }
+    .collection-page .collection-heading,
+    .collection-page .collection-layout {
+        width: min(1280px, calc(100% - 80px));
+    }
+    .collection-page .collection-layout {
+        grid-template-columns: 248px minmax(0, 1fr);
+        gap: 38px;
     }
 }

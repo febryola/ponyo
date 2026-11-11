@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AccountAuthForm } from "@/components/account/account-auth-form";
-import { ApiRequestError, ponyoApi, PONYO_API_BASE_URL, type CustomerProfile } from "@/services/ponyo-api.client";
+import { ponyoApi, PONYO_API_BASE_URL, type CustomerProfile } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
 export function AccountDrawer() {
@@ -39,11 +39,10 @@ export function AccountDrawer() {
     let active = true;
     ponyoApi.getMe()
       .then((profile) => { if (active) { setCustomer(profile); setSessionCustomer(profile); } })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (!active) return;
-        if (!(error instanceof ApiRequestError && error.status === 401)) {
-          setSessionError("We couldn't check your Ponyo session. You can still try signing in below.");
-        }
+        // A failed session probe is not useful customer-facing copy; show the
+        // sign-in actions and let authentication surface any actionable error.
         setCustomer(null);
         setSessionCustomer(null);
       })

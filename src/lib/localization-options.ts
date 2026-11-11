@@ -20,6 +20,7 @@ export type DeliveryCountryOption = {
 
 export const deliveryCountries: DeliveryCountryOption[] = [
 	{ code: "JP", label: "Japan", flag: "🇯🇵" },
+	{ code: "KR", label: "South Korea", flag: "🇰🇷" },
 	{ code: "US", label: "United States", flag: "🇺🇸" },
 	{ code: "GB", label: "United Kingdom", flag: "🇬🇧" },
 	{ code: "AU", label: "Australia", flag: "🇦🇺" },

@@ -26,7 +26,7 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
       : product.availabilityStatus === "Unavailable" || product.availability === "unavailable"
         ? t("product.status.unavailable", "Currently unavailable")
         : product.availabilityStatus === "Available" || product.availability === "available"
-          ? t("product.status.available", "Available to order")
+          ? t("product.status.available", "Available")
         : "";
 
   function toggleWishlist() {

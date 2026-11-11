@@ -82,6 +82,7 @@ async def seed_customer_session(client, session_factory, *, verified=True, email
 
 def checkout_payload(variant_id, *, email="buyer@example.com"):
     return {
+        "idempotencyKey": str(uuid4()),
         "email": email,
         "shippingAddress": {
             "firstName": "Test", "lastName": "Buyer", "address1": "1 Test St",
@@ -123,11 +124,15 @@ def test_local_dev_cookie_policy_allows_cross_origin_csrf_flows():
 
 
 @pytest.mark.asyncio
-async def test_local_dev_verification_email_without_smtp_reports_failure(monkeypatch):
+async def test_local_dev_auth_emails_without_smtp_never_log_bearer_links(monkeypatch, caplog):
     monkeypatch.setattr(settings, "environment", "local")
     monkeypatch.setattr(settings, "smtp_host", None)
-    result = await send_verification_email("local@example.com", "http://localhost:3000/account/verify-email?token=abc123")
-    assert result is False
+    verification_url = "http://localhost:3000/account/verify-email?token=secret-verification-token"
+    reset_url = "http://localhost:3000/account/reset-password?token=secret-reset-token"
+    assert await send_verification_email("local@example.com", verification_url) is False
+    assert await send_password_reset_email("local@example.com", reset_url) is False
+    assert verification_url not in caplog.text and reset_url not in caplog.text
+    assert "secret-verification-token" not in caplog.text and "secret-reset-token" not in caplog.text
 
 
 @pytest.fixture
@@ -710,6 +715,7 @@ async def test_checkout_refuses_missing_stripe_config(test_client, monkeypatch):
         "/v1/checkout/sessions",
         headers={"X-CSRF-Token": csrf},
         json={
+            "idempotencyKey": str(uuid4()),
             "email": "buyer@example.com",
             "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "region": "Tokyo", "city": "Tokyo", "postalCode": "1000001", "phone": "+81 90 0000 0000", "countryCode": "JP"},
             "shippingMethod": "standard", "paymentMethod": "card", "items": [{"variantId": str(uuid4()), "quantity": 1}],
@@ -792,6 +798,7 @@ async def test_checkout_uses_database_price_and_reserves_stock(test_client, monk
         "/v1/checkout/sessions",
         headers={"X-CSRF-Token": csrf},
         json={
+            "idempotencyKey": str(uuid4()),
             "email": "buyer@example.com",
             "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "region": "Tokyo", "city": "Tokyo", "postalCode": "1000001", "phone": "+81 90 0000 0000", "countryCode": "JP"},
             "shippingMethod": "standard", "paymentMethod": "card", "items": [{"variantId": str(variant_id), "quantity": 2}],
@@ -838,6 +845,7 @@ async def test_checkout_converts_selected_currency_for_stripe_and_order(test_cli
         "/v1/checkout/sessions",
         headers={"X-CSRF-Token": csrf},
         json={
+            "idempotencyKey": str(uuid4()),
             "email": "buyer@example.com",
             "shippingAddress": {"firstName": "Test", "lastName": "Buyer", "address1": "1 Test St", "region": "Tokyo", "city": "Tokyo", "postalCode": "1000001", "phone": "+81 90 0000 0000", "countryCode": "JP"},
             "shippingMethod": "standard", "paymentMethod": "card", "currency": "USD",

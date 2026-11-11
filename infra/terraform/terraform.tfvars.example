@@ -19,3 +19,5 @@ smtp_starttls = true
 redis_auth_token = "replace-with-a-random-32-character-alphanumeric-value"
 desired_api_count = 1
 enable_deletion_protection = false
+database_backup_retention_days = 14
+operations_alert_email = "replace-with-verified-operations@example.com"

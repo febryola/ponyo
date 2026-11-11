@@ -51,11 +51,16 @@ def mocked_services(monkeypatch, safe_auth_email_and_cookies):
         url="https://checkout.stripe.test/supplier",
         expires_at=int(datetime.now(timezone.utc).timestamp()) + 1800,
     ))
+    retrieve = Mock(return_value=SimpleNamespace(
+        id="cs_test_supplier", url="https://checkout.stripe.test/supplier",
+        expires_at=int(datetime.now(timezone.utc).timestamp()) + 1800,
+    ))
     monkeypatch.setattr(stripe.checkout.Session, "create", create)
+    monkeypatch.setattr(stripe.checkout.Session, "retrieve", retrieve)
     monkeypatch.setattr(stripe.checkout.Session, "expire", blocked)
     construct_event = Mock(side_effect=AssertionError("A test must supply its webhook event"))
     monkeypatch.setattr(stripe.Webhook, "construct_event", construct_event)
-    return SimpleNamespace(create=create, construct_event=construct_event)
+    return SimpleNamespace(create=create, retrieve=retrieve, construct_event=construct_event)
 
 
 async def link_catalog(session_factory):
@@ -355,7 +360,7 @@ async def test_cancelled_webhook_releases_both_reservations_only_once(
         assert (cancelled.from_status, cancelled.source, cancelled.event_key) == (
             "pending_payment", "stripe", "evt_supplier_cancelled",
         )
-        assert await db.scalar(select(func.count()).select_from(OutboxEvent)) == 0
+        assert await db.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.event_type == "order.payment_failed")) == 1
 
 
 async def test_paid_after_cancelled_does_not_consume_released_supplier_stock(
@@ -374,21 +379,28 @@ async def test_paid_after_cancelled_does_not_consume_released_supplier_stock(
     await assert_stock(flow, variant=4, on_hand=4, reserved=0)
     async with flow.session_factory() as db:
         order = await db.get(Order, order_id)
-        assert (order.status, order.payment_status) == ("cancelled", "failed")
+        assert (order.status, order.payment_status) == ("cancelled", "payment_review")
         assert await db.scalar(select(func.count()).select_from(OrderStatusHistory)) == 2
-        assert await db.scalar(select(func.count()).select_from(OutboxEvent)) == 0
+        assert await db.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.event_type == "order.payment_succeeded")) == 0
+        assert await db.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.event_type == "order.payment_review")) == 1
 
 
-async def test_stripe_creation_failure_rolls_back_all_reservations(supplier_checkout, mocked_services):
+async def test_stripe_creation_failure_keeps_idempotent_reservation_for_reconciliation(supplier_checkout, mocked_services):
     flow = supplier_checkout
     mocked_services.create.side_effect = stripe.StripeError("Simulated provider failure")
     response = await start_checkout(flow)
     assert response.status_code == 503, response.text
     mocked_services.create.assert_called_once()
-    await assert_stock(flow, variant=4, on_hand=4, reserved=0)
+    await assert_stock(flow, variant=3, on_hand=4, reserved=1)
     async with flow.session_factory() as db:
-        for model in (Order, OrderItem, OrderStatusHistory, OutboxEvent):
-            assert await db.scalar(select(func.count()).select_from(model)) == 0
+        order = await db.scalar(select(Order))
+        assert order.status == "pending_payment" and order.stripe_session_id is None
+        assert order.checkout_idempotency_key is not None
+    async with flow.session_factory() as db:
+        assert await db.scalar(select(func.count()).select_from(Order)) == 1
+        assert await db.scalar(select(func.count()).select_from(OrderItem)) == 1
+        assert await db.scalar(select(func.count()).select_from(OrderStatusHistory)) == 1
+        assert await db.scalar(select(func.count()).select_from(OutboxEvent)) == 0
 
 
 @pytest.mark.parametrize("earlier_item", [False, True], ids=["single-item", "rollback-earlier-item"])

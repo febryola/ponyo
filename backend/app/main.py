@@ -12,9 +12,11 @@ from starlette.exceptions import HTTPException
 
 from app.config import settings
 from app.db import engine
+from app.email_queue import transactional_email_worker
 from app.outbox import publish_outbox_events
 from app.reservation_expiry import recover_expired_reservations
-from app.routers import auth, cart, catalog, checkout, content, localization, orders, products, webhooks
+from app.supplier_forwarding import supplier_order_worker
+from app.routers import auth, cart, catalog, checkout, content, localization, orders, payments, products, shipments, supplier_orders, webhooks
 
 logger = logging.getLogger("ponyo.api")
 
@@ -25,6 +27,8 @@ async def lifespan(app: FastAPI):
     app.state.redis = None
     outbox_task = None
     expiry_task = None
+    supplier_task = None
+    email_task = None
     try:
         from redis.asyncio import Redis
 
@@ -39,10 +43,14 @@ async def lifespan(app: FastAPI):
         outbox_task = asyncio.create_task(publish_outbox_events())
     if settings.stripe_secret_key:
         expiry_task = asyncio.create_task(recover_expired_reservations())
+    if settings.supplier_forwarding_enabled:
+        supplier_task = asyncio.create_task(supplier_order_worker())
+    if settings.contact_email_configured:
+        email_task = asyncio.create_task(transactional_email_worker())
     try:
         yield
     finally:
-        tasks = [task for task in (outbox_task, expiry_task) if task is not None]
+        tasks = [task for task in (outbox_task, expiry_task, supplier_task, email_task) if task is not None]
         for task in tasks:
             task.cancel()
         try:
@@ -116,6 +124,9 @@ app.include_router(catalog.router, prefix="/v1")
 app.include_router(localization.router, prefix="/v1")
 app.include_router(orders.router, prefix="/v1")
 app.include_router(checkout.router, prefix="/v1")
+app.include_router(payments.router, prefix="/v1")
+app.include_router(supplier_orders.router, prefix="/v1")
+app.include_router(shipments.router, prefix="/v1")
 app.include_router(content.router, prefix="/v1")
 app.include_router(webhooks.router, prefix="/v1")
 
@@ -124,4 +135,14 @@ app.include_router(webhooks.router, prefix="/v1")
 async def health():
     async with engine.connect() as connection:
         await connection.execute(text("SELECT 1"))
-    return {"data": {"status": "ok", "environment": settings.environment}}
+    redis_status = "not_configured"
+    if app.state.redis is not None:
+        try:
+            await app.state.redis.ping()
+            redis_status = "ok"
+        except Exception:
+            raise HTTPException(status_code=503, detail="A required service is temporarily unavailable.") from None
+    elif settings.environment == "production":
+        raise HTTPException(status_code=503, detail="A required service is temporarily unavailable.")
+    return {"data": {"status": "ok", "environment": settings.environment,
+                      "dependencies": {"database": "ok", "redis": redis_status}}}

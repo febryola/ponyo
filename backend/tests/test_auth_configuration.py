@@ -47,3 +47,8 @@ def test_production_rejects_unsafe_or_unapproved_verification_origins(origin):
 def test_production_requires_working_mail_configuration(overrides):
     with pytest.raises(ValidationError, match="SMTP transport"):
         production_settings(**overrides)
+
+
+def test_production_rejects_plaintext_smtp():
+    with pytest.raises(ValidationError, match="SMTP_STARTTLS"):
+        production_settings(smtp_starttls=False)

@@ -198,6 +198,7 @@ class ProductVariant(Base):
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (UniqueConstraint("customer_id", "checkout_idempotency_key", name="uq_orders_customer_checkout_key"),)
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     order_number: Mapped[str] = mapped_column(String(32), unique=True, index=True)
@@ -206,13 +207,30 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(48), default="pending_payment", index=True)
     payment_status: Mapped[str] = mapped_column(String(48), default="unpaid")
     fulfillment_status: Mapped[str] = mapped_column(String(48), default="unfulfilled")
+    supplier_fulfillment_status: Mapped[str] = mapped_column(String(48), default="pending", server_default="pending")
     total_amount: Mapped[int] = mapped_column(Integer)
+    subtotal_amount: Mapped[int] = mapped_column(Integer, default=0)
+    discount_amount: Mapped[int] = mapped_column(Integer, default=0)
+    shipping_amount: Mapped[int] = mapped_column(Integer, default=0)
+    tax_amount: Mapped[int] = mapped_column(Integer, default=0)
+    tax_rate_bps: Mapped[int] = mapped_column(Integer, default=0)
+    coupon_code: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    cancellation_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), default="JPY")
     shipping_address: Mapped[dict] = mapped_column(JSON)
     shipping_method: Mapped[str] = mapped_column(String(64))
     payment_method: Mapped[str] = mapped_column(String(32))
     payment_provider: Mapped[str] = mapped_column(String(32), default="stripe")
     stripe_session_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    checkout_idempotency_key: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    checkout_request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    checkout_request: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    captured_amount: Mapped[int] = mapped_column(Integer, default=0)
+    refunded_amount: Mapped[int] = mapped_column(Integer, default=0)
+    capture_method: Mapped[str] = mapped_column(String(16), default="automatic")
+    supplier_retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    supplier_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     reservation_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     tracking_number: Mapped[str | None] = mapped_column(String(120), nullable=True)
     tracking_carrier: Mapped[str | None] = mapped_column(String(120), nullable=True)
@@ -220,6 +238,7 @@ class Order(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     customer: Mapped[Customer | None] = relationship(back_populates="orders")
     items: Mapped[list[OrderItem]] = relationship(back_populates="order", cascade="all, delete-orphan")
+    shipments: Mapped[list[Shipment]] = relationship(back_populates="order", cascade="all, delete-orphan")
 
 
 class OrderItem(Base):
@@ -236,7 +255,97 @@ class OrderItem(Base):
     quantity: Mapped[int] = mapped_column(Integer)
     unit_price: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(3), default="JPY")
+    product_snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    discount_amount: Mapped[int] = mapped_column(Integer, default=0)
     order: Mapped[Order] = relationship(back_populates="items")
+
+
+class Shipment(Base):
+    __tablename__ = "shipments"
+    __table_args__ = (UniqueConstraint("carrier", "tracking_number", name="uq_shipments_carrier_tracking"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    order_id: Mapped[UUID] = mapped_column(ForeignKey("orders.id", ondelete="RESTRICT"), index=True)
+    shipment_number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="label_created", index=True)
+    carrier: Mapped[str] = mapped_column(String(120))
+    tracking_number: Mapped[str] = mapped_column(String(180))
+    tracking_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    estimated_delivery_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    shipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    customer_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    order: Mapped[Order] = relationship(back_populates="shipments")
+    items: Mapped[list[ShipmentItem]] = relationship(cascade="all, delete-orphan")
+    events: Mapped[list[ShipmentEvent]] = relationship(cascade="all, delete-orphan", order_by="ShipmentEvent.occurred_at")
+
+
+class ShipmentItem(Base):
+    __tablename__ = "shipment_items"
+    __table_args__ = (UniqueConstraint("shipment_id", "order_item_id", name="uq_shipment_items_order_item"),
+                      CheckConstraint("quantity > 0", name="ck_shipment_items_quantity"))
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    shipment_id: Mapped[UUID] = mapped_column(ForeignKey("shipments.id", ondelete="CASCADE"), index=True)
+    order_item_id: Mapped[UUID] = mapped_column(ForeignKey("order_items.id", ondelete="RESTRICT"), index=True)
+    quantity: Mapped[int] = mapped_column(Integer)
+
+
+class ShipmentEvent(Base):
+    __tablename__ = "shipment_events"
+    __table_args__ = (UniqueConstraint("shipment_id", "event_key", name="uq_shipment_events_event_key"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    shipment_id: Mapped[UUID] = mapped_column(ForeignKey("shipments.id", ondelete="CASCADE"), index=True)
+    from_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(32))
+    source: Mapped[str] = mapped_column(String(24))
+    event_key: Mapped[str] = mapped_column(String(180))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class Coupon(Base):
+    __tablename__ = "coupons"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    discount_type: Mapped[str] = mapped_column(String(16))
+    # Percentage coupons use basis points (1000 = 10%); fixed coupons use minor units.
+    amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="JPY")
+    minimum_subtotal: Mapped[int] = mapped_column(Integer, default=0)
+    maximum_discount: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_redemptions: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    per_customer_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PaymentTransaction(Base):
+    __tablename__ = "payment_transactions"
+    __table_args__ = (UniqueConstraint("event_key", name="uq_payment_transactions_event"),
+                     UniqueConstraint("idempotency_key", name="uq_payment_transactions_idempotency"))
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    order_id: Mapped[UUID] = mapped_column(ForeignKey("orders.id", ondelete="RESTRICT"), index=True)
+    provider: Mapped[str] = mapped_column(String(32), default="stripe")
+    kind: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(32))
+    amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    provider_reference: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    event_key: Mapped[str] = mapped_column(String(255))
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 
 class ProcessedWebhook(Base):
@@ -278,6 +387,26 @@ class OutboxEvent(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class EmailNotification(Base):
+    __tablename__ = "email_notifications"
+    __table_args__ = (UniqueConstraint("notification_key", name="uq_email_notifications_key"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    outbox_event_id: Mapped[UUID] = mapped_column(ForeignKey("outbox_events.id", ondelete="RESTRICT"), index=True)
+    notification_key: Mapped[str] = mapped_column(String(180))
+    recipient: Mapped[str] = mapped_column(String(320))
+    template: Mapped[str] = mapped_column(String(48))
+    payload: Mapped[dict] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 
 class ProductCategory(Base):
@@ -362,6 +491,68 @@ class SupplierInventory(Base):
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     offer: Mapped[SupplierOffer] = relationship(back_populates="inventory")
+
+
+class SupplierAccount(Base):
+    __tablename__ = "supplier_accounts"
+
+    customer_id: Mapped[UUID] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), primary_key=True)
+    supplier_id: Mapped[UUID] = mapped_column(ForeignKey("suppliers.id", ondelete="RESTRICT"), index=True)
+
+
+class SupplierPurchaseOrder(Base):
+    __tablename__ = "supplier_purchase_orders"
+    __table_args__ = (UniqueConstraint("order_id", "supplier_id", "generation", name="uq_supplier_po_generation"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    po_number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    order_id: Mapped[UUID] = mapped_column(ForeignKey("orders.id", ondelete="RESTRICT"), index=True)
+    supplier_id: Mapped[UUID] = mapped_column(ForeignKey("suppliers.id", ondelete="RESTRICT"), index=True)
+    generation: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(100), unique=True)
+    supplier_order_id: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    currency: Mapped[str] = mapped_column(String(3))
+    total_cost: Mapped[int] = mapped_column(Integer)
+    shipping_address: Mapped[dict] = mapped_column(JSON)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    items: Mapped[list[SupplierPurchaseOrderItem]] = relationship(cascade="all, delete-orphan")
+
+
+class SupplierPurchaseOrderItem(Base):
+    __tablename__ = "supplier_purchase_order_items"
+    __table_args__ = (UniqueConstraint("order_item_id", "route_attempt", name="uq_supplier_po_item_route"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    purchase_order_id: Mapped[UUID] = mapped_column(ForeignKey("supplier_purchase_orders.id", ondelete="CASCADE"), index=True)
+    order_item_id: Mapped[UUID] = mapped_column(ForeignKey("order_items.id", ondelete="RESTRICT"), index=True)
+    offer_id: Mapped[UUID] = mapped_column(ForeignKey("supplier_offers.id", ondelete="RESTRICT"))
+    route_attempt: Mapped[int] = mapped_column(Integer)
+    quantity: Mapped[int] = mapped_column(Integer)
+    supplier_sku: Mapped[str] = mapped_column(String(120))
+    product_name: Mapped[str] = mapped_column(String(240))
+    unit_cost: Mapped[int] = mapped_column(Integer)
+    variant_id: Mapped[UUID] = mapped_column(ForeignKey("product_variants.id", ondelete="RESTRICT"))
+
+
+class SupplierConfirmation(Base):
+    __tablename__ = "supplier_confirmations"
+    __table_args__ = (UniqueConstraint("supplier_id", "event_id", name="uq_supplier_confirmation_event"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    supplier_id: Mapped[UUID] = mapped_column(ForeignKey("suppliers.id", ondelete="RESTRICT"))
+    purchase_order_id: Mapped[UUID] = mapped_column(ForeignKey("supplier_purchase_orders.id", ondelete="RESTRICT"), index=True)
+    event_id: Mapped[str] = mapped_column(String(100))
+    decision: Mapped[str] = mapped_column(String(32))
+    supplier_order_id: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class ShoppingCart(Base):

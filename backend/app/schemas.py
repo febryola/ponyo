@@ -245,6 +245,9 @@ class CheckoutItem(BaseModel):
 
 
 class CheckoutSessionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    idempotencyKey: UUID | None = None
     email: EmailStr
     shippingAddress: CheckoutAddress
     shippingMethod: str = Field(min_length=1, max_length=64)
@@ -253,6 +256,78 @@ class CheckoutSessionRequest(BaseModel):
     items: list[CheckoutItem] = Field(min_length=1, max_length=100)
     successUrl: str
     cancelUrl: str
+    couponCode: str | None = Field(default=None, max_length=64)
+    expectedTotalAmount: int | None = Field(default=None, ge=0, strict=True)
+
+
+class OrderCancellationRequest(BaseModel):
+    reason: str = Field(default="", max_length=500)
+
+
+class OrderStatusUpdateRequest(BaseModel):
+    status: Literal["shipped", "delivered", "completed"]
+    trackingNumber: str | None = Field(default=None, min_length=1, max_length=120)
+    trackingCarrier: str | None = Field(default=None, min_length=1, max_length=120)
+
+
+class ShipmentItemInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    orderItemId: UUID
+    quantity: int = Field(gt=0, le=99, strict=True)
+
+
+class ShipmentCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    carrier: str = Field(min_length=1, max_length=120)
+    trackingNumber: str = Field(min_length=1, max_length=180)
+    trackingUrl: str | None = Field(default=None, max_length=1000)
+    estimatedDeliveryAt: datetime | None = None
+    items: list[ShipmentItemInput] = Field(min_length=1, max_length=100)
+
+    @field_validator("trackingUrl")
+    @classmethod
+    def validate_tracking_url(cls, value: str | None) -> str | None:
+        if value is not None:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(value)
+            if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+                raise ValueError("Tracking URL must be a valid HTTPS URL without embedded credentials.")
+        return value
+
+
+class ShipmentStatusUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["in_transit", "out_for_delivery", "delivered", "exception", "returned"]
+    eventId: UUID
+    occurredAt: datetime | None = None
+    note: str | None = Field(default=None, max_length=500)
+
+
+class PaymentCaptureRequest(BaseModel):
+    # Full capture only: partial captures would need explicit order repricing/fulfillment rules.
+    idempotencyKey: UUID
+
+
+class PaymentRefundRequest(BaseModel):
+    idempotencyKey: UUID
+    amount: int = Field(gt=0, strict=True)
+    reason: Literal["duplicate", "fraudulent", "requested_by_customer"] = "requested_by_customer"
+
+
+class SupplierDecisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    eventId: UUID
+    decision: Literal["confirmed", "rejected"]
+    supplierOrderId: str | None = Field(default=None, min_length=1, max_length=180)
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class SupplierAccountRequest(BaseModel):
+    customerId: UUID
 
 
 class CheckoutSessionOut(BaseModel):

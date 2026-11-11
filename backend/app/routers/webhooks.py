@@ -1,112 +1,145 @@
-import stripe
+"""Signature-verified, idempotent Stripe snapshot webhook processing."""
+
+import asyncio
+from collections.abc import Mapping
 from uuid import UUID
+
+import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.db import get_db
-from app.models import Order, OrderStatusHistory, OutboxEvent, ProcessedWebhook, ProductVariant
-from app.inventory import restore_variant_stock, settle_supplier_stock
-
+from app.models import Order, ProcessedWebhook
+from app.payments import apply_intent, apply_refund, mark_paid, reference_id, release_payment
 router = APIRouter(prefix="/webhooks", tags=["payments"])
 
+SESSION_EVENTS = {"checkout.session.completed", "checkout.session.async_payment_succeeded",
+                  "checkout.session.expired", "checkout.session.async_payment_failed"}
+INTENT_EVENTS = {"payment_intent.succeeded", "payment_intent.amount_capturable_updated",
+                 "payment_intent.payment_failed", "payment_intent.canceled", "payment_intent.processing"}
+REFUND_EVENTS = {"refund.created", "refund.updated", "refund.failed"}
+
+async def locked_order(db: AsyncSession, reference: str | None, *, intent_id: str | None = None):
+    if reference:
+        try:
+            query = select(Order).where(Order.id == UUID(reference))
+        except (ValueError, TypeError):
+            raise HTTPException(400, "Payment event contains an invalid order reference.") from None
+    elif intent_id:
+        query = select(Order).where(Order.stripe_payment_intent_id == intent_id)
+    else:
+        return None
+    return await db.scalar(query.options(selectinload(Order.items)).with_for_update().execution_options(populate_existing=True))
+
+def metadata_reference(obj: Mapping) -> str | None:
+    metadata = obj.get("metadata") or {}
+    if not isinstance(metadata, Mapping):
+        raise HTTPException(400, "Invalid payment metadata.")
+    return metadata.get("ponyo_order_id")
+
+async def retrieve_intent(identifier: str):
+    if not settings.stripe_secret_key:
+        raise HTTPException(503, "Stripe credentials are required to synchronize this event.")
+    stripe.api_key = settings.stripe_secret_key
+    try:
+        intent = await asyncio.to_thread(stripe.PaymentIntent.retrieve, identifier)
+    except stripe.StripeError:
+        raise HTTPException(503, "Payment state could not be verified. Retry event delivery.") from None
+    if not isinstance(intent, Mapping) or intent.get("id") != identifier:
+        raise HTTPException(400, "Provider returned a mismatched payment intent.")
+    return intent
 
 @router.post("/stripe")
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     if not settings.stripe_webhook_secret:
-        raise HTTPException(status_code=503, detail="Payment webhook is not configured.")
+        raise HTTPException(503, "Payment webhook is not configured.")
     body = await request.body()
-    signature = request.headers.get("stripe-signature", "")
+    if len(body) > 1024 * 1024:
+        raise HTTPException(413, "Payment event is too large.")
     try:
-        event = stripe.Webhook.construct_event(body, signature, settings.stripe_webhook_secret)
+        event = stripe.Webhook.construct_event(body, request.headers.get("stripe-signature", ""), settings.stripe_webhook_secret)
     except (ValueError, stripe.SignatureVerificationError):
-        raise HTTPException(status_code=400, detail="Invalid payment webhook signature.") from None
-
-    event_id = event["id"]
+        raise HTTPException(400, "Invalid payment webhook signature.") from None
+    if not isinstance(event, Mapping) or not isinstance(event.get("id"), str) or not isinstance(event.get("data"), Mapping):
+        raise HTTPException(400, "Invalid payment event.")
+    event_id, event_type = event["id"], event.get("type")
+    obj = event["data"].get("object")
+    if not isinstance(obj, Mapping):
+        raise HTTPException(400, "Invalid payment event object.")
     if await db.get(ProcessedWebhook, event_id):
         return {"received": True}
+
+    # Fetch current provider objects BEFORE taking order/stock locks. Stale events
+    # must never regress a capture or revive a failed refund.
+    intent, refund = None, None
+    if event_type in INTENT_EVENTS:
+        identifier = reference_id(obj)
+        if not identifier or not identifier.startswith("pi_"):
+            raise HTTPException(400, "Invalid payment intent identity.")
+        intent = await retrieve_intent(identifier)
+    elif event_type in REFUND_EVENTS:
+        require_id = reference_id(obj)
+        if not require_id or not require_id.startswith("re_"):
+            raise HTTPException(400, "Invalid refund identity.")
+        if not settings.stripe_secret_key:
+            raise HTTPException(503, "Stripe credentials are required to synchronize refunds.")
+        stripe.api_key = settings.stripe_secret_key
+        try:
+            refund = await asyncio.to_thread(stripe.Refund.retrieve, require_id)
+        except stripe.StripeError:
+            raise HTTPException(503, "Refund state could not be verified. Retry event delivery.") from None
+        if not isinstance(refund, Mapping) or refund.get("id") != require_id:
+            raise HTTPException(400, "Provider returned a mismatched refund.")
+        identifier = reference_id(refund.get("payment_intent"))
+        if not identifier:
+            raise HTTPException(400, "Refund has no payment intent reference.")
+        intent = await retrieve_intent(identifier)
+    elif event_type in SESSION_EVENTS and obj.get("payment_status") == "unpaid" and event_type == "checkout.session.completed":
+        identifier = reference_id(obj.get("payment_intent"))
+        if identifier:
+            intent = await retrieve_intent(identifier)
+
     db.add(ProcessedWebhook(event_id=event_id, provider="stripe"))
     try:
-        # Acquire the unique event claim before applying side effects.
         await db.flush()
     except IntegrityError:
         await db.rollback()
-        # A conflicting insert means another transaction owns this exact event.
-        raise HTTPException(status_code=503, detail="Payment event is already being processed. Retry delivery.") from None
-    event_type = event["type"]
-    session_data = event["data"]["object"]
-    order_id = (session_data.get("metadata") or {}).get("ponyo_order_id") or session_data.get("client_reference_id")
-    order = None
-    if order_id and event_type in {"checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.expired", "checkout.session.async_payment_failed"}:
-        try:
-            parsed_order_id = UUID(order_id)
-        except (TypeError, ValueError):
-            raise HTTPException(status_code=400, detail="Payment event contains an invalid order reference.") from None
-        order = await db.scalar(select(Order).where(Order.id == parsed_order_id).options(selectinload(Order.items)).with_for_update())
-        if not order:
-            # The payment can arrive before the order transaction is visible; let Stripe retry.
-            raise HTTPException(status_code=503, detail="Order is not available yet. Retry payment event delivery.")
-        if not order.stripe_session_id or session_data.get("id") != order.stripe_session_id:
-            raise HTTPException(status_code=400, detail="Payment session does not match the order.")
-        await db.scalars(select(ProductVariant).where(
-            ProductVariant.id.in_([item.variant_id for item in order.items]),
-        ).order_by(ProductVariant.id).with_for_update())
-        if event_type in {"checkout.session.completed", "checkout.session.async_payment_succeeded"} and session_data.get("payment_status") == "paid":
-            if session_data.get("amount_total") != order.total_amount or session_data.get("currency", "").upper() != order.currency:
-                raise HTTPException(status_code=400, detail="Payment amount does not match the order total.")
-            if order.payment_status != "paid" and order.status != "cancelled":
-                previous_status = order.status
-                result = await db.execute(
-                    update(Order)
-                    .where(Order.id == order.id, Order.payment_status != "paid", Order.status != "cancelled")
-                    .values(payment_status="paid", status="processing", fulfillment_status="queued")
-                )
-                if result.rowcount == 1:
-                    for item in order.items:
-                        await settle_supplier_stock(db, item, paid=True)
-                    order.payment_status = "paid"
-                    order.status = "processing"
-                    order.fulfillment_status = "queued"
-                    db.add(OrderStatusHistory(
-                        order_id=order.id, from_status=previous_status, to_status="processing",
-                        payment_status="paid", fulfillment_status="queued", source="stripe",
-                        event_key=event_id,
-                    ))
-                    db.add(OutboxEvent(
-                        event_type="order.payment_succeeded",
-                        payload={
-                            "orderId": str(order.id),
-                            "orderNumber": order.order_number,
-                            "currency": order.currency,
-                            "shippingMethod": order.shipping_method,
-                            "items": [
-                                {"variantId": str(item.variant_id), "quantity": item.quantity}
-                                for item in order.items
-                            ],
-                        },
-                    ))
-        elif event_type in {"checkout.session.expired", "checkout.session.async_payment_failed"} and order.payment_status != "paid":
-            previous_status = order.status
-            result = await db.execute(
-                update(Order)
-                .where(Order.id == order.id, Order.payment_status != "paid", Order.status != "cancelled")
-                .values(status="cancelled", payment_status="failed")
-            )
-            if result.rowcount != 1:
-                await db.rollback()
-                return {"received": True}
-            for item in order.items:
-                await settle_supplier_stock(db, item, paid=False)
-                await restore_variant_stock(db, item)
-            order.status = "cancelled"
-            order.payment_status = "failed"
-            db.add(OrderStatusHistory(
-                order_id=order.id, from_status=previous_status, to_status="cancelled",
-                payment_status="failed", fulfillment_status=order.fulfillment_status,
-                source="stripe", event_key=event_id,
-            ))
+        raise HTTPException(503, "Payment event is already being processed. Retry delivery.") from None
+
+    if event_type in SESSION_EVENTS:
+        reference = metadata_reference(obj) or obj.get("client_reference_id")
+        order = await locked_order(db, reference)
+        if reference and order is None:
+            raise HTTPException(503, "Order is not available yet. Retry payment event delivery.")
+        if order:
+            if not order.stripe_session_id or obj.get("id") != order.stripe_session_id:
+                raise HTTPException(400, "Payment session does not match the order.")
+            identifier = reference_id(obj.get("payment_intent"))
+            if identifier:
+                if order.stripe_payment_intent_id and order.stripe_payment_intent_id != identifier:
+                    raise HTTPException(400, "Payment intent does not match the order.")
+                order.stripe_payment_intent_id = identifier
+            paid = obj.get("payment_status") == "paid" or (order.total_amount == 0 and obj.get("payment_status") == "no_payment_required")
+            if event_type in {"checkout.session.completed", "checkout.session.async_payment_succeeded"} and paid:
+                if obj.get("amount_total") != order.total_amount or str(obj.get("currency", "")).upper() != order.currency:
+                    raise HTTPException(400, "Payment amount does not match the order total.")
+                await mark_paid(db, order, reference=identifier or order.stripe_session_id, key=event_id)
+            elif intent is not None:
+                await apply_intent(db, order, intent, key=event_id)
+            elif event_type in {"checkout.session.expired", "checkout.session.async_payment_failed"} and order.payment_status != "authorized":
+                await release_payment(db, order, reference=order.stripe_session_id, key=event_id)
+    elif intent is not None:
+        reference = metadata_reference(intent)
+        order = await locked_order(db, reference, intent_id=reference_id(intent))
+        if reference and order is None:
+            raise HTTPException(503, "Order is not available yet. Retry payment event delivery.")
+        if order:
+            await apply_intent(db, order, intent, key=event_id)
+            if refund is not None:
+                await apply_refund(db, order, refund, key=event_id)
     await db.commit()
     return {"received": True}

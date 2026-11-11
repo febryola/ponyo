@@ -10246,6 +10246,117 @@ body {
 }
 
 
+/* A more editorial foil detail for the budget cards, rather than a repeated star pair. */
+
+.store-home .budget-links a {
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgb(146 101 40 / 42%), inset 0 1px 0 rgb(255 255 255 / 54%), 0 10px 24px rgb(70 43 29 / 8%);
+    transition: transform .24s ease, box-shadow .24s ease;
+}
+
+.store-home .budget-links a:hover {
+    transform: translateY(-4px);
+    box-shadow: inset 0 0 0 1px rgb(146 101 40 / 56%), inset 0 1px 0 rgb(255 255 255 / 64%), 0 18px 34px rgb(70 43 29 / 13%);
+}
+
+.store-home .budget-links a::before {
+    content: "";
+    width: 156px;
+    height: 86px;
+    position: absolute;
+    top: -30px;
+    right: -24px;
+    border: 1px solid rgb(151 108 37 / 42%);
+    border-left-color: transparent;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    opacity: .8;
+    pointer-events: none;
+    transform: rotate(-24deg);
+}
+
+.store-home .budget-links a::after {
+    content: "✧";
+    position: absolute;
+    top: 14px;
+    right: 28px;
+    color: #94702d;
+    font-size: 23px;
+    line-height: 1;
+    text-shadow: 0 1px 0 rgb(255 255 255 / 72%);
+    pointer-events: none;
+}
+
+.store-home .budget-links a:nth-child(2)::before {
+    width: 118px;
+    height: 148px;
+    top: auto;
+    right: 5px;
+    bottom: -76px;
+    border-color: rgb(132 71 60 / 35%) transparent transparent rgb(132 71 60 / 35%);
+    transform: rotate(28deg);
+}
+
+.store-home .budget-links a:nth-child(2)::after {
+    top: auto;
+    right: 37px;
+    bottom: 20px;
+    color: #95566a;
+    font-size: 19px;
+    transform: rotate(-17deg);
+}
+
+.store-home .budget-links a:nth-child(3)::before {
+    width: 92px;
+    height: 156px;
+    top: 12px;
+    right: 48px;
+    border-color: rgb(151 108 37 / 38%) transparent rgb(151 108 37 / 38%) transparent;
+    transform: rotate(36deg);
+}
+
+.store-home .budget-links a:nth-child(3)::after {
+    top: 24px;
+    right: 39px;
+    color: #a07520;
+    font-size: 18px;
+    transform: rotate(13deg);
+}
+
+.store-home .rare-supporting-grid.is-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1280px) {
+    .store-container,
+    .container {
+        width: min(1400px, calc(100% - 80px));
+    }
+    .home-marketplace-intro {
+        width: min(1120px, calc(100% - 80px));
+        padding: 40px 56px 36px;
+    }
+    .checkout-content {
+        width: min(1240px, calc(100% - 80px));
+    }
+    .checkout-flow {
+        max-width: 1160px;
+    }
+    .account-store-page .store-container {
+        width: min(1240px, calc(100% - 80px));
+    }
+    .account-hub {
+        max-width: 1120px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .store-home .budget-links a {
+        transition: none;
+    }
+}
+
+
 /* Desktop homepage: keep size cards orderly, jellyfish visible, and product shelves left-aligned. */
 
 .store-home>.page-jellyfish-accent {
@@ -12187,7 +12298,7 @@ body {
 
 .product-gallery-zoom {
     aspect-ratio: 1 / 1;
-    background: radial-gradient(ellipse at 50% 52%, #fffdfa 0%, #fbf3ee 58%, #f1e7e1 100%);
+    background: linear-gradient(145deg, #f3e7df, #ead9cc);
 }
 
 .product-gallery-zoom img {

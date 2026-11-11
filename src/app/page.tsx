@@ -61,8 +61,12 @@ export default async function Home() {
   const premium = byTag(products, "premium", 12);
   const domina = byTag(products, "domina-xl", 6);
   const arrivals = byTag(products, "new-arrival", 10);
-  const rareSpotlight = products.find((product) => product.slug === "cherry-blossom-bunny") ?? rare[0];
-  const rareSupporting = products.filter((product) => ["mint-dino", "hoshi-cloud-bear"].includes(product.slug));
+  const mintDino = products.find((product) => product.slug === "mint-dino");
+  const rareSpotlight = products.find((product) => product.slug === "cherry-blossom-bunny")
+    ?? rare.find((product) => product.id !== mintDino?.id)
+    ?? products.find((product) => product.id !== mintDino?.id)
+    ?? rare[0];
+  const rareSupporting = rare.filter((product) => product.id !== rareSpotlight?.id).slice(0, 2);
   const allTrending = products.filter((product) => !product.tags?.includes("new-arrival")).slice(0, 12);
   const aisles = [
     { title: "Rare Finds", description: "Hard-to-find and limited-edition plush.", titleKey: "home.aisles.rare_title", descriptionKey: "home.aisles.rare_sub", href: "/collections/rare-finds", products: rare },
@@ -121,7 +125,7 @@ export default async function Home() {
         <header><div><h2><LocalizedText translationKey="home.rare.title" fallback="Rare Finds" /></h2><p><LocalizedText translationKey="home.rare.body" fallback="Retired, discontinued, and limited-edition plush that is hard to find anywhere else." /></p></div><Link href="/collections/rare-finds"><LocalizedText translationKey="home.see_all" fallback="See all →" /></Link></header>
         <div className="rare-spotlight-grid">
           <Link className="rare-featured-product" href={`/products/${rareSpotlight.id}`}><Image src={rareSpotlight.image} alt={rareSpotlight.imageAlt} fill sizes="(max-width: 1024px) 100vw, 52vw" /><span className="rare-spotlight-shade"/><span className="rare-spotlight-badge">✦ <LocalizedText translationKey="home.rare.spotlight" fallback="Spotlight" /></span><span className="rare-featured-copy"><strong><LocalizedText translationKey={`product.names.${rareSpotlight.slug}`} fallback={rareSpotlight.name} /></strong>{rareSpotlight.size && <small>{rareSpotlight.size}</small>}<b><LocalizedPrice amount={rareSpotlight.priceAmount} sourceCurrency={rareSpotlight.currency} /> <i><LocalizedText translationKey="home.rare.view_plush" fallback="View plush →" /></i></b></span></Link>
-          <div className="rare-supporting-grid">{rareSupporting.map((product) => <Link href={`/products/${product.id}`} key={product.id}><span className="rare-supporting-image"><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 700px) 44vw, 24vw"/></span><span className="rare-supporting-badge">{product.tags?.includes("rare") && <LocalizedText translationKey="home.rare.new_badge" fallback="✦ Rare · New" />}</span><strong><LocalizedText translationKey={`product.names.${product.slug}`} fallback={product.name} /></strong><small>{product.size ?? product.sizeTier ?? product.productType ?? product.categoryName}</small><b><LocalizedPrice amount={product.priceAmount} sourceCurrency={product.currency} /></b></Link>)}</div>
+          <div className={`rare-supporting-grid${rareSupporting.length === 1 ? " is-single" : ""}`}>{rareSupporting.map((product) => <Link href={`/products/${product.id}`} key={product.id}><span className="rare-supporting-image"><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 700px) 44vw, 24vw"/></span><span className="rare-supporting-badge">{product.tags?.includes("rare") && <LocalizedText translationKey="home.rare.new_badge" fallback="✦ Rare · New" />}</span><strong><LocalizedText translationKey={`product.names.${product.slug}`} fallback={product.name} /></strong><small>{product.size ?? product.sizeTier ?? product.productType ?? product.categoryName}</small><b><LocalizedPrice amount={product.priceAmount} sourceCurrency={product.currency} /></b></Link>)}</div>
         </div>
       </section>}
 

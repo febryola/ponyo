@@ -8,7 +8,7 @@ import { useCartItems, readCart, saveCart, type CartItem } from "@/lib/cart";
 import { refreshCartItems } from "@/lib/cart-validation";
 import { saveLocalOrder } from "@/lib/local-orders";
 import { useLocalization } from "@/components/layout/localization-provider";
-import { ApiNotConfiguredError, ApiRequestError, ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
+import { ApiNotConfiguredError, ApiRequestError, ponyoApi, PONYO_API_BASE_URL, type CheckoutQuote, type CheckoutQuoteInput } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
 import { AccountAuthForm } from "@/components/account/account-auth-form";
 
@@ -19,6 +19,13 @@ const shippingOptions = [
   { id: "standard", name: "Standard delivery", detail: "5–8 business days", price: 0 },
   { id: "express", name: "Express delivery", detail: "2–4 business days", price: 1200 },
 ] as const
+
+// API totals are minor units. Do not convert a server quote using local FX rates.
+function formatQuotedAmount(amount: number, currency: string) {
+  const digits = currency === "JPY" || currency === "IDR" ? 0 : 2;
+  const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return formatter.format(amount / 10 ** digits);
+}
 
 function PaymentBrandMark({ brand }: { brand: string }) {
   const label: Record<string, string> = {
@@ -77,7 +84,12 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   const [delivery, setDelivery] = useState({ firstName: "", lastName: "", address: "", address2: "", region: "", city: "", postal: "", phone: "", country: deliveryCountries.find((item) => item.code === country)?.label ?? "Japan" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [quoteState, setQuoteState] = useState<{ inputKey: string; quote: CheckoutQuote } | null>(null);
+  const [isQuoting, setIsQuoting] = useState(false);
+  const quoting = useRef(false);
   const submitting = useRef(false);
+  const checkoutIdempotencyKey = useRef<string | null>(null);
   const currentCurrency = useRef(currency);
   useEffect(() => { currentCurrency.current = currency; }, [currency]);
   const checkoutEmail = PONYO_API_BASE_URL ? customer?.email ?? "" : email;
@@ -89,6 +101,79 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   const subtotal = items.reduce((sum, item) => sum + convertMajorAmount(item.price * item.qty, item.currency), 0);
   const deliveryPrice = convertMajorAmount(shippingOptions.find((option) => option.id === shipping)?.price ?? 0, "JPY");
   const total = subtotal + deliveryPrice;
+  const checkoutDetails = {
+    email: checkoutEmail,
+    shippingAddress: {
+      firstName: checkoutDelivery.firstName,
+      lastName: checkoutDelivery.lastName,
+      address1: checkoutDelivery.address,
+      address2: checkoutDelivery.address2,
+      region: checkoutDelivery.region,
+      city: checkoutDelivery.city,
+      postalCode: checkoutDelivery.postal,
+      phone: checkoutDelivery.phone,
+      countryCode: deliveryCountries.find((item) => item.label === checkoutDelivery.country)?.code ?? "JP",
+    },
+    shippingMethod: shipping,
+    paymentMethod,
+    currency,
+    items: items.map((item) => ({ variantId: item.variantId!, quantity: item.qty, expectedPriceAmount: item.price, expectedCurrency: item.currency })),
+    couponCode: couponCode.trim() || undefined,
+  };
+  const quoteInputKey = JSON.stringify(checkoutDetails);
+  const currentQuoteInputKey = useRef(quoteInputKey);
+  useEffect(() => { currentQuoteInputKey.current = quoteInputKey; }, [quoteInputKey]);
+  const previousQuoteInputKey = useRef(quoteInputKey);
+  useEffect(() => {
+    if (previousQuoteInputKey.current !== quoteInputKey) {
+      checkoutIdempotencyKey.current = null;
+      window.sessionStorage.removeItem("ponyo:checkout-idempotency-key");
+      previousQuoteInputKey.current = quoteInputKey;
+    }
+  }, [quoteInputKey]);
+  const quote = quoteState?.inputKey === quoteInputKey ? quoteState.quote : null;
+
+  function checkoutInput(): CheckoutQuoteInput {
+    if (paymentMethod !== "card" && paymentMethod !== "apple_pay") {
+      throw new Error("This payment method is not available for secure checkout.");
+    }
+    return {
+      ...checkoutDetails,
+      paymentMethod,
+      successUrl: `${window.location.origin}/orders?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${window.location.origin}/checkout?checkout=cancelled`,
+    };
+  }
+
+  async function requestQuote() {
+    if (!PONYO_API_BASE_URL || quoting.current || submitting.current) return;
+    quoting.current = true;
+    setIsQuoting(true);
+    setQuoteState(null);
+    setApiError("");
+    try {
+      if (!customer) throw new Error("Sign in with a verified Ponyo account before checkout.");
+      if (!items.length || items.some((item) => !item.variantId)) throw new Error("Review your cart before requesting a quote.");
+      const storageSnapshot = () => buyNow ? window.sessionStorage.getItem("ponyo:buy-now-item") : JSON.stringify(readCart());
+      const original = storageSnapshot();
+      const expected = buyNow ? JSON.stringify(buyNowItem) : JSON.stringify(items);
+      if (original !== expected) throw new Error("Your cart changed. Review your cart before trying again.");
+      const result = await ponyoApi.getCheckoutQuote(checkoutInput());
+      if (storageSnapshot() !== original || currentQuoteInputKey.current !== quoteInputKey || currentCurrency.current !== currency) {
+        throw new Error("Your checkout details changed. Request a new quote before payment.");
+      }
+      if (result.currency !== currency || ![result.subtotalAmount, result.discountAmount, result.shippingAmount, result.taxAmount, result.totalAmount, result.taxRateBps].every((amount) => Number.isSafeInteger(amount) && amount >= 0)) {
+        throw new Error("The checkout service returned an invalid quote. Please try again.");
+      }
+      setQuoteState({ inputKey: quoteInputKey, quote: result });
+    } catch (error) {
+      if (error instanceof ApiRequestError && (error.status === 401 || error.code === "email_verification_required")) setCustomer(null);
+      setApiError(error instanceof Error ? error.message : "Unable to quote your order.");
+    } finally {
+      quoting.current = false;
+      setIsQuoting(false);
+    }
+  }
 
   const paymentOptions: Array<{ id: PaymentMethod; label: string; detail: string; brands?: string[]; enabled: boolean }> = [
     { id: "card", label: "Credit or debit card", detail: PONYO_API_BASE_URL ? "Secure card checkout when payment service is enabled" : "Demo checkout · cards are not charged", brands: ["visa", "mastercard", "jcb", "amex"], enabled: true },
@@ -132,6 +217,7 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   function continueToReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStep(2);
+    void requestQuote();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -160,7 +246,7 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   }
 
   async function placeLocalOrder() {
-    if (submitting.current) return;
+    if (submitting.current || quoting.current) return;
     setApiError("");
     if (PONYO_API_BASE_URL) {
       if (!customer) {
@@ -197,41 +283,45 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
         }
         accepted = storageSnapshot();
         if (!refreshed.validation?.canCheckout) {
+          setQuoteState(null);
           setApiError(priceChanged ? "Prices or currencies changed. Review the updated order and try again. Stock issues must be resolved in your cart." : "Some items are unavailable, have insufficient stock, or use different source currencies. Review your cart before checkout.");
           return;
         }
         if (priceChanged) {
+          setQuoteState(null);
           setApiError("Prices or currencies changed. Review the updated order, then continue to secure payment again to accept them.");
           return;
         }
         const checkoutItems = refreshed.items.map((item) => ({ variantId: item.variantId!, quantity: item.qty, expectedPriceAmount: item.price, expectedCurrency: item.currency }));
         assertUnchanged();
+        if (!quote || currentQuoteInputKey.current !== quoteInputKey) {
+          throw new Error("Request and review an updated quote before continuing to payment.");
+        }
+        const requestKey = "ponyo:checkout-idempotency-key";
+        const idempotencyKey = checkoutIdempotencyKey.current ?? window.sessionStorage.getItem(requestKey) ?? crypto.randomUUID();
+        checkoutIdempotencyKey.current = idempotencyKey;
+        window.sessionStorage.setItem(requestKey, idempotencyKey);
         const session = await ponyoApi.createCheckoutSession({
-          email: checkoutEmail,
-          shippingAddress: {
-            firstName: checkoutDelivery.firstName,
-            lastName: checkoutDelivery.lastName,
-            address1: checkoutDelivery.address,
-            address2: checkoutDelivery.address2,
-            region: checkoutDelivery.region,
-            city: checkoutDelivery.city,
-            postalCode: checkoutDelivery.postal,
-            phone: checkoutDelivery.phone,
-            countryCode: deliveryCountries.find((item) => item.label === checkoutDelivery.country)?.code ?? "JP",
-          },
-          shippingMethod: shipping,
-          paymentMethod,
-          currency,
+          ...checkoutInput(),
+          idempotencyKey,
           items: checkoutItems,
-          successUrl: `${window.location.origin}/orders?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/checkout?checkout=cancelled`,
+          expectedTotalAmount: quote.totalAmount,
         });
         assertUnchanged();
+        if (currentQuoteInputKey.current !== quoteInputKey) throw new Error("Your checkout details changed during payment creation. Review your order again.");
+        if (session.totalAmount !== quote.totalAmount || session.currency !== quote.currency) {
+          throw new Error("The payment total changed. Request and review a new quote before payment.");
+        }
         const checkoutUrl = new URL(session.checkoutUrl);
         if (checkoutUrl.protocol !== "https:") throw new Error("The payment service returned an invalid checkout URL.");
         if (buyNow) window.sessionStorage.removeItem("ponyo:buy-now-item");
         window.location.assign(checkoutUrl.toString());
       } catch (error) {
+        setQuoteState(null);
+        if (error instanceof ApiRequestError && (error.code === "checkout_idempotency_conflict" || error.code === "checkout_session_closed")) {
+          checkoutIdempotencyKey.current = null;
+          window.sessionStorage.removeItem("ponyo:checkout-idempotency-key");
+        }
         if (error instanceof ApiRequestError && (error.status === 401 || error.code === "email_verification_required")) {
           setCustomer(null);
         }
@@ -326,8 +416,13 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
             <div className="checkout-review-block"><div><strong>Contact</strong><button type="button" onClick={() => setStep(0)}>Edit</button></div><p>{checkoutEmail}</p></div>
             <div className="checkout-review-block"><div><strong>Delivery</strong><button type="button" onClick={() => setStep(0)}>Edit</button></div><p>{checkoutDelivery.firstName} {checkoutDelivery.lastName}<br />{checkoutDelivery.address}{checkoutDelivery.address2 && <><br />{checkoutDelivery.address2}</>}<br />{[checkoutDelivery.city, checkoutDelivery.region, checkoutDelivery.postal, checkoutDelivery.country].filter(Boolean).join(", ")}<br />{shippingOptions.find((option) => option.id === shipping)?.name}</p></div>
             <div className="checkout-review-block"><div><strong>Payment</strong><button type="button" onClick={() => setStep(1)}>Edit</button></div><p>{paymentOptions.find((option) => option.id === paymentMethod)?.label ?? "Credit or debit card"}</p></div>
+            {PONYO_API_BASE_URL && <form className="checkout-form checkout-form-section" onSubmit={(event) => { event.preventDefault(); void requestQuote(); }} aria-busy={isQuoting}>
+              <label htmlFor="checkout-coupon">Coupon code (optional)<input id="checkout-coupon" name="coupon" autoComplete="off" value={couponCode} disabled={isQuoting || isSubmitting} onChange={(event) => { setCouponCode(event.target.value); setQuoteState(null); }} placeholder="Enter a coupon code" /></label>
+              <button type="submit" className="checkout-secondary-button" disabled={isQuoting || isSubmitting}>{isQuoting ? "Calculating your quote…" : couponCode.trim() ? "Apply coupon / refresh quote" : "Refresh order quote"}</button>
+              <p role="status">{isQuoting ? "Checking current prices, shipping, discounts and tax…" : quote ? `Server quote ready${quote.couponCode ? ` · Coupon ${quote.couponCode} applied` : ""}. Review the totals before payment.` : "Request a quote to confirm shipping, discounts and tax before payment. Clear the code and refresh to remove a coupon."}</p>
+            </form>}
             {apiError && <p className="api-form-error" role="alert">{apiError} <Link href="/cart">Review cart</Link></p>}
-            <div className="checkout-step-actions"><button type="button" className="checkout-secondary-button" onClick={() => setStep(1)}>← Back to payment</button><button type="button" className="checkout-primary-button" onClick={placeLocalOrder} disabled={isSubmitting}>{isSubmitting ? "Starting checkout…" : PONYO_API_BASE_URL ? "Continue to secure payment" : "Place demo order"}<span aria-hidden="true">→</span></button></div>
+            <div className="checkout-step-actions"><button type="button" className="checkout-secondary-button" onClick={() => setStep(1)} disabled={isSubmitting || isQuoting}>← Back to payment</button><button type="button" className="checkout-primary-button" onClick={placeLocalOrder} disabled={isSubmitting || isQuoting || Boolean(PONYO_API_BASE_URL && !quote)}>{isSubmitting ? "Starting checkout…" : PONYO_API_BASE_URL ? "Continue to secure payment" : "Place demo order"}<span aria-hidden="true">→</span></button></div>
             {!PONYO_API_BASE_URL && <p className="checkout-preview-disclaimer">Demo checkout only. No payment is collected.</p>}
           </section>}
         </div>
@@ -335,7 +430,13 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
         <aside className="checkout-order-card" aria-label="Order summary">
           <div className="checkout-order-heading"><h2>Your order</h2><span>{items.reduce((sum, item) => sum + item.qty, 0)} items</span></div>
           <div className="checkout-order-items">{items.map((item) => <div className="checkout-order-item" key={item.id}><span className="checkout-order-image"><Image src={item.image} alt={item.imageAlt} fill sizes="72px"/><b>{item.qty}</b></span><span className="checkout-order-item-copy"><strong>{item.name}</strong><small>{item.maker}</small></span><b>{formatPrice(item.price * item.qty, item.currency)}</b></div>)}</div>
-          <div className="checkout-totals"><div><span>Subtotal</span><strong>{formatPrice(subtotal, currency)}</strong></div><div><span>Delivery</span><strong>{deliveryPrice ? formatPrice(deliveryPrice, currency) : "Complimentary"}</strong></div><div className="checkout-grand-total"><span>Total</span><strong>{formatPrice(total, currency)}</strong></div></div>
+          {PONYO_API_BASE_URL ? <div className="checkout-totals" aria-live="polite" aria-busy={isQuoting}>
+            <div><span>Subtotal{!quote && " (estimate)"}</span><strong>{quote ? formatQuotedAmount(quote.subtotalAmount, quote.currency) : formatPrice(subtotal, currency)}</strong></div>
+            <div><span>Discount{quote?.couponCode ? ` (${quote.couponCode})` : ""}</span><strong>{quote ? formatQuotedAmount(-quote.discountAmount, quote.currency) : "Awaiting quote"}</strong></div>
+            <div><span>Delivery</span><strong>{quote ? formatQuotedAmount(quote.shippingAmount, quote.currency) : "Awaiting quote"}</strong></div>
+            <div><span>Tax{quote ? ` (${quote.taxRateBps / 100}%)` : ""}</span><strong>{quote ? formatQuotedAmount(quote.taxAmount, quote.currency) : "Awaiting quote"}</strong></div>
+            <div className="checkout-grand-total"><span>Total{quote ? ` (${quote.currency})` : ""}</span><strong>{quote ? formatQuotedAmount(quote.totalAmount, quote.currency) : "Awaiting quote"}</strong></div>
+          </div> : <div className="checkout-totals"><div><span>Subtotal</span><strong>{formatPrice(subtotal, currency)}</strong></div><div><span>Delivery</span><strong>{deliveryPrice ? formatPrice(deliveryPrice, currency) : "Complimentary"}</strong></div><div className="checkout-grand-total"><span>Total</span><strong>{formatPrice(total, currency)}</strong></div></div>}
           <p className="checkout-order-note"><span aria-hidden="true">♡</span> A little bundle of joy, packed with care.</p>
         </aside>
       </div>

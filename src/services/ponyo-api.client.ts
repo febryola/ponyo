@@ -76,7 +76,12 @@ export type CustomerCartInput = {
 
 export type CartValidationInput = {
 	currency: string;
-	items: Array<{ variantId: string; quantity: number; expectedPriceAmount?: number; expectedCurrency?: string }>;
+	items: Array<{
+		variantId: string;
+		quantity: number;
+		expectedPriceAmount?: number;
+		expectedCurrency?: string;
+	}>;
 };
 
 export type CartValidationLine = {
@@ -133,10 +138,20 @@ export type BackendOrder = {
 	status: string;
 	paymentStatus: string;
 	fulfillmentStatus: string;
+	supplierFulfillmentStatus?: string;
+	captureMethod?: string | null;
+	capturedAmount?: number;
+	refundedAmount?: number;
 	customerEmail?: string;
 	deliveryAddress?: string;
 	trackingNumber?: string | null;
 	trackingCarrier?: string | null;
+	shipments?: BackendShipment[];
+	subtotalAmount: number;
+	discountAmount: number;
+	shippingAmount: number;
+	taxAmount: number;
+	couponCode: string | null;
 	totalAmount: number;
 	currency: string;
 	items: Array<{
@@ -148,10 +163,74 @@ export type BackendOrder = {
 		quantity: number;
 		unitPrice: number;
 		currency: string;
+		productId?: string | null;
+		variantId?: string | null;
+		supplierOfferId?: string | null;
+		productSnapshot?: Record<string, unknown>;
+		discountAmount?: number;
+		subtotalAmount?: number;
+		totalAmount?: number;
 	}>;
 };
 
+export type BackendShipment = {
+	id: string;
+	shipmentNumber: string;
+	status: string;
+	carrier: string;
+	trackingNumber: string;
+	trackingUrl: string | null;
+	estimatedDeliveryAt: string | null;
+	shippedAt: string | null;
+	deliveredAt: string | null;
+	customerConfirmedAt: string | null;
+	items: Array<{ orderItemId: string; quantity: number }>;
+	events: Array<{
+		status: string;
+		source: string;
+		occurredAt: string;
+		note: string | null;
+	}>;
+};
+
+export type PaymentTransaction = {
+	id: string;
+	orderId: string;
+	provider: string;
+	kind: string;
+	status: string;
+	amount: number;
+	currency: string;
+	providerReference: string | null;
+	reason: string | null;
+	errorCode: string | null;
+	createdAt: string;
+};
+
+export type PaymentStatus = {
+	orderId: string;
+	provider: string;
+	paymentStatus: string;
+	orderStatus: string;
+	totalAmount: number;
+	currency: string;
+	captureMethod: string | null;
+	capturedAmount: number;
+	refundedAmount: number;
+	transactions: PaymentTransaction[];
+};
+
+export type OrderStatusHistoryEntry = {
+	fromStatus: string | null;
+	toStatus: string;
+	paymentStatus: string;
+	fulfillmentStatus: string;
+	source: string;
+	createdAt: string;
+};
+
 export type CheckoutSessionInput = {
+	idempotencyKey: string;
 	email: string;
 	shippingAddress: {
 		firstName: string;
@@ -167,12 +246,36 @@ export type CheckoutSessionInput = {
 	shippingMethod: string;
 	paymentMethod: "card" | "paypal" | "apple_pay";
 	currency?: string;
-	items: Array<{ variantId: string; quantity: number; expectedPriceAmount?: number; expectedCurrency?: string }>;
+	items: Array<{
+		variantId: string;
+		quantity: number;
+		expectedPriceAmount?: number;
+		expectedCurrency?: string;
+	}>;
 	successUrl: string;
 	cancelUrl: string;
+	couponCode?: string;
+	expectedTotalAmount?: number;
 };
 
-export type CheckoutSession = {
+export type CheckoutQuoteInput = Omit<
+	CheckoutSessionInput,
+	"expectedTotalAmount" | "idempotencyKey"
+>;
+
+export type CheckoutQuote = {
+	subtotalAmount: number;
+	discountAmount: number;
+	shippingAmount: number;
+	taxAmount: number;
+	totalAmount: number;
+	currency: string;
+	couponCode: string | null;
+	taxRateBps: number;
+};
+
+export type CheckoutSession = Omit<CheckoutQuote, "taxRateBps"> & {
+	taxRateBps?: number;
 	checkoutUrl: string;
 	orderId: string;
 	expiresAt: string;
@@ -222,7 +325,11 @@ async function ensureCsrfToken() {
 	return cachedCsrfToken;
 }
 
-async function apiRequest<T>(path: string, init: RequestInit = {}, csrf = true): Promise<T> {
+async function apiRequest<T>(
+	path: string,
+	init: RequestInit = {},
+	csrf = true,
+): Promise<T> {
 	if (!PONYO_API_BASE_URL) throw new ApiNotConfiguredError();
 	const method = (init.method ?? "GET").toUpperCase();
 	const headers = new Headers(init.headers);
@@ -234,17 +341,14 @@ async function apiRequest<T>(path: string, init: RequestInit = {}, csrf = true):
 		if (token) headers.set("X-CSRF-Token", token);
 	}
 
-	const response = await fetch(
-		apiUrl(path),
-		{
-			...init,
-			method,
-			headers,
-			credentials: "include",
-			cache: "no-store",
-			referrerPolicy: "no-referrer",
-		},
-	);
+	const response = await fetch(apiUrl(path), {
+		...init,
+		method,
+		headers,
+		credentials: "include",
+		cache: "no-store",
+		referrerPolicy: "no-referrer",
+	});
 
 	let payload:
 		| ApiEnvelope<T>
@@ -270,10 +374,14 @@ async function apiRequest<T>(path: string, init: RequestInit = {}, csrf = true):
 export const ponyoApi = {
 	// Public, read-only POST: no authentication or CSRF bootstrap is needed.
 	validateCart: (input: CartValidationInput) =>
-		apiRequest<CartValidation>("/cart/validate", {
-			method: "POST",
-			body: JSON.stringify(input),
-		}, false),
+		apiRequest<CartValidation>(
+			"/cart/validate",
+			{
+				method: "POST",
+				body: JSON.stringify(input),
+			},
+			false,
+		),
 	getCart: () => apiRequest<CustomerCart>("/cart"),
 	updateCart: (input: CustomerCartInput) =>
 		apiRequest<CustomerCart>("/cart", {
@@ -285,12 +393,16 @@ export const ponyoApi = {
 			`/localization/rates?symbols=${encodeURIComponent(symbols)}`,
 		),
 	listProducts: (query = "", locale = "en") => {
-		const params = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
+		const params = new URLSearchParams(
+			query.startsWith("?") ? query.slice(1) : query,
+		);
 		params.set("locale", locale);
 		return apiRequest<Product[]>(`/products?${params.toString()}`);
 	},
 	getProduct: (id: string, locale = "en") =>
-		apiRequest<Product>(`/products/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`),
+		apiRequest<Product>(
+			`/products/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`,
+		),
 	getProductReviews: (productId: string) =>
 		apiRequest<ProductReviewSummary>(
 			`/products/${encodeURIComponent(productId)}/reviews`,
@@ -334,13 +446,13 @@ export const ponyoApi = {
 		marketingOptIn: boolean;
 		lastName: string;
 	}) => {
-		const response = await apiRequest<{ accepted: boolean; emailVerificationRequired: boolean }>(
-			"/auth/register",
-			{
-				method: "POST",
-				body: JSON.stringify(input),
-			},
-		);
+		const response = await apiRequest<{
+			accepted: boolean;
+			emailVerificationRequired: boolean;
+		}>("/auth/register", {
+			method: "POST",
+			body: JSON.stringify(input),
+		});
 		return response;
 	},
 	requestPasswordReset: (email: string) =>
@@ -404,6 +516,37 @@ export const ponyoApi = {
 	getOrders: async () => {
 		return apiRequest<BackendOrder[]>("/orders");
 	},
+	getOrder: (id: string) =>
+		apiRequest<BackendOrder>(`/orders/${encodeURIComponent(id)}`),
+	getPaymentStatus: (id: string) =>
+		apiRequest<PaymentStatus>(`/payments/orders/${encodeURIComponent(id)}`),
+	syncPaymentStatus: (id: string) =>
+		apiRequest<PaymentStatus>(
+			`/payments/orders/${encodeURIComponent(id)}/sync`,
+			{
+				method: "POST",
+				body: JSON.stringify({}),
+			},
+		),
+	getOrderHistory: (id: string) =>
+		apiRequest<OrderStatusHistoryEntry[]>(
+			`/orders/${encodeURIComponent(id)}/history`,
+		),
+	confirmShipmentDelivery: (orderId: string, shipmentId: string) =>
+		apiRequest<BackendShipment>(
+			`/orders/${encodeURIComponent(orderId)}/shipments/${encodeURIComponent(shipmentId)}/confirm-delivery`,
+			{ method: "POST", body: JSON.stringify({}) },
+		),
+	cancelOrder: (id: string, input: { reason?: string } = {}) =>
+		apiRequest<BackendOrder>(`/orders/${encodeURIComponent(id)}/cancel`, {
+			method: "POST",
+			body: JSON.stringify(input),
+		}),
+	getCheckoutQuote: (input: CheckoutQuoteInput) =>
+		apiRequest<CheckoutQuote>("/checkout/quote", {
+			method: "POST",
+			body: JSON.stringify(input),
+		}),
 	createCheckoutSession: (input: CheckoutSessionInput) =>
 		apiRequest<CheckoutSession>("/checkout/sessions", {
 			method: "POST",

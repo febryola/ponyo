@@ -306,6 +306,8 @@ async def test_actual_rate_limit_bucket_and_boundary(cart_db):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         for _ in range(60):
             await validate(client, payload())
-        assert (await client.post("/v1/cart/validate", json=payload())).status_code == 429
+        limited = await client.post("/v1/cart/validate", json=payload())
+        assert limited.status_code == 429
+        assert limited.headers["Retry-After"] == "60"
     app.state.redis.incr.assert_awaited_with("ponyo:rate:cart-validate:127.0.0.1")
     app.state.redis.expire.assert_awaited_once_with("ponyo:rate:cart-validate:127.0.0.1", 60)

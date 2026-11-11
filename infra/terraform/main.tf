@@ -224,7 +224,7 @@ resource "aws_rds_cluster" "main" {
   db_subnet_group_name            = aws_db_subnet_group.main.name
   vpc_security_group_ids          = [aws_security_group.database.id]
   storage_encrypted               = true
-  backup_retention_period         = 7
+  backup_retention_period         = var.database_backup_retention_days
   preferred_backup_window         = "18:00-19:00"
   deletion_protection             = var.enable_deletion_protection
   enabled_cloudwatch_logs_exports = ["postgresql"]
@@ -550,4 +550,123 @@ resource "aws_ecs_service" "api" {
   }
 
   depends_on = [aws_lb_listener.https, aws_iam_role_policy.task_resources]
+}
+
+resource "aws_sns_topic" "operations" {
+  name = "${local.name}-operations-alerts"
+}
+
+resource "aws_sns_topic_policy" "operations" {
+  arn = aws_sns_topic.operations.arn
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowCloudWatchAlarms"
+      Effect    = "Allow"
+      Principal = { Service = "cloudwatch.amazonaws.com" }
+      Action    = "SNS:Publish"
+      Resource  = aws_sns_topic.operations.arn
+      Condition = { ArnLike = { "aws:SourceArn" = "arn:${data.aws_partition.current.partition}:cloudwatch:${var.aws_region}:${data.aws_caller_identity.current.account_id}:alarm:*" } }
+    }]
+  })
+}
+
+resource "aws_sns_topic_subscription" "operations_email" {
+  count     = var.operations_alert_email == null ? 0 : 1
+  topic_arn = aws_sns_topic.operations.arn
+  protocol  = "email"
+  endpoint  = var.operations_alert_email
+}
+
+resource "aws_cloudwatch_log_metric_filter" "email_delivery_exhausted" {
+  name           = "${local.name}-email-delivery-exhausted"
+  log_group_name = aws_cloudwatch_log_group.api.name
+  pattern        = "\"Email notification exhausted retries\""
+
+  metric_transformation {
+    name      = "EmailNotificationExhaustedRetries"
+    namespace = "Ponyo/TransactionalEmail"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "api_target_5xx" {
+  alarm_name          = "${local.name}-api-target-5xx"
+  alarm_description   = "API target returned repeated server errors."
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 5
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    LoadBalancer = aws_lb.api.arn_suffix
+    TargetGroup  = aws_lb_target_group.api.arn_suffix
+  }
+  alarm_actions = [aws_sns_topic.operations.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "api_cpu" {
+  alarm_name          = "${local.name}-api-cpu-high"
+  alarm_description   = "ECS API CPU utilization is persistently high."
+  namespace           = "AWS/ECS"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.api.name
+  }
+  alarm_actions = [aws_sns_topic.operations.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "database_cpu" {
+  for_each            = { for instance in aws_rds_cluster_instance.main : instance.identifier => instance }
+  alarm_name          = "${local.name}-${each.key}-database-cpu-high"
+  alarm_description   = "Aurora cluster CPU utilization is persistently high."
+  namespace           = "AWS/RDS"
+  metric_name         = "CPUUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  dimensions = { DBInstanceIdentifier = each.value.identifier }
+  alarm_actions = [aws_sns_topic.operations.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "order_event_dlq" {
+  alarm_name          = "${local.name}-order-event-dlq-not-empty"
+  alarm_description   = "Transactional order events are accumulating in the dead-letter queue."
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  dimensions          = { QueueName = aws_sqs_queue.orders_dlq.name }
+  alarm_actions       = [aws_sns_topic.operations.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "email_delivery_exhausted" {
+  alarm_name          = "${local.name}-email-delivery-exhausted"
+  alarm_description   = "A customer transactional email exhausted automatic retry attempts."
+  namespace           = aws_cloudwatch_log_metric_filter.email_delivery_exhausted.metric_transformation[0].namespace
+  metric_name         = aws_cloudwatch_log_metric_filter.email_delivery_exhausted.metric_transformation[0].name
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.operations.arn]
 }

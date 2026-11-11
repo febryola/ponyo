@@ -22,7 +22,8 @@ async def enforce_rate_limit(request: Request, key: str, limit: int, window_seco
         if count == 1:
             await redis.expire(bucket, window_seconds)
         if count > limit:
-            raise HTTPException(status_code=429, detail="Too many attempts. Please try again later.")
+            raise HTTPException(status_code=429, detail="Too many attempts. Please try again later.",
+                                headers={"Retry-After": str(window_seconds)})
     except HTTPException:
         raise
     except Exception:

@@ -183,3 +183,23 @@ variable "enable_deletion_protection" {
   type    = bool
   default = true
 }
+
+variable "database_backup_retention_days" {
+  description = "Aurora automated point-in-time backup retention, from 1 to 35 days. Restore drills remain an operational requirement."
+  type        = number
+  default     = 14
+  validation {
+    condition     = var.database_backup_retention_days >= 1 && var.database_backup_retention_days <= 35 && floor(var.database_backup_retention_days) == var.database_backup_retention_days
+    error_message = "Aurora automated backup retention must be an integer from 1 to 35 days."
+  }
+}
+
+variable "operations_alert_email" {
+  description = "Optional operations address for CloudWatch alarm notifications; the SNS subscription must be confirmed."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.operations_alert_email == null || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.operations_alert_email))
+    error_message = "Use a valid email address or leave operations_alert_email unset."
+  }
+}

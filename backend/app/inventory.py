@@ -45,9 +45,10 @@ async def reserve_supplier_stock(db: AsyncSession, variant: ProductVariant, quan
         .where(
             SupplierOffer.variant_id == variant.id, SupplierOffer.active.is_(True),
             Supplier.active.is_(True), SupplierOffer.currency == variant.currency,
+            SupplierOffer.minimum_order_quantity <= quantity,
             SupplierInventory.on_hand - SupplierInventory.reserved >= quantity,
         )
-        .order_by(SupplierOffer.lead_time_days, SupplierOffer.id)
+        .order_by(SupplierOffer.lead_time_days, SupplierOffer.cost_amount, SupplierOffer.id)
         .with_for_update()
     )).all()
     for offer, inventory in candidates:

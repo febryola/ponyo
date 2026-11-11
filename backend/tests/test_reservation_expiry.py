@@ -88,7 +88,7 @@ async def state(flow, *, released=False):
         assert await db.scalar(select(func.count()).select_from(OutboxEvent)) == int(released)
         if released:
             history = await db.scalar(select(OrderStatusHistory))
-            assert history.event_key == f"reservation.expired:{order.id}"
+            assert history.event_key in {f"reservation.expired:{order.id}", f"checkout.session_missing:{order.id}"}
             assert (await db.scalar(select(OutboxEvent))).event_type == "order.reservation_expired"
 
 
@@ -130,16 +130,20 @@ async def test_checkout_persists_actual_provider_deadline(monkeypatch):
     provider_session = SimpleNamespace(id="cs_saved", url="https://checkout.stripe.test/saved", expires_at=deadline)
     monkeypatch.setattr("app.routers.checkout.stripe.checkout.Session.create", Mock(return_value=provider_session))
     monkeypatch.setattr("app.routers.checkout.require_csrf", Mock())
+    monkeypatch.setattr("app.routers.checkout.enforce_rate_limit", AsyncMock())
     monkeypatch.setattr("app.routers.checkout.valid_storefront_url", lambda value: value)
     monkeypatch.setattr(recovery.settings, "stripe_secret_key", "sk_test_not_real")
     monkeypatch.setattr(recovery.stripe, "api_key", None)
     monkeypatch.setattr("app.routers.checkout.reserve_supplier_stock", AsyncMock(return_value=None))
     variant_id = uuid4()
-    product = SimpleNamespace(published=True, name="Expiry", image_url="/test.jpg", image_alt="", supplier_name="Ponyo")
-    variant = SimpleNamespace(id=variant_id, currency="JPY", price_amount=1500, stock_quantity=10, product=product)
-    db = SimpleNamespace(scalars=AsyncMock(return_value=[variant]), execute=AsyncMock(return_value=SimpleNamespace(rowcount=1)), add=Mock(), commit=AsyncMock(), rollback=AsyncMock())
+    product = SimpleNamespace(id=uuid4(), slug="expiry", sku="PNY-EXPIRY", category_name="Bears",
+                              published=True, name="Expiry", image_url="/test.jpg", image_alt="", supplier_name="Ponyo")
+    variant = SimpleNamespace(id=variant_id, sku="PNV-EXPIRY", title="Default", options={},
+                              currency="JPY", price_amount=1500, stock_quantity=10, product=product)
+    db = SimpleNamespace(scalar=AsyncMock(return_value=None), scalars=AsyncMock(return_value=[variant]), execute=AsyncMock(return_value=SimpleNamespace(rowcount=1)), add=Mock(), commit=AsyncMock(), rollback=AsyncMock())
     customer = SimpleNamespace(id=uuid4(), email="expiry@example.com")
     payload = {
+        "idempotencyKey": str(uuid4()),
         "email": customer.email, "currency": "JPY",
         "shippingAddress": {
             "firstName": "Expiry", "lastName": "Test", "address1": "1 Test St",
@@ -156,7 +160,17 @@ async def test_checkout_persists_actual_provider_deadline(monkeypatch):
     assert order.stripe_session_id == "cs_saved"
     assert order.reservation_expires_at == datetime.fromtimestamp(deadline, timezone.utc)
     assert result["data"]["expiresAt"] == order.reservation_expires_at.isoformat()
-    db.commit.assert_awaited_once()
+    assert db.commit.await_count == 2
+
+
+async def test_missing_stripe_session_releases_after_deadline(flow):
+    async with flow.factory() as db:
+        await db.execute(update(Order).where(Order.id == flow.order_id).values(stripe_session_id=None))
+        await db.commit()
+    assert await run(flow) == 1
+    flow.retrieve.assert_not_called()
+    flow.expire.assert_not_called()
+    await state(flow, released=True)
 
 
 @pytest.mark.parametrize("response", [

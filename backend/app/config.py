@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Literal
 from urllib.parse import quote_plus, urlparse
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,8 +36,14 @@ class Settings(BaseSettings):
 
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
+    stripe_capture_method: Literal["automatic", "manual"] = "automatic"
     stripe_success_url: str = "http://localhost:3000/orders?checkout=success"
     stripe_cancel_url: str = "http://localhost:3000/checkout?checkout=cancelled"
+    # Explicit, merchant-reviewed rates in basis points. Empty means no tax collected.
+    checkout_tax_rates_bps: dict[str, int] = {}
+    checkout_tax_shipping: bool = False
+    checkout_standard_shipping_jpy: int = 0
+    checkout_express_shipping_jpy: int = 1200
 
     aws_region: str = "ap-northeast-1"
     translation_provider: Literal["disabled", "aws_translate"] = "aws_translate"
@@ -45,6 +51,12 @@ class Settings(BaseSettings):
     s3_bucket: str | None = None
     sqs_order_events_url: str | None = None
     eventbridge_bus_name: str | None = None
+    supplier_forwarding_enabled: bool = False
+    # Backend-only trusted provider config keyed by Supplier.code; never accept URLs/tokens from request bodies.
+    supplier_integrations: dict[str, dict[str, str]] = Field(default_factory=dict, repr=False)
+    supplier_max_attempts: int = 5
+    supplier_retry_base_seconds: int = 60
+    supplier_confirmation_timeout_seconds: int = 86400
 
     contact_notification_email: str = "febryola0402@gmail.com"
     smtp_host: str | None = None
@@ -73,6 +85,21 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_security(self):
+        if not 1 <= self.supplier_max_attempts <= 10 or not 10 <= self.supplier_retry_base_seconds <= 3600:
+            raise ValueError("Supplier retry limits must be 1–10 attempts and 10–3600 base seconds.")
+        if not 300 <= self.supplier_confirmation_timeout_seconds <= 604800:
+            raise ValueError("Supplier confirmation timeout must be 300–604800 seconds.")
+        for integration in self.supplier_integrations.values():
+            endpoint = urlparse(integration.get("url", ""))
+            if endpoint.scheme != "https" or not endpoint.netloc or endpoint.username or endpoint.password or endpoint.fragment:
+                raise ValueError("Supplier integrations require trusted HTTPS URLs without embedded credentials.")
+            if not integration.get("token") or integration.get("idempotent") != "true":
+                raise ValueError("Supplier integrations require a secret token and an explicit idempotent=true contract.")
+        if any(len(country) != 2 or not country.isupper() or not 0 <= rate <= 10000
+               for country, rate in self.checkout_tax_rates_bps.items()):
+            raise ValueError("CHECKOUT_TAX_RATES_BPS requires uppercase country codes and rates from 0 to 10000.")
+        if self.checkout_standard_shipping_jpy < 0 or self.checkout_express_shipping_jpy < 0:
+            raise ValueError("Shipping fees cannot be negative.")
         if self.cookie_domain == "":
             self.cookie_domain = None
         if self.environment == "local" and any("localhost" in origin for origin in self.cors_origins):
@@ -91,6 +118,8 @@ class Settings(BaseSettings):
                 raise ValueError("STOREFRONT_BASE_URL must be an allowed HTTPS storefront origin in production.")
             if not self.contact_email_configured:
                 raise ValueError("SMTP transport must be configured for account verification in production.")
+            if not self.smtp_starttls:
+                raise ValueError("SMTP_STARTTLS must be enabled for production transactional email.")
             if self.jwt_secret == "development-only-change-me-32-characters":
                 raise ValueError("JWT_SECRET must be set to a unique production secret.")
             if not self.cookie_secure:

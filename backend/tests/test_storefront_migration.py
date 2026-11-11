@@ -23,6 +23,7 @@ NEW_COLUMNS = {
     "products": {"category_id", "brand_id"},
     "order_items": {"supplier_offer_id"},
 }
+LATER_SUPPLIER_TABLES = {"supplier_accounts", "supplier_purchase_orders", "supplier_purchase_order_items", "supplier_confirmations"}
 NOW = datetime.now(timezone.utc)
 
 
@@ -30,7 +31,8 @@ def _expected_storefront_metadata() -> sa.MetaData:
     """Revision 0015 creates inventory before revision 0017's sync timestamp."""
     metadata = sa.MetaData()
     for table in Base.metadata.tables.values():
-        table.to_metadata(metadata)
+        if table.name not in LATER_SUPPLIER_TABLES:
+            table.to_metadata(metadata)
     inventory = metadata.tables["supplier_inventory"]
     inventory._columns.remove(inventory.c.last_synced_at)
     return metadata
@@ -40,7 +42,7 @@ def _legacy_metadata() -> sa.MetaData:
     """Copy the model schema, then undo only the additive 0015 changes."""
     metadata = sa.MetaData()
     for table in Base.metadata.tables.values():
-        if table.name not in NEW_TABLES:
+        if table.name not in NEW_TABLES | LATER_SUPPLIER_TABLES:
             table.to_metadata(metadata)
     for name, removed in NEW_COLUMNS.items():
         table = metadata.tables[name]
@@ -56,7 +58,7 @@ def _legacy_metadata() -> sa.MetaData:
             # SQLAlchemy exposes no public API for removing a copied column.
             # Mutate only this detached copy, never the ORM's metadata.
             table._columns.remove(table.c[column])
-    assert set(metadata.tables) == set(Base.metadata.tables) - NEW_TABLES
+    assert set(metadata.tables) == set(Base.metadata.tables) - NEW_TABLES - LATER_SUPPLIER_TABLES
     for name, removed in NEW_COLUMNS.items():
         assert not removed.intersection(metadata.tables[name].c.keys())
         assert removed.issubset(Base.metadata.tables[name].c.keys())
@@ -206,7 +208,7 @@ def test_storefront_upgrade_matches_models_and_downgrade_preserves_legacy_rows(
 ):
     connection, legacy, revision, _ = legacy_database
     _, tables, _, before = upgraded_database
-    assert set(sa.inspect(connection).get_table_names()) == set(Base.metadata.tables)
+    assert set(sa.inspect(connection).get_table_names()) == set(Base.metadata.tables) - LATER_SUPPLIER_TABLES
     context = MigrationContext.configure(connection, opts={
         "compare_type": True,
         # SQLite reflects Boolean defaults as 1/0, whereas the ORM declares

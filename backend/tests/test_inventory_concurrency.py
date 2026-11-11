@@ -149,6 +149,7 @@ async def read_inventory(factory, offer):
 
 def checkout_payload(variant_id):
     return {
+        "idempotencyKey": str(uuid4()),
         "email": "concurrency@example.com", "currency": "USD",
         "shippingAddress": {
             "firstName": "Test", "lastName": "Buyer", "address1": "1 Test Street",
@@ -181,6 +182,8 @@ async def test_two_authenticated_http_requests_cannot_buy_the_last_unit(
         customer_id = customer.id
 
     app = FastAPI()  # No production middleware, workers, SMTP or Redis startup.
+    app.state.environment = "test"
+    app.state.redis = None
     app.include_router(checkout.router, prefix="/v1")
     barrier = asyncio.Barrier(2)
     request_sessions = []
@@ -225,10 +228,11 @@ async def test_two_authenticated_http_requests_cannot_buy_the_last_unit(
             # authentication and CSRF checks are not dependency-overridden.
             client.cookies.set(services.settings.session_cookie_name, security.create_session_token(customer_id))
             client.cookies.set(services.settings.csrf_cookie_name, csrf)
+            payloads = [checkout_payload(variant_id), checkout_payload(variant_id)]
             responses = await asyncio.wait_for(asyncio.gather(*(
-                client.post("/v1/checkout/sessions", json=checkout_payload(variant_id),
+                client.post("/v1/checkout/sessions", json=payload,
                             headers={"X-CSRF-Token": csrf})
-                for _ in range(2)
+                for payload in payloads
             )), timeout=25)
     finally:
         app.dependency_overrides.clear()

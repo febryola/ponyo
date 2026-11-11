@@ -25,4 +25,9 @@ jobs:
           cache-dependency-path: backend/pyproject.toml
       - run: pip install '.[test]'
       - run: pytest -q
-      - run: alembic upgrade head --sql
+      - name: Validate PostgreSQL migration SQL
+        # Offline SQL generation needs the production dialect, not local SQLite.
+        # These dummy connection details are never used to open a connection.
+        env:
+          DATABASE_URL: postgresql+asyncpg://ponyo:ponyo@localhost:5432/ponyo_ci
+        run: alembic upgrade head --sql

@@ -14,6 +14,12 @@ Interactive API docs are available at `http://localhost:8000/docs` in local deve
 
 Use Python 3.12+ and install the project with its `test` extra. Start PostgreSQL and Redis first, then run `alembic upgrade head`, `python -m app.seed`, and `uvicorn app.main:app --reload` from this directory.
 
+The full Alembic chain targets PostgreSQL. SQLite can run local previews/tests against a model-created schema, but migration `20261109_0006` uses PostgreSQL-specific SQL and cannot bootstrap a fresh SQLite database. Do not treat SQLite test success as PostgreSQL migration certification.
+
+CI runs the API tests with SQLite and separately generates the full migration SQL with an explicit PostgreSQL `DATABASE_URL`. The `alembic upgrade head --sql` step is offline: it needs the correct dialect but no running PostgreSQL server or real database credentials. This checks SQL generation, not execution against PostgreSQL; staging must still run online migrations before release.
+
+For an existing populated database without an Alembic version record, **do not run upgrade or stamp blindly**. Back up first, compare tables, columns, types, indexes, constraints and defaults against the migration target, then reconcile the baseline deliberately. The local preview database currently has all 16 model tables/columns but no recorded Alembic revision. `GET /v1/health` checks connectivity with `SELECT 1`; it does not certify schema/migration readiness.
+
 ## Routes
 
 - `GET /v1/health`, catalog, product detail

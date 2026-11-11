@@ -26,6 +26,16 @@ NEW_COLUMNS = {
 NOW = datetime.now(timezone.utc)
 
 
+def _expected_storefront_metadata() -> sa.MetaData:
+    """Revision 0015 creates inventory before revision 0017's sync timestamp."""
+    metadata = sa.MetaData()
+    for table in Base.metadata.tables.values():
+        table.to_metadata(metadata)
+    inventory = metadata.tables["supplier_inventory"]
+    inventory._columns.remove(inventory.c.last_synced_at)
+    return metadata
+
+
 def _legacy_metadata() -> sa.MetaData:
     """Copy the model schema, then undo only the additive 0015 changes."""
     metadata = sa.MetaData()
@@ -203,7 +213,7 @@ def test_storefront_upgrade_matches_models_and_downgrade_preserves_legacy_rows(
         # quoted true/false strings. Test actual default values separately.
         "compare_server_default": False,
     })
-    assert compare_metadata(context, Base.metadata) == []
+    assert compare_metadata(context, _expected_storefront_metadata()) == []
     for name, columns in NEW_COLUMNS.items():
         for column in columns:
             assert tables[name].c[column].nullable is True
@@ -232,7 +242,7 @@ def test_storefront_downgrade_preserves_populated_legacy_schema(
         revision.upgrade()
     assert compare_metadata(MigrationContext.configure(connection, opts={
         "compare_type": True, "compare_server_default": False,
-    }), Base.metadata) == []
+    }), _expected_storefront_metadata()) == []
     assert _rows(connection, legacy) == before
 
 

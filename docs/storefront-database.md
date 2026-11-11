@@ -65,7 +65,7 @@ Catalog responses expose category/brand IDs, brand name and ordered images. Inte
 
 ## Deliberate limits before real suppliers
 
-- Unlinked legacy variants retain the existing checkout stock fallback. Linked variants without valid supplier stock are rejected by cart/checkout. Catalog availability and price filtering still use the variant sellable-stock projection; a supplier inventory ingestion/reconciliation service is not implemented. Do not edit supplier inventory independently and assume the projection updates automatically.
+- Unlinked legacy variants retain the existing checkout stock fallback. Linked variants without valid supplier stock are rejected by cart/checkout. Catalog availability and price filtering now share supplier-aware availability. Revision 0017 adds a trusted internal snapshot-sync adapter that updates inventory and the sellable-stock projection; automatic external supplier-feed ingestion is still not implemented. Do not edit raw inventory independently and assume the projection updates automatically.
 - Supplier minimum-order quantity and lead time are stored for future procurement. This storefront does not execute wholesale purchase orders, split one line across suppliers, automate fulfillment, or synchronize supplier feeds.
 - A paid event arriving after an order was cancelled is not allowed to consume a released reservation or revive the order. Such reconciliation/refund cases need operational monitoring before production.
 - Cart sync is eventual and browser-driven, not collaborative real-time cart editing. A stale cart containing an unpublished/deleted product is retained rather than destructively replaced on hydration failure.

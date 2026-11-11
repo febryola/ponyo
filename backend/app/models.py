@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, Uuid, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, Uuid, false, func, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -23,6 +23,10 @@ def new_variant_sku() -> str:
 
 class Customer(Base):
     __tablename__ = "customers"
+    __table_args__ = (
+        CheckConstraint("role IN ('customer', 'supplier', 'admin')", name="ck_customers_role"),
+        CheckConstraint("auth_version >= 0", name="ck_customers_auth_version"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
@@ -31,6 +35,8 @@ class Customer(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     marketing_opt_in: Mapped[bool] = mapped_column(Boolean, default=False)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    role: Mapped[str] = mapped_column(String(20), default="customer", server_default="customer")
+    auth_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     orders: Mapped[list[Order]] = relationship(back_populates="customer")
 
@@ -126,6 +132,8 @@ class Product(Base):
     availability: Mapped[str] = mapped_column(String(32), default="available")
     availability_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     price_history: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    category_id: Mapped[UUID | None] = mapped_column(ForeignKey("product_categories.id", ondelete="SET NULL"), nullable=True, index=True)
+    brand_id: Mapped[UUID | None] = mapped_column(ForeignKey("brands.id", ondelete="SET NULL"), nullable=True, index=True)
     category_name: Mapped[str] = mapped_column(String(100), default="Plushie")
     product_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     supplier_name: Mapped[str] = mapped_column(String(180), default="Ponyo")
@@ -138,6 +146,9 @@ class Product(Base):
     published: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     variants: Mapped[list[ProductVariant]] = relationship(back_populates="product", cascade="all, delete-orphan")
+    category: Mapped[ProductCategory | None] = relationship()
+    brand: Mapped[Brand | None] = relationship()
+    images: Mapped[list[ProductImage]] = relationship(cascade="all, delete-orphan", order_by="ProductImage.sort_order")
 
 
 class ProductTranslation(Base):
@@ -188,6 +199,7 @@ class Order(Base):
     payment_method: Mapped[str] = mapped_column(String(32))
     payment_provider: Mapped[str] = mapped_column(String(32), default="stripe")
     stripe_session_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    reservation_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     tracking_number: Mapped[str | None] = mapped_column(String(120), nullable=True)
     tracking_carrier: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
@@ -202,6 +214,7 @@ class OrderItem(Base):
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     order_id: Mapped[UUID] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
     variant_id: Mapped[UUID] = mapped_column(ForeignKey("product_variants.id"))
+    supplier_offer_id: Mapped[UUID | None] = mapped_column(ForeignKey("supplier_offers.id", ondelete="RESTRICT"), nullable=True, index=True)
     product_name: Mapped[str] = mapped_column(String(240))
     supplier_name: Mapped[str] = mapped_column(String(180), default="Ponyo")
     image_url: Mapped[str] = mapped_column(Text)
@@ -251,3 +264,136 @@ class OutboxEvent(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ProductCategory(Base):
+    __tablename__ = "product_categories"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    slug: Mapped[str] = mapped_column(String(180), unique=True)
+    name: Mapped[str] = mapped_column(String(100))
+    parent_id: Mapped[UUID | None] = mapped_column(ForeignKey("product_categories.id", ondelete="SET NULL"), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+
+
+class Brand(Base):
+    __tablename__ = "brands"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    slug: Mapped[str] = mapped_column(String(180), unique=True)
+    name: Mapped[str] = mapped_column(String(180))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+
+
+class Supplier(Base):
+    __tablename__ = "suppliers"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    code: Mapped[str] = mapped_column(String(80), unique=True)
+    name: Mapped[str] = mapped_column(String(180))
+    contact_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+
+
+class ProductImage(Base):
+    __tablename__ = "product_images"
+    __table_args__ = (
+        UniqueConstraint("product_id", "sort_order", name="uq_product_images_position"),
+        CheckConstraint("sort_order >= 0", name="ck_product_images_position"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    product_id: Mapped[UUID] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True)
+    url: Mapped[str] = mapped_column(Text)
+    alt: Mapped[str] = mapped_column(Text, default="", server_default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+
+class SupplierOffer(Base):
+    __tablename__ = "supplier_offers"
+    __table_args__ = (
+        UniqueConstraint("supplier_id", "variant_id", name="uq_supplier_offers_variant"),
+        UniqueConstraint("supplier_id", "supplier_sku", name="uq_supplier_offers_sku"),
+        CheckConstraint("cost_amount >= 0", name="ck_supplier_offers_cost"),
+        CheckConstraint("minimum_order_quantity > 0", name="ck_supplier_offers_minimum"),
+        CheckConstraint("lead_time_days >= 0", name="ck_supplier_offers_lead_time"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    supplier_id: Mapped[UUID] = mapped_column(ForeignKey("suppliers.id", ondelete="RESTRICT"), index=True)
+    variant_id: Mapped[UUID] = mapped_column(ForeignKey("product_variants.id", ondelete="CASCADE"), index=True)
+    supplier_sku: Mapped[str] = mapped_column(String(120))
+    cost_amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    minimum_order_quantity: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    lead_time_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    supplier: Mapped[Supplier] = relationship()
+    variant: Mapped[ProductVariant] = relationship()
+    inventory: Mapped[SupplierInventory | None] = relationship(back_populates="offer", cascade="all, delete-orphan", uselist=False)
+
+
+class SupplierInventory(Base):
+    __tablename__ = "supplier_inventory"
+    __table_args__ = (
+        CheckConstraint("on_hand >= 0", name="ck_supplier_inventory_on_hand"),
+        CheckConstraint("reserved >= 0 AND reserved <= on_hand", name="ck_supplier_inventory_reserved"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    offer_id: Mapped[UUID] = mapped_column(ForeignKey("supplier_offers.id", ondelete="CASCADE"), unique=True)
+    on_hand: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    reserved: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    offer: Mapped[SupplierOffer] = relationship(back_populates="inventory")
+
+
+class ShoppingCart(Base):
+    __tablename__ = "shopping_carts"
+    __table_args__ = (
+        CheckConstraint(
+            "(customer_id IS NOT NULL AND guest_token_hash IS NULL) OR "
+            "(customer_id IS NULL AND guest_token_hash IS NOT NULL)", name="ck_shopping_carts_owner",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    customer_id: Mapped[UUID | None] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), nullable=True, unique=True)
+    guest_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    currency: Mapped[str] = mapped_column(String(3), default="JPY", server_default="JPY")
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    items: Mapped[list[CartItem]] = relationship(cascade="all, delete-orphan")
+
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+    __table_args__ = (
+        UniqueConstraint("cart_id", "variant_id", name="uq_cart_items_variant"),
+        CheckConstraint("quantity > 0", name="ck_cart_items_quantity"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    cart_id: Mapped[UUID] = mapped_column(ForeignKey("shopping_carts.id", ondelete="CASCADE"), index=True)
+    variant_id: Mapped[UUID] = mapped_column(ForeignKey("product_variants.id", ondelete="RESTRICT"), index=True)
+    quantity: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class OrderStatusHistory(Base):
+    __tablename__ = "order_status_history"
+    __table_args__ = (UniqueConstraint("order_id", "event_key", name="uq_order_status_history_event"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    order_id: Mapped[UUID] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    from_status: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(48))
+    payment_status: Mapped[str] = mapped_column(String(48))
+    fulfillment_status: Mapped[str] = mapped_column(String(48))
+    source: Mapped[str] = mapped_column(String(40))
+    event_key: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

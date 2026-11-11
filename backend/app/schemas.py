@@ -38,6 +38,11 @@ class ProductOut(BaseModel):
     availabilityStatus: str | None = Field(default=None, validation_alias="availability_status")
     priceHistory: list[PriceHistoryEntry] = Field(default_factory=list, validation_alias="price_history")
     variantId: str | None = None
+    categoryId: str | None = None
+    brandId: str | None = None
+    brandName: str | None = None
+    images: list[dict[str, str]] = Field(default_factory=list)
+    galleryImages: list[dict[str, str]] = Field(default_factory=list)
     categoryName: str = Field(validation_alias="category_name")
     productType: str | None = Field(default=None, validation_alias="product_type")
     supplierName: str = Field(validation_alias="supplier_name")
@@ -58,6 +63,8 @@ class ProductListOut(BaseModel):
 
 
 class AuthCredentials(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
@@ -82,6 +89,7 @@ class CustomerOut(BaseModel):
     firstName: str
     lastName: str
     email: EmailStr
+    role: Literal["customer", "supplier", "admin"] = "customer"
 
 
 class CustomerProfileOut(CustomerOut):
@@ -89,11 +97,15 @@ class CustomerProfileOut(CustomerOut):
 
 
 class CustomerProfileUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     firstName: str = Field(min_length=1, max_length=120)
     lastName: str = Field(default="", max_length=120)
 
 
 class CustomerAddressInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
     firstName: str = Field(min_length=1, max_length=120)
     lastName: str = Field(min_length=1, max_length=120)
     address1: str = Field(min_length=1, max_length=240)
@@ -145,10 +157,14 @@ class CustomerEnvelope(BaseModel):
 
 
 class PasswordResetRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     email: EmailStr
 
 
 class PasswordResetConfirm(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     token: str = Field(min_length=32, max_length=128)
     password: str = Field(min_length=8, max_length=128)
 
@@ -210,8 +226,12 @@ class CheckoutAddress(BaseModel):
 
 
 class CheckoutItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     variantId: UUID
-    quantity: int = Field(gt=0, le=50)
+    quantity: int = Field(gt=0, le=99, strict=True)
+    expectedPriceAmount: int | None = Field(default=None, ge=0, strict=True)
+    expectedCurrency: str | None = Field(default=None, min_length=3, max_length=3)
 
 
 class CheckoutSessionRequest(BaseModel):
@@ -220,7 +240,7 @@ class CheckoutSessionRequest(BaseModel):
     shippingMethod: str = Field(min_length=1, max_length=64)
     paymentMethod: Literal["card", "paypal", "apple_pay"]
     currency: str = Field(default="JPY", min_length=3, max_length=3)
-    items: list[CheckoutItem] = Field(min_length=1, max_length=40)
+    items: list[CheckoutItem] = Field(min_length=1, max_length=100)
     successUrl: str
     cancelUrl: str
 

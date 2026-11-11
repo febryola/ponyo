@@ -46,6 +46,9 @@ export type Product = {
 	image: ProductImage;
 	imageAlt: string;
 	galleryImages?: { src: string; alt: string }[];
+	categoryId?: string | null;
+	brandId?: string | null;
+	brandName?: string | null;
 	publishedAt?: string;
 	isNew?: boolean;
 	artTone?: "peach" | "sage" | "lilac" | "yellow";

@@ -15,7 +15,8 @@ from app.email_notifications import send_password_reset_email, send_verification
 from app.models import Customer, CustomerAddress, EmailVerificationToken, PasswordResetToken, Product, WishlistItem
 from app.rate_limit import enforce_rate_limit
 from app.schemas import AcceptedOut, AuthCredentials, CustomerAddressInput, CustomerAddressOut, CustomerEnvelope, CustomerOut, CustomerProfileOut, CustomerProfileUpdate, EmailVerificationConfirm, PasswordResetConfirm, PasswordResetRequest, RegisterRequest, WishlistUpdate
-from app.security import clear_session_cookie, get_current_customer, hash_password, require_csrf, set_session_cookie, verify_password
+from app.security import clear_session_cookie, get_current_customer, hash_password, require_csrf, session_identity, set_session_cookie, verify_password
+import jwt
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -28,7 +29,7 @@ def check_csrf(request: Request) -> None:
 
 
 def customer_envelope(customer: Customer) -> CustomerEnvelope:
-    return CustomerEnvelope(customer=CustomerOut(id=customer.id, firstName=customer.first_name, lastName=customer.last_name, email=customer.email))
+    return CustomerEnvelope(customer=CustomerOut(id=customer.id, firstName=customer.first_name, lastName=customer.last_name, email=customer.email, role=customer.role))
 
 
 async def deliver_verification_email(customer: Customer, db: AsyncSession) -> None:
@@ -118,7 +119,9 @@ async def login(payload: AuthCredentials, request: Request, response: Response, 
         raise HTTPException(status_code=401, detail="Email or password is incorrect.")
     if not customer.email_verified:
         raise HTTPException(status_code=403, detail={"code": "email_verification_required", "message": "Please verify your email before signing in."})
-    set_session_cookie(response, customer.id)
+    if customer.role != "customer":
+        raise HTTPException(status_code=403, detail={"code": "insufficient_role", "message": "Please use the sign-in service for your account role."})
+    set_session_cookie(response, customer.id, customer.auth_version)
     response.set_cookie(
         settings.csrf_cookie_name,
         secrets.token_urlsafe(32),
@@ -132,8 +135,19 @@ async def login(payload: AuthCredentials, request: Request, response: Response, 
 
 
 @router.post("/logout", response_model=dict)
-async def logout(request: Request, response: Response):
+async def logout(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     check_csrf(request)
+    token = request.cookies.get(settings.session_cookie_name)
+    if token:
+        try:
+            customer_id, version = session_identity(token)
+        except (jwt.InvalidTokenError, KeyError, ValueError, TypeError, AttributeError):
+            pass
+        else:
+            await db.execute(update(Customer).where(
+                Customer.id == customer_id, Customer.auth_version == version,
+            ).values(auth_version=Customer.auth_version + 1))
+            await db.commit()
     clear_session_cookie(response)
     response.delete_cookie(settings.csrf_cookie_name, domain=settings.cookie_domain, path="/")
     return {"data": {"accepted": True}}
@@ -211,9 +225,14 @@ async def password_reset(_payload: PasswordResetRequest, request: Request, db: A
         )
         db.add(token_record)
         await db.commit()
-        storefront = settings.frontend_origins.split(",")[0].strip().rstrip("/")
+        storefront = settings.storefront_base_url.rstrip("/")
         reset_url = f"{storefront}/account/reset-password?token={quote(token)}"
-        await send_password_reset_email(email, reset_url)
+        sent = await send_password_reset_email(email, reset_url)
+        if not sent:
+            # Keep the same response for known/unknown addresses; never leave an
+            # undelivered token usable or invalidate older delivered links.
+            token_record.used_at = datetime.now(timezone.utc)
+            await db.commit()
     return {"data": AcceptedOut().model_dump()}
 
 
@@ -231,11 +250,23 @@ async def confirm_password_reset(payload: PasswordResetConfirm, request: Request
     )
     if not token_record:
         raise HTTPException(status_code=400, detail="This password reset link is invalid or has expired.")
-    customer = await db.get(Customer, token_record.customer_id)
+    customer = await db.scalar(select(Customer).where(Customer.id == token_record.customer_id).with_for_update())
     if not customer:
         raise HTTPException(status_code=400, detail="This password reset link is invalid or has expired.")
+    now = datetime.now(timezone.utc)
+    claimed = await db.scalar(
+        update(PasswordResetToken).where(
+            PasswordResetToken.id == token_record.id,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > now,
+        ).values(used_at=now).returning(PasswordResetToken.id)
+        .execution_options(synchronize_session=False)
+    )
+    if claimed is None:
+        raise HTTPException(status_code=400, detail="This password reset link is invalid or has expired.")
     customer.password_hash = hash_password(payload.password)
-    token_record.used_at = datetime.now(timezone.utc)
+    customer.auth_version += 1
+    token_record.used_at = now
     other_tokens = await db.scalars(
         select(PasswordResetToken).where(
             PasswordResetToken.customer_id == customer.id,
@@ -251,7 +282,7 @@ async def confirm_password_reset(payload: PasswordResetConfirm, request: Request
 
 @router.get("/me", response_model=dict)
 async def get_me(customer: Customer = Depends(get_current_customer)):
-    return {"data": CustomerProfileOut(id=customer.id, firstName=customer.first_name, lastName=customer.last_name, email=customer.email).model_dump(mode="json")}
+    return {"data": CustomerProfileOut(id=customer.id, firstName=customer.first_name, lastName=customer.last_name, email=customer.email, role=customer.role).model_dump(mode="json")}
 
 
 @router.patch("/me", response_model=dict)
@@ -261,7 +292,7 @@ async def update_me(payload: CustomerProfileUpdate, request: Request, customer: 
     customer.last_name = payload.lastName.strip()
     await db.commit()
     await db.refresh(customer)
-    return {"data": CustomerProfileOut(id=customer.id, firstName=customer.first_name, lastName=customer.last_name, email=customer.email).model_dump(mode="json")}
+    return {"data": CustomerProfileOut(id=customer.id, firstName=customer.first_name, lastName=customer.last_name, email=customer.email, role=customer.role).model_dump(mode="json")}
 
 
 def address_out(address: CustomerAddress) -> dict:

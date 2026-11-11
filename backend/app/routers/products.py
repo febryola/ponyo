@@ -1,16 +1,16 @@
 from uuid import UUID
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
-from uuid import UUID
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.media import storefront_image_url
-from app.models import Customer, Order, OrderItem, OutboxEvent, Product, ProductReview, ProductVariant, ProductWaitlistEntry
+from app.models import Brand, Customer, Order, OrderItem, OutboxEvent, Product, ProductCategory, ProductReview, ProductTranslation, ProductVariant, ProductWaitlistEntry
+from app.catalog_stock import available_quantities, sellable_variant
 from app.schemas import ProductOut, ProductReviewCreate, ProductWaitlistRequest, VariantOut
 from app.security import get_current_customer, get_optional_customer, require_csrf
 from app.rate_limit import enforce_rate_limit
@@ -22,14 +22,14 @@ router = APIRouter(prefix="/products", tags=["catalog"])
 async def product_by_id(product_id: UUID, db: AsyncSession) -> Product:
     product = await db.scalar(
         select(Product).where(Product.id == product_id, Product.published.is_(True))
-        .options(selectinload(Product.variants))
+        .options(selectinload(Product.variants), selectinload(Product.category), selectinload(Product.brand), selectinload(Product.images))
     )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found.")
     return product
 
 
-def product_response(product: Product, translated_name: str | None = None, translated_description: str | None = None) -> ProductOut:
+def product_response(product: Product, translated_name: str | None = None, translated_description: str | None = None, quantities: dict | None = None) -> ProductOut:
     variants = [
         VariantOut(
             id=str(variant.id),
@@ -38,7 +38,7 @@ def product_response(product: Product, translated_name: str | None = None, trans
             priceAmount=variant.price_amount,
             currency=variant.currency,
             compareAtAmount=variant.compare_at_amount,
-            availability="available" if variant.active and variant.stock_quantity > 0 else "unavailable",
+            availability="available" if (quantities.get(variant.id, 0) if quantities is not None else variant.stock_quantity) > 0 else "unavailable",
             options=variant.options or {},
         )
         for variant in product.variants
@@ -58,11 +58,16 @@ def product_response(product: Product, translated_name: str | None = None, trans
         availability=availability,
         availabilityStatus=product.availability_status,
         priceHistory=product.price_history or [],
-        categoryName=product.category_name,
+        categoryName=product.category.name if product.category else product.category_name,
+        categoryId=str(product.category_id) if product.category_id else None,
+        brandId=str(product.brand_id) if product.brand_id else None,
+        brandName=product.brand.name if product.brand else product.supplier_name,
+        images=[{"url": storefront_image_url(image.url), "alt": image.alt} for image in product.images],
+        galleryImages=[{"src": storefront_image_url(image.url), "alt": image.alt} for image in product.images],
         productType=product.product_type,
-        supplierName=product.supplier_name,
-        image=storefront_image_url(product.image_url),
-        imageAlt=product.image_alt,
+        supplierName=product.brand.name if product.brand else product.supplier_name,
+        image=storefront_image_url(product.images[0].url if product.images else product.image_url),
+        imageAlt=product.images[0].alt if product.images else product.image_alt,
         tags=product.tags or [],
         sizeTier=product.size_tier,
         dimensions=product.dimensions,
@@ -74,8 +79,12 @@ def product_response(product: Product, translated_name: str | None = None, trans
 
 @router.get("", response_model=dict)
 async def list_products(
-    q: str | None = None,
+    q: str | None = Query(default=None, max_length=120),
     category: str | None = None,
+    brand: str | None = None,
+    category_id: UUID | None = None,
+    brand_id: UUID | None = None,
+    availability: Literal["available", "unavailable"] | None = None,
     min_price: int | None = Query(default=None, ge=0),
     max_price: int | None = Query(default=None, ge=0),
     size: str | None = None,
@@ -86,21 +95,35 @@ async def list_products(
     db: AsyncSession = Depends(get_db),
 ):
     locale = locale if locale == "en" or locale in AWS_TRANSLATE_CODES else "en"
-    query = select(Product).where(Product.published.is_(True)).options(selectinload(Product.variants))
+    query = select(Product).where(Product.published.is_(True)).options(selectinload(Product.variants), selectinload(Product.category), selectinload(Product.brand), selectinload(Product.images))
     if q:
         term = f"%{q.strip()}%"
-        query = query.where(or_(Product.name.ilike(term), Product.description.ilike(term), Product.category_name.ilike(term)))
+        translated_match = select(ProductTranslation.id).where(
+            ProductTranslation.product_id == Product.id, ProductTranslation.locale == locale,
+            or_(ProductTranslation.name.ilike(term), ProductTranslation.description.ilike(term)),
+        ).exists() if locale != "en" else False
+        query = query.where(or_(Product.name.ilike(term), Product.description.ilike(term), Product.category_name.ilike(term), Product.sku.ilike(term), Product.brand.has(Brand.name.ilike(term)), translated_match))
     if category:
-        query = query.where(Product.category_name.ilike(category.strip()))
+        query = query.where(or_(Product.category_name.ilike(category.strip()), Product.category.has(or_(ProductCategory.slug == category.strip(), ProductCategory.name.ilike(category.strip())))))
+    if brand:
+        query = query.where(Product.brand.has(or_(Brand.slug == brand.strip(), Brand.name.ilike(brand.strip()))))
+    if category_id:
+        query = query.where(Product.category_id == category_id)
+    if brand_id:
+        query = query.where(Product.brand_id == brand_id)
+    in_stock = select(ProductVariant.id).where(ProductVariant.product_id == Product.id, sellable_variant()).correlate(Product).exists()
+    if availability:
+        query = query.where(in_stock if availability == "available" else ~in_stock)
+    if min_price is not None and max_price is not None and min_price > max_price:
+        raise HTTPException(422, "Minimum price must not exceed maximum price.")
     if size:
         query = query.where(Product.size_tier.ilike(size.strip()))
     variant_price = select(func.min(ProductVariant.price_amount)).where(
         ProductVariant.product_id == Product.id,
-        ProductVariant.active.is_(True),
-        ProductVariant.stock_quantity > 0,
+        sellable_variant(),
     ).correlate(Product).scalar_subquery()
     if min_price is not None or max_price is not None:
-        price_conditions = [ProductVariant.active.is_(True), ProductVariant.stock_quantity > 0]
+        price_conditions = [sellable_variant()]
         if min_price is not None:
             price_conditions.append(ProductVariant.price_amount >= min_price)
         if max_price is not None:
@@ -115,21 +138,27 @@ async def list_products(
         "price-ascending": variant_price.asc().nulls_last(),
         "price-descending": variant_price.desc().nulls_last(),
         "title-descending": Product.name.desc(),
+        "title-ascending": Product.name.asc(),
+        "created-ascending": Product.created_at.asc(),
+        "newest": Product.created_at.desc(),
+        "available-first": in_stock.desc(),
         "created-descending": Product.created_at.desc(),
         # Until paid order analytics are populated, newest is the deterministic merchandising fallback.
         "best-selling": Product.created_at.desc(),
     }
-    query = query.order_by(sort_columns.get(sort, Product.name.asc()))
+    query = query.order_by(sort_columns.get(sort, Product.name.asc()), Product.id.asc())
     count_query = select(func.count()).select_from(query.order_by(None).subquery())
     total = int(await db.scalar(count_query) or 0)
     rows = (await db.scalars(query.offset((page - 1) * limit).limit(limit))).all()
     data = []
+    quantities = await available_quantities(db, [variant for product in rows for variant in product.variants])
     for product in rows:
         translation = await get_product_translation(product, locale, db) if locale != "en" else None
         data.append(product_response(
             product,
             translation.name if translation else None,
             translation.description if translation else None,
+            quantities,
         ).model_dump(mode="json"))
     if locale != "en":
         await db.commit()
@@ -150,7 +179,7 @@ async def get_product(
         # Accept legacy product handles so storefront routes can redirect old links to canonical IDs.
         product_filter = Product.slug == product_id
     product = await db.scalar(
-        select(Product).where(product_filter, Product.published.is_(True)).options(selectinload(Product.variants))
+        select(Product).where(product_filter, Product.published.is_(True)).options(selectinload(Product.variants), selectinload(Product.category), selectinload(Product.brand), selectinload(Product.images))
     )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found.")
@@ -161,7 +190,58 @@ async def get_product(
         product,
         translation.name if translation else None,
         translation.description if translation else None,
+        await available_quantities(db, product.variants),
     ).model_dump(mode="json")}
+
+
+async def catalog_product(identifier: str, db: AsyncSession) -> Product:
+    try:
+        condition = Product.id == UUID(identifier)
+    except ValueError:
+        condition = Product.slug == identifier
+    product = await db.scalar(select(Product).where(condition, Product.published.is_(True)).options(
+        selectinload(Product.variants), selectinload(Product.images), selectinload(Product.brand), selectinload(Product.category),
+    ))
+    if not product:
+        raise HTTPException(404, "Product not found.")
+    return product
+
+
+@router.get("/{product_id}/variants")
+async def list_product_variants(product_id: str, db: AsyncSession = Depends(get_db)):
+    product = await catalog_product(product_id, db)
+    data = product_response(product, quantities=await available_quantities(db, product.variants))
+    return {"data": [variant.model_dump(mode="json") for variant in data.variants]}
+
+
+@router.get("/{product_id}/variants/{variant_id}")
+async def get_product_variant(product_id: str, variant_id: UUID, db: AsyncSession = Depends(get_db)):
+    product = await catalog_product(product_id, db)
+    data = product_response(product, quantities=await available_quantities(db, product.variants))
+    variant = next((variant for variant in data.variants if variant.id == str(variant_id)), None)
+    if variant is None:
+        raise HTTPException(404, "Product variant not found.")
+    return {"data": variant.model_dump(mode="json")}
+
+
+@router.get("/{product_id}/images")
+async def get_product_images(product_id: str, db: AsyncSession = Depends(get_db)):
+    product = await catalog_product(product_id, db)
+    images = [{"id": str(image.id), "url": storefront_image_url(image.url), "alt": image.alt, "position": image.sort_order} for image in product.images]
+    if not images:
+        images = [{"id": None, "url": storefront_image_url(product.image_url), "alt": product.image_alt, "position": 0}]
+    return {"data": images}
+
+
+@router.get("/{product_id}/availability")
+async def get_product_availability(product_id: str, db: AsyncSession = Depends(get_db)):
+    product = await catalog_product(product_id, db)
+    quantities = await available_quantities(db, product.variants)
+    return {"data": {
+        "productId": str(product.id), "availability": "available" if any(quantities.values()) else "unavailable",
+        "availabilityStatus": product.availability_status,
+        "variants": [{"variantId": str(variant.id), "availability": "available" if quantities.get(variant.id, 0) > 0 else "unavailable", "availableQuantity": quantities.get(variant.id, 0)} for variant in product.variants if variant.active],
+    }}
 
 
 @router.get("/{product_id}/reviews", response_model=dict)

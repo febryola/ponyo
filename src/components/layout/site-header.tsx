@@ -180,7 +180,7 @@ export function SiteHeader() {
   }, []);
 
   function saveQuantity(id: string, quantity: number) {
-    const next = cart.map((item) => item.id === id ? { ...item, qty: Math.max(1, quantity) } : item);
+    const next = cart.map((item) => item.id === id ? { ...item, qty: Math.min(99, Math.max(1, Math.floor(quantity))) } : item);
     try {
       saveCart(next);
       window.dispatchEvent(new CustomEvent("ponyo:local-cart-update", { detail: next }));

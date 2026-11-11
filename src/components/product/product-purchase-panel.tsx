@@ -42,7 +42,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
   function makeCartItem(): CartItem {
     const image = typeof product.image === "string" ? product.image : product.image.src;
     return {
-        id: product.id,
+        id: selectedVariant?.id ?? product.variantId ?? product.id,
         catalogId: product.id,
         variantId: selectedVariant?.id ?? product.variantId,
         slug: product.slug,
@@ -123,7 +123,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
           return <button key={value} type="button" className={`${isSelected || (!hasVariant && values.length === 1) ? "is-selected" : ""}${unavailable ? " is-unavailable" : ""}`} aria-pressed={isSelected || (!hasVariant && values.length === 1)} disabled={unavailable || !hasVariant && values.length === 1} onClick={() => selectOption(name, value)}>{/color|colour/i.test(name) && <span className="product-color-swatch" aria-hidden="true" data-color={value.toLowerCase()} />}{value}</button>;
         })}</div></fieldset>)}</div> : <div className="product-option-fields">{product.color && <fieldset className="product-option-group is-color-option"><legend>Color<span>{product.color}</span></legend><div className="product-option-values"><span className="product-option-current"><span className="product-color-swatch" data-color={product.color.toLowerCase()} aria-hidden="true" />{product.color}</span></div></fieldset>}{(product.size || product.sizeTier || product.dimensions) && <fieldset className="product-option-group is-size-option"><legend>Size<span>{product.size ?? [product.sizeTier, product.dimensions].filter(Boolean).join(" · ")}</span></legend><div className="product-option-values"><span className="product-option-current">{product.size ?? [product.sizeTier, product.dimensions].filter(Boolean).join(" · ")}</span></div></fieldset>}</div>}
         {product.dispatchTime && <p className="product-dispatch">↗ {product.dispatchTime}</p>}
-        <div className="product-quantity"><span>Quantity</span><div><button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity((amount) => Math.max(1, amount - 1))}>−</button><span>{quantity}</span><button type="button" aria-label="Increase quantity" onClick={() => setQuantity((amount) => amount + 1)}>＋</button></div></div>
+        <div className="product-quantity"><span>Quantity</span><div><button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity((amount) => Math.max(1, amount - 1))}>−</button><span>{quantity}</span><button type="button" aria-label="Increase quantity" disabled={quantity >= 99} onClick={() => setQuantity((amount) => Math.min(99, amount + 1))}>＋</button></div></div>
         {waitlistEligible ? <a className="shop-button product-add-button product-waitlist-cta" href="#product-waitlist-title">Join waitlist <span aria-hidden="true">→</span></a> : <div className="product-purchase-actions"><button className="shop-button product-add-button" type="button" onClick={addToCart}>Add to cart <span>· {formatPrice(price, currency)}</span></button><button className="product-buy-now-button" type="button" onClick={buyNow}>Buy now <span aria-hidden="true">→</span></button></div>}
         <p className="product-shipping-note">{waitlistEligible ? "Join the waitlist and we’ll email you when this plush is available." : "Shipping and taxes calculated at checkout."}</p>
         <div className="product-trust"><span>♡ Thoughtfully selected</span><span>✦ Ready to be loved</span></div>

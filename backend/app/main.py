@@ -13,7 +13,8 @@ from starlette.exceptions import HTTPException
 from app.config import settings
 from app.db import engine
 from app.outbox import publish_outbox_events
-from app.routers import auth, checkout, content, localization, orders, products, webhooks
+from app.reservation_expiry import recover_expired_reservations
+from app.routers import auth, cart, catalog, checkout, content, localization, orders, products, webhooks
 
 logger = logging.getLogger("ponyo.api")
 
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
     app.state.environment = settings.environment
     app.state.redis = None
     outbox_task = None
+    expiry_task = None
     try:
         from redis.asyncio import Redis
 
@@ -35,18 +37,25 @@ async def lifespan(app: FastAPI):
         app.state.redis = None
     if settings.sqs_order_events_url:
         outbox_task = asyncio.create_task(publish_outbox_events())
+    if settings.stripe_secret_key:
+        expiry_task = asyncio.create_task(recover_expired_reservations())
     try:
         yield
     finally:
-        if outbox_task:
-            outbox_task.cancel()
+        tasks = [task for task in (outbox_task, expiry_task) if task is not None]
+        for task in tasks:
+            task.cancel()
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.warning("Worker stopped exception_type=%s", type(result).__name__)
+        finally:
             try:
-                await outbox_task
-            except asyncio.CancelledError:
-                pass
-    if app.state.redis is not None:
-        await app.state.redis.aclose()
-    await engine.dispose()
+                if app.state.redis is not None:
+                    await app.state.redis.aclose()
+            finally:
+                await engine.dispose()
 
 
 app = FastAPI(title="Ponyo API", version="0.1.0", lifespan=lifespan)
@@ -101,7 +110,9 @@ async def internal_error_handler(request: Request, _error: Exception):
 
 
 app.include_router(auth.router, prefix="/v1")
+app.include_router(cart.router, prefix="/v1")
 app.include_router(products.router, prefix="/v1")
+app.include_router(catalog.router, prefix="/v1")
 app.include_router(localization.router, prefix="/v1")
 app.include_router(orders.router, prefix="/v1")
 app.include_router(checkout.router, prefix="/v1")

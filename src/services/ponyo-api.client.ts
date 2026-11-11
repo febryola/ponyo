@@ -69,6 +69,46 @@ export type CustomerAddress = {
 
 export type CustomerAddressInput = Omit<CustomerAddress, "id">;
 
+export type CustomerCartInput = {
+	currency: string;
+	items: Array<{ variantId: string; quantity: number }>;
+};
+
+export type CartValidationInput = {
+	currency: string;
+	items: Array<{ variantId: string; quantity: number; expectedPriceAmount?: number; expectedCurrency?: string }>;
+};
+
+export type CartValidationLine = {
+	variantId: string;
+	productId: string | null;
+	quantity: number;
+	name: string;
+	image: string | null;
+	imageAlt: string | null;
+	maker: string | null;
+	slug: string | null;
+	priceAmount: number | null;
+	currency: string | null;
+	availableQuantity: number;
+	availability: "available" | "unavailable";
+	issues: string[];
+	priceChanged: boolean;
+};
+
+export type CartValidation = {
+	items: CartValidationLine[];
+	canCheckout: boolean;
+	subtotalAmount: number;
+	sourceCurrency: string | null;
+};
+
+export type CustomerCart = {
+	id: string | null;
+	currency: string;
+	items: Array<{ variantId: string; quantity: number; productId?: string }>;
+};
+
 export type ProductReview = {
 	id: string;
 	reviewerName: string;
@@ -127,7 +167,7 @@ export type CheckoutSessionInput = {
 	shippingMethod: string;
 	paymentMethod: "card" | "paypal" | "apple_pay";
 	currency?: string;
-	items: Array<{ variantId: string; quantity: number }>;
+	items: Array<{ variantId: string; quantity: number; expectedPriceAmount?: number; expectedCurrency?: string }>;
 	successUrl: string;
 	cancelUrl: string;
 };
@@ -182,14 +222,14 @@ async function ensureCsrfToken() {
 	return cachedCsrfToken;
 }
 
-async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function apiRequest<T>(path: string, init: RequestInit = {}, csrf = true): Promise<T> {
 	if (!PONYO_API_BASE_URL) throw new ApiNotConfiguredError();
 	const method = (init.method ?? "GET").toUpperCase();
 	const headers = new Headers(init.headers);
 	headers.set("Accept", "application/json");
 	if (init.body && !headers.has("Content-Type"))
 		headers.set("Content-Type", "application/json");
-	if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+	if (csrf && !["GET", "HEAD", "OPTIONS"].includes(method)) {
 		const token = await ensureCsrfToken();
 		if (token) headers.set("X-CSRF-Token", token);
 	}
@@ -228,6 +268,18 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const ponyoApi = {
+	// Public, read-only POST: no authentication or CSRF bootstrap is needed.
+	validateCart: (input: CartValidationInput) =>
+		apiRequest<CartValidation>("/cart/validate", {
+			method: "POST",
+			body: JSON.stringify(input),
+		}, false),
+	getCart: () => apiRequest<CustomerCart>("/cart"),
+	updateCart: (input: CustomerCartInput) =>
+		apiRequest<CustomerCart>("/cart", {
+			method: "PUT",
+			body: JSON.stringify(input),
+		}),
 	getLocalizationRates: (symbols = "USD,EUR,GBP,AUD,CAD,IDR") =>
 		apiRequest<{ base: string; date: string; rates: Record<string, number> }>(
 			`/localization/rates?symbols=${encodeURIComponent(symbols)}`,

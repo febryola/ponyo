@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { readCart, saveCart, type CartItem } from "@/lib/cart";
+import { addCartItem, readCart, saveCart, type CartItem } from "@/lib/cart";
 
 export function LocalCartProvider() {
   useEffect(() => {
@@ -9,10 +9,7 @@ export function LocalCartProvider() {
       const item = (event as CustomEvent<Omit<CartItem, "qty"> & { qty?: number }>).detail;
       if (!item) return;
       const current = readCart();
-      const existing = current.find((entry) => entry.id === item.id);
-      const next = existing
-        ? current.map((entry) => entry.id === item.id ? { ...entry, qty: entry.qty + (item.qty ?? 1) } : entry)
-        : [...current, { ...item, qty: item.qty ?? 1 }];
+      const next = addCartItem(current, { ...item, qty: item.qty ?? 1 });
       saveCart(next);
       window.dispatchEvent(new Event("ponyo:cart-open"));
     };

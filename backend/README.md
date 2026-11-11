@@ -18,17 +18,25 @@ The full Alembic chain targets PostgreSQL. SQLite can run local previews/tests a
 
 CI runs the API tests with SQLite and separately generates the full migration SQL with an explicit PostgreSQL `DATABASE_URL`. The `alembic upgrade head --sql` step is offline: it needs the correct dialect but no running PostgreSQL server or real database credentials. This checks SQL generation, not execution against PostgreSQL; staging must still run online migrations before release.
 
-For an existing populated database without an Alembic version record, **do not run upgrade or stamp blindly**. Back up first, compare tables, columns, types, indexes, constraints and defaults against the migration target, then reconcile the baseline deliberately. The local preview database currently has all 16 model tables/columns but no recorded Alembic revision. `GET /v1/health` checks connectivity with `SELECT 1`; it does not certify schema/migration readiness.
+For an existing populated database without an Alembic version record, **do not run upgrade or stamp blindly**. Back up first, compare tables, columns, types, indexes, constraints and defaults against the migration target, then reconcile the baseline deliberately. The local preview database has no recorded Alembic revision; its populated schema must be checked before applying individual additive revisions. `GET /v1/health` checks connectivity with `SELECT 1`; it does not certify schema/migration readiness.
 
 ## Routes
+
+Storefront database entities, supplier demo fixtures, relationships and rollout limits are documented in [storefront database](../docs/storefront-database.md). Revision `20261111_0015` adds normalized categories, brands, galleries, suppliers/offers/inventory, account carts and order status history. Run migrations before updated application code. The local unversioned preview baseline still requires deliberate reconciliation; do not blindly upgrade/stamp it.
 
 - `GET /v1/health`, catalog, product detail
 - CSRF token, register, login, current account/profile updates, saved addresses, and persistent customer wishlist
 - Pending registration, 24-hour single-use email verification, and resend recovery; account sessions are issued only after verification
 - Product ratings/reviews and durable per-product coming-soon waitlists
 - One-hour, single-use password reset requests and confirmation (`SMTP_HOST`, `SMTP_FROM_EMAIL`, and SMTP credentials must be configured for delivery)
+- Database-backed customer/supplier/admin roles with explicit role guards; storefront access stays customer-only, with no public role assignment or admin/supplier portal
+- Revocable session versions: logout revokes all current account sessions; password reset atomically consumes its token and invalidates existing sessions
 - Authenticated order history and detail
+- Authenticated persisted carts (`GET/PUT /v1/cart`); guest browser carts remain local
+- Public read-only `POST /v1/cart/validate` refreshes source prices/supplier availability and flags unavailable or changed-price lines without removing them
+- Multi-supplier carts and checkout use per-line supplier offers, transactional stock revalidation, and optional price expectations; cart/checkout limits are 100 unique variants and 99 units per line
 - Verified-account checkout with server-priced variants and Stripe-hosted payment; guest checkout is not accepted
+- Linked supplier-stock reservation/settlement and transactional order status history (demo supply only until real onboarding)
 - Newsletter/contact submissions
 - Stripe signature-verified webhook endpoint with an idempotent transactional outbox publisher to SQS
 
@@ -44,7 +52,7 @@ Verification mail includes an HTML button. With a public HTTPS storefront, the P
 
 For a single-origin development tunnel, opt in to `PONYO_DEV_API_PROXY=true` and set `NEXT_PUBLIC_PONYO_API_BASE_URL=/ponyo-api` for the frontend process. The development-only rewrite forwards `/ponyo-api/v1/*` to the loopback API at port 8000, not the database or API docs. Set `PONYO_DEV_TUNNEL_ORIGIN` to the exact temporary HTTPS frontend origin to permit development assets. The backend process must use that origin for `STOREFRONT_BASE_URL` and include it in `FRONTEND_ORIGINS`. These temporary process overrides are not production configuration, stop working when the tunnel stops, and must be updated for each new quick-tunnel URL. Stop the tunnel after testing; do not share the URL publicly.
 
-Apply Alembic migrations through `20261111_0014` before deploying these auth changes. Existing customer accounts remain unverified and must use resend/verification before signing in. The schema represents pending status with `email_verified=false`; there is no separate activation status that can drift out of sync.
+Apply Alembic migrations through `20261111_0016` before deploying the current auth code. Revision 0016 adds trusted account roles and nonnegative session versions; existing accounts default to customer/version zero without changing credentials or verification state. Revision 0014 requires existing unverified accounts to use resend/verification before signing in. The schema represents pending status with `email_verified=false`; there is no separate activation status that can drift out of sync. See the [authentication contract](../docs/backend-api-contract.md#customer-authentication-and-access-control) for logout scope, reset delivery privacy, and role limitations.
 
 Configure `STOREFRONT_BASE_URL` as the public HTTPS storefront origin (also present in `FRONTEND_ORIGINS`) and configure `SMTP_HOST`, `SMTP_FROM_EMAIL` (or `SMTP_USERNAME`), and SMTP credentials. Production startup rejects missing email transport or an invalid storefront origin. Without local SMTP, verification links are logged for development, but the API reports delivery failure rather than claiming mail was sent. Verification delivery is synchronous: failure returns `503`, preserves the pending account, and lets the customer retry through resend. There is no automatic delivery retry worker for verification mail.
 

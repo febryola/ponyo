@@ -1,17 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { saveCart, useCartItems, type CartItem } from "@/lib/cart";
+import { useEffect, useMemo, useState } from "react";
+import { readCart, saveCart, useCartItems, type CartItem } from "@/lib/cart";
+import { cartValidationKey, refreshCartItems, type ValidatedCartItem } from "@/lib/cart-validation";
+import { PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { useLocalization } from "@/components/layout/localization-provider";
 import { LocalCheckoutLink } from "@/components/layout/local-checkout-link";
 
 export function CartPageClient() {
   const { currency, formatPrice, convertMajorAmount } = useLocalization();
   const items = useCartItems();
-  const sourceCurrency = items[0]?.currency ?? "JPY";
-  const subtotal = useMemo(() => convertMajorAmount(items.reduce((sum, item) => sum + item.price * item.qty, 0), sourceCurrency), [convertMajorAmount, items, sourceCurrency]);
+  const subtotal = useMemo(() => items.reduce((sum, item) => sum + convertMajorAmount(item.price * item.qty, item.currency), 0), [convertMajorAmount, items]);
   const quantity = items.reduce((sum, item) => sum + item.qty, 0);
+  const snapshotKey = cartValidationKey(items, currency);
+  const [retry, setRetry] = useState(0);
+  const [check, setCheck] = useState({ key: "", retry: -1, ready: false, message: "" });
+  const checking = Boolean(PONYO_API_BASE_URL) && (check.key !== snapshotKey || check.retry !== retry);
+  const blocked = Boolean(PONYO_API_BASE_URL) && (checking || !check.ready);
+
+  useEffect(() => {
+    if (!PONYO_API_BASE_URL || !JSON.parse(snapshotKey)[1].length) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      const current = readCart();
+      if (cartValidationKey(current, currency) !== snapshotKey) return;
+      const original = JSON.stringify(current);
+      void refreshCartItems(current, currency).then((result) => {
+        if (!active) return;
+        if (JSON.stringify(readCart()) !== original) {
+          setCheck({ key: snapshotKey, retry, ready: false, message: "Your cart changed while checking. Please check again." });
+          return;
+        }
+        if (JSON.stringify(result.items) !== original) saveCart(result.items);
+        const priceChanged = result.validation?.items.some((line) => line.priceChanged);
+        setCheck({ key: snapshotKey, retry, ready: Boolean(result.validation?.canCheckout), message: priceChanged ? "Prices or currencies changed. Review the current prices below, then check again to accept them." : result.validation?.canCheckout ? "Current prices and stock checked." : "Some items cannot be checked out. Review availability and quantities below." });
+      }).catch((error: unknown) => {
+        if (active) setCheck({ key: snapshotKey, retry, ready: false, message: error instanceof Error ? error.message : "Unable to check current prices and stock." });
+      });
+    }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [snapshotKey, currency, retry]);
 
   function update(next: CartItem[]) {
     saveCart(next);
@@ -35,17 +64,18 @@ export function CartPageClient() {
       </section> : <div className="cart-page-layout">
         <section className="cart-line-list" aria-label="Items in your cart">
           <div className="cart-items-heading"><span>Plush picked for you</span><span>{quantity} {quantity === 1 ? "item" : "items"}</span></div>
-          {items.map((item) => <article className="cart-line" key={item.id}>
-            {item.catalogId ? <Link href={`/products/${item.catalogId}`} className="cart-line-image"><CartLineImage item={item} /></Link> : <span className="cart-line-image"><CartLineImage item={item} /></span>}
+          {items.map((item: ValidatedCartItem) => <article className="cart-line" key={item.id}>
+            {item.catalogId ? <Link href={`/products/${item.catalogId}`} className="cart-line-image"><CartLineImage key={item.image} item={item} /></Link> : <span className="cart-line-image"><CartLineImage key={item.image} item={item} /></span>}
             <div className="cart-line-info">
               <span className="cart-line-maker">{item.maker}</span>
               {item.catalogId ? <Link href={`/products/${item.catalogId}`} className="cart-line-name">{item.name}</Link> : <span className="cart-line-name">{item.name}</span>}
-              <span className="cart-line-ready"><i aria-hidden="true" /> Ready to be loved</span>
+              <span className="cart-line-ready"><i aria-hidden="true" /> {PONYO_API_BASE_URL ? checking ? "Checking availability…" : item.availability === "unavailable" ? "Unavailable for this quantity" : "Availability checked" : "Ready to be loved"}</span>
+              {PONYO_API_BASE_URL && item.validationIssue && <p role="alert">{item.validationIssue.includes("product_unavailable") ? "This product is no longer available. Please remove it." : item.validationIssue.includes("insufficient_stock") ? `Only ${item.availableQuantity ?? 0} available. Reduce the quantity or remove this item.` : item.validationIssue.includes("mixed_currency") ? "These items have different source currencies and cannot be checked out together." : "Price or currency updated. Please review the current price."}</p>}
               <strong className="cart-line-unit-price">{formatPrice(item.price, item.currency)} <small>each</small></strong>
               <div className="cart-line-controls" aria-label={`Quantity for ${item.name}`}>
                 <button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={item.qty <= 1} onClick={() => update(items.map((entry) => entry.id === item.id ? { ...entry, qty: Math.max(1, entry.qty - 1) } : entry))}>−</button>
                 <span aria-live="polite">{item.qty}</span>
-                <button type="button" aria-label={`Increase ${item.name} quantity`} onClick={() => update(items.map((entry) => entry.id === item.id ? { ...entry, qty: Math.min(20, entry.qty + 1) } : entry))}>＋</button>
+                <button type="button" aria-label={`Increase ${item.name} quantity`} disabled={item.qty >= 99} onClick={() => update(items.map((entry) => entry.id === item.id ? { ...entry, qty: entry.qty + 1 } : entry))}>＋</button>
                 <button type="button" className="cart-remove cart-remove--icon" aria-label={`Remove ${item.name} from cart`} title="Remove item" onClick={() => update(items.filter((entry) => entry.id !== item.id))}><CartTrashIcon /><span className="sr-only">Remove</span></button>
               </div>
             </div>
@@ -59,7 +89,8 @@ export function CartPageClient() {
           <div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal, currency)}</strong></div>
           <div className="cart-summary-line"><span>Shipping</span><span className="cart-shipping-value">Calculated at checkout</span></div>
           <p className="cart-summary-tax">Taxes and delivery are confirmed for your Japan address at checkout.</p>
-          <LocalCheckoutLink className="shop-button shop-button-orange cart-checkout-button">Continue to checkout <b>→</b></LocalCheckoutLink>
+          {PONYO_API_BASE_URL && <div role={blocked && !checking ? "alert" : "status"}><p>{checking ? "Checking current prices and stock…" : check.message}</p>{!checking && <button type="button" className="cart-continue-link" onClick={() => setRetry((value) => value + 1)}>Check again</button>}</div>}
+          {blocked ? <button type="button" disabled className="shop-button shop-button-orange cart-checkout-button">{checking ? "Checking cart…" : "Review cart before checkout"}</button> : <LocalCheckoutLink className="shop-button shop-button-orange cart-checkout-button">Continue to checkout <b>→</b></LocalCheckoutLink>}
           <div className="cart-secure-note"><span aria-hidden="true">♧</span><span>Secure checkout · Your payment details stay protected</span></div>
           <Link className="cart-back-to-shop" href="/collections/all">Continue discovering plush <span aria-hidden="true">→</span></Link>
         </aside>

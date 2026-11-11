@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ponyoApi, PONYO_API_BASE_URL, type CustomerProfile } from "@/services/ponyo-api.client";
+import { CartSync } from "@/components/layout/cart-sync";
 
 type CustomerSessionValue = {
   customer: CustomerProfile | null;
@@ -28,7 +29,7 @@ export function CustomerSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(() => ({ customer, setCustomer, isLoading }), [customer, isLoading]);
-  return <CustomerSessionContext.Provider value={value}>{children}</CustomerSessionContext.Provider>;
+  return <CustomerSessionContext.Provider value={value}><CartSync />{children}</CustomerSessionContext.Provider>;
 }
 
 export function useCustomerSession() {

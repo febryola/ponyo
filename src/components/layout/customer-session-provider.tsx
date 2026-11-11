@@ -5,6 +5,7 @@ import { ponyoApi, PONYO_API_BASE_URL, type CustomerProfile } from "@/services/p
 
 type CustomerSessionValue = {
   customer: CustomerProfile | null;
+  isLoading: boolean;
   setCustomer: (customer: CustomerProfile | null) => void;
 };
 
@@ -12,6 +13,7 @@ const CustomerSessionContext = createContext<CustomerSessionValue | null>(null);
 
 export function CustomerSessionProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<CustomerProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(Boolean(PONYO_API_BASE_URL));
   useEffect(() => {
     if (!PONYO_API_BASE_URL) return;
     let active = true;
@@ -19,11 +21,13 @@ export function CustomerSessionProvider({ children }: { children: ReactNode }) {
       if (active) setCustomer(profile);
     }).catch(() => {
       if (active) setCustomer(null);
+    }).finally(() => {
+      if (active) setIsLoading(false);
     });
     return () => { active = false; };
   }, []);
 
-  const value = useMemo(() => ({ customer, setCustomer }), [customer]);
+  const value = useMemo(() => ({ customer, setCustomer, isLoading }), [customer, isLoading]);
   return <CustomerSessionContext.Provider value={value}>{children}</CustomerSessionContext.Provider>;
 }
 

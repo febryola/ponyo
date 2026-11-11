@@ -5,16 +5,16 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db import get_db
-from app.email_notifications import send_password_reset_email
-from app.models import Customer, CustomerAddress, PasswordResetToken, Product, WishlistItem
+from app.email_notifications import send_password_reset_email, send_verification_email
+from app.models import Customer, CustomerAddress, EmailVerificationToken, PasswordResetToken, Product, WishlistItem
 from app.rate_limit import enforce_rate_limit
-from app.schemas import AcceptedOut, AuthCredentials, CustomerAddressInput, CustomerAddressOut, CustomerEnvelope, CustomerOut, CustomerProfileOut, CustomerProfileUpdate, PasswordResetConfirm, PasswordResetRequest, RegisterRequest, WishlistUpdate
+from app.schemas import AcceptedOut, AuthCredentials, CustomerAddressInput, CustomerAddressOut, CustomerEnvelope, CustomerOut, CustomerProfileOut, CustomerProfileUpdate, EmailVerificationConfirm, PasswordResetConfirm, PasswordResetRequest, RegisterRequest, WishlistUpdate
 from app.security import clear_session_cookie, get_current_customer, hash_password, require_csrf, set_session_cookie, verify_password
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -29,6 +29,27 @@ def check_csrf(request: Request) -> None:
 
 def customer_envelope(customer: Customer) -> CustomerEnvelope:
     return CustomerEnvelope(customer=CustomerOut(id=customer.id, firstName=customer.first_name, lastName=customer.last_name, email=customer.email))
+
+
+async def deliver_verification_email(customer: Customer, db: AsyncSession) -> None:
+    token = secrets.token_urlsafe(32)
+    token_record = EmailVerificationToken(
+        customer_id=customer.id,
+        token_hash=hashlib.sha256(token.encode()).hexdigest(),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    db.add(token_record)
+    await db.commit()
+    verification_url = f"{settings.storefront_base_url.rstrip('/')}/account/verify-email?token={quote(token)}"
+    sent = await send_verification_email(customer.email, verification_url)
+    if not sent:
+        # Keep the pending account and any older delivered links usable for recovery.
+        token_record.used_at = datetime.now(timezone.utc)
+        await db.commit()
+        raise HTTPException(status_code=503, detail={
+            "code": "verification_email_delivery_failed",
+            "message": "We couldn't send your verification email. Your account is still pending. Please resend the verification email in a moment.",
+        })
 
 
 @router.get("/csrf")
@@ -51,24 +72,31 @@ async def register(payload: RegisterRequest, request: Request, response: Respons
     check_csrf(request)
     await enforce_rate_limit(request, "register", 5, 3600)
     normalized_email = str(payload.email).lower().strip()
-    exists = await db.scalar(select(Customer.id).where(func.lower(Customer.email) == normalized_email))
-    if exists:
+    customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == normalized_email))
+    if customer and customer.email_verified:
         raise HTTPException(status_code=409, detail="An account already exists for this email.")
-    customer = Customer(
-        email=normalized_email,
-        first_name=payload.firstName.strip(),
-        last_name=payload.lastName.strip(),
-        password_hash=hash_password(payload.password),
-        marketing_opt_in=payload.marketingOptIn,
-    )
-    db.add(customer)
-    try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="An account already exists for this email.") from None
-    await db.refresh(customer)
-    set_session_cookie(response, customer.id)
+    if customer is None:
+        customer = Customer(
+            email=normalized_email,
+            first_name=payload.firstName.strip(),
+            last_name=payload.lastName.strip(),
+            password_hash=hash_password(payload.password),
+            marketing_opt_in=payload.marketingOptIn,
+            email_verified=False,
+        )
+        db.add(customer)
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == normalized_email))
+            if customer is None or customer.email_verified:
+                raise HTTPException(status_code=409, detail="An account already exists for this email.") from None
+        await db.refresh(customer)
+
+    # A repeat signup must never overwrite the existing owner's password/profile.
+    await deliver_verification_email(customer, db)
+
     response.set_cookie(
         settings.csrf_cookie_name,
         secrets.token_urlsafe(32),
@@ -78,7 +106,7 @@ async def register(payload: RegisterRequest, request: Request, response: Respons
         domain=settings.cookie_domain,
         path="/",
     )
-    return {"data": customer_envelope(customer).model_dump(mode="json")}
+    return {"data": {"accepted": True, "emailVerificationRequired": True}}
 
 
 @router.post("/login", response_model=dict)
@@ -88,6 +116,8 @@ async def login(payload: AuthCredentials, request: Request, response: Response, 
     customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == str(payload.email).lower().strip()))
     if not customer or not verify_password(payload.password, customer.password_hash):
         raise HTTPException(status_code=401, detail="Email or password is incorrect.")
+    if not customer.email_verified:
+        raise HTTPException(status_code=403, detail={"code": "email_verification_required", "message": "Please verify your email before signing in."})
     set_session_cookie(response, customer.id)
     response.set_cookie(
         settings.csrf_cookie_name,
@@ -107,6 +137,63 @@ async def logout(request: Request, response: Response):
     clear_session_cookie(response)
     response.delete_cookie(settings.csrf_cookie_name, domain=settings.cookie_domain, path="/")
     return {"data": {"accepted": True}}
+
+
+@router.post("/verify-email/resend", response_model=dict)
+async def resend_verification_email(_payload: PasswordResetRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    check_csrf(request)
+    await enforce_rate_limit(request, "verify-email-resend", 5, 3600)
+    email = str(_payload.email).lower().strip()
+    customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == email))
+    if customer and not customer.email_verified:
+        await deliver_verification_email(customer, db)
+    return {"data": AcceptedOut().model_dump()}
+
+
+@router.post("/verify-email/confirm", response_model=dict)
+async def confirm_email_verification(payload: EmailVerificationConfirm, request: Request, db: AsyncSession = Depends(get_db)):
+    check_csrf(request)
+    await enforce_rate_limit(request, "verify-email-confirm", 10, 3600)
+    token_hash = hashlib.sha256(payload.token.encode()).hexdigest()
+    token_record = await db.scalar(
+        select(EmailVerificationToken).where(
+            EmailVerificationToken.token_hash == token_hash,
+            EmailVerificationToken.used_at.is_(None),
+            EmailVerificationToken.expires_at > datetime.now(timezone.utc),
+        )
+    )
+    if not token_record:
+        raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
+    customer = await db.scalar(select(Customer).where(Customer.id == token_record.customer_id).with_for_update())
+    if not customer:
+        raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
+    now = datetime.now(timezone.utc)
+    claimed = await db.scalar(
+        update(EmailVerificationToken)
+        .where(
+            EmailVerificationToken.id == token_record.id,
+            EmailVerificationToken.used_at.is_(None),
+            EmailVerificationToken.expires_at > now,
+        )
+        .values(used_at=now)
+        .returning(EmailVerificationToken.id)
+        .execution_options(synchronize_session=False)
+    )
+    if claimed is None:
+        raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
+    customer.email_verified = True
+    token_record.used_at = now
+    other_tokens = await db.scalars(
+        select(EmailVerificationToken).where(
+            EmailVerificationToken.customer_id == customer.id,
+            EmailVerificationToken.id != token_record.id,
+            EmailVerificationToken.used_at.is_(None),
+        )
+    )
+    for other_token in other_tokens:
+        other_token.used_at = token_record.used_at
+    await db.commit()
+    return {"data": AcceptedOut().model_dump()}
 
 
 @router.post("/password-reset", response_model=dict)

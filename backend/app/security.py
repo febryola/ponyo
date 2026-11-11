@@ -65,6 +65,8 @@ async def get_current_customer(
     customer = await db.scalar(select(Customer).where(Customer.id == customer_id))
     if not customer:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account not found.")
+    if not customer.email_verified:
+        raise HTTPException(status_code=403, detail={"code": "email_verification_required", "message": "Please verify your email before using your account."})
     return customer
 
 
@@ -80,7 +82,10 @@ async def get_optional_customer(
         customer_id = UUID(payload["sub"])
     except (jwt.InvalidTokenError, KeyError, ValueError):
         return None
-    return await db.scalar(select(Customer).where(Customer.id == customer_id))
+    customer = await db.scalar(select(Customer).where(Customer.id == customer_id))
+    if customer and not customer.email_verified:
+        raise HTTPException(status_code=403, detail={"code": "email_verification_required", "message": "Please verify your email before using your account."})
+    return customer
 
 
 def require_csrf(request: Request) -> None:

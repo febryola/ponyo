@@ -91,6 +91,59 @@ variable "jwt_secret_arn" {
   sensitive   = true
 }
 
+variable "smtp_host" {
+  description = "SMTP provider hostname for production email delivery."
+  type        = string
+  validation {
+    condition     = length(trimspace(var.smtp_host)) > 0
+    error_message = "Supply a non-empty SMTP hostname."
+  }
+}
+
+variable "smtp_from_email" {
+  description = "Sender email address verified with the SMTP provider."
+  type        = string
+  validation {
+    condition     = length(trimspace(var.smtp_from_email)) > 0
+    error_message = "Supply a non-empty verified sender email address."
+  }
+}
+
+variable "smtp_username" {
+  description = "SMTP authentication username (not necessarily an email address)."
+  type        = string
+  validation {
+    condition     = length(trimspace(var.smtp_username)) > 0
+    error_message = "Supply a non-empty SMTP authentication username."
+  }
+}
+
+variable "smtp_password_secret_arn" {
+  description = "Secrets Manager ARN containing only the SMTP password as a plain SecretString, not JSON."
+  type        = string
+  sensitive   = true
+  validation {
+    condition     = can(regex("^arn:[a-z0-9-]+:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$", var.smtp_password_secret_arn))
+    error_message = "Supply the full Secrets Manager secret ARN for the SMTP password."
+  }
+}
+
+variable "smtp_port" {
+  description = "SMTP submission port; defaults to STARTTLS on port 587."
+  type        = number
+  default     = 587
+  validation {
+    condition     = var.smtp_port >= 1 && var.smtp_port <= 65535 && floor(var.smtp_port) == var.smtp_port
+    error_message = "Use an integer SMTP port between 1 and 65535."
+  }
+}
+
+variable "smtp_starttls" {
+  description = "Upgrade SMTP connections with STARTTLS; keep enabled for production."
+  type        = bool
+  default     = true
+}
+
 variable "redis_auth_token" {
   description = "Strong ElastiCache auth token. Terraform state must use an encrypted remote backend with restricted access."
   type        = string

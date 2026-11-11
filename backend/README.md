@@ -18,14 +18,31 @@ Use Python 3.12+ and install the project with its `test` extra. Start PostgreSQL
 
 - `GET /v1/health`, catalog, product detail
 - CSRF token, register, login, current account/profile updates, saved addresses, and persistent customer wishlist
+- Pending registration, 24-hour single-use email verification, and resend recovery; account sessions are issued only after verification
 - Product ratings/reviews and durable per-product coming-soon waitlists
 - One-hour, single-use password reset requests and confirmation (`SMTP_HOST`, `SMTP_FROM_EMAIL`, and SMTP credentials must be configured for delivery)
 - Authenticated order history and detail
-- Guest/account checkout with server-priced variants and Stripe-hosted payment
+- Verified-account checkout with server-priced variants and Stripe-hosted payment; guest checkout is not accepted
 - Newsletter/contact submissions
 - Stripe signature-verified webhook endpoint with an idempotent transactional outbox publisher to SQS
 
 ## Production deployment notes
+
+### Testing verification before deployment
+
+Deployment is not required when opening the email on the same computer that runs both local servers. Keep frontend/API running and open the email button in that computer's browser. A `localhost` link opened on a phone points to the phone, not the development computer.
+
+For cross-device tests, use a reviewed HTTPS development tunnel or staging environment for **both** frontend and API. Set `STOREFRONT_BASE_URL` to the frontend's public HTTPS origin, add that exact origin to `FRONTEND_ORIGINS`, and set the frontend's `NEXT_PUBLIC_PONYO_API_BASE_URL` to the public API origin. Restart both servers and resend the email; older messages keep their original URL. Never expose a development API or database publicly without reviewing access controls. Different-site tunnel hostnames can block cookies; use same-site hostnames or staging with the intended cookie domain for reliable auth testing.
+
+Verification mail includes an HTML button. With a public HTTPS storefront, the Ponyo mascot uses the public PNG asset at `/ponyo-email-jellyfish.png`, allowing Gmail's image proxy to retrieve it. Local HTTP development uses an inline CID PNG with explicit MIME root metadata. Email apps may still hide images until the recipient permits them. A plain-text alternative keeps the secure URL accessible to text-only email clients. The button points to the same single-use verification page; styling does not change activation or token security. Gmail on mobile cannot reach a computer's localhost and may sanitize local links; use a public HTTPS URL and resend after changing it.
+
+For a single-origin development tunnel, opt in to `PONYO_DEV_API_PROXY=true` and set `NEXT_PUBLIC_PONYO_API_BASE_URL=/ponyo-api` for the frontend process. The development-only rewrite forwards `/ponyo-api/v1/*` to the loopback API at port 8000, not the database or API docs. Set `PONYO_DEV_TUNNEL_ORIGIN` to the exact temporary HTTPS frontend origin to permit development assets. The backend process must use that origin for `STOREFRONT_BASE_URL` and include it in `FRONTEND_ORIGINS`. These temporary process overrides are not production configuration, stop working when the tunnel stops, and must be updated for each new quick-tunnel URL. Stop the tunnel after testing; do not share the URL publicly.
+
+Apply Alembic migrations through `20261111_0014` before deploying these auth changes. Existing customer accounts remain unverified and must use resend/verification before signing in. The schema represents pending status with `email_verified=false`; there is no separate activation status that can drift out of sync.
+
+Configure `STOREFRONT_BASE_URL` as the public HTTPS storefront origin (also present in `FRONTEND_ORIGINS`) and configure `SMTP_HOST`, `SMTP_FROM_EMAIL` (or `SMTP_USERNAME`), and SMTP credentials. Production startup rejects missing email transport or an invalid storefront origin. Without local SMTP, verification links are logged for development, but the API reports delivery failure rather than claiming mail was sent. Verification delivery is synchronous: failure returns `503`, preserves the pending account, and lets the customer retry through resend. There is no automatic delivery retry worker for verification mail.
+
+Before declaring email E2E complete, use a controlled real mailbox on staging: register, confirm the account remains pending and login/checkout are blocked, inspect inbox/spam, open the received public-domain link, sign in, and start Stripe test checkout. Repeat resend, expired/reused links, and SMTP failure/recovery. Check provider delivery/bounce logs and SPF/DKIM/DMARC. SMTP acceptance and mocked transport tests do not establish inbox delivery. Never include verification tokens or SMTP credentials in tickets or screenshots.
 
 Deploy the container to ECS/Fargate in `ap-northeast-1` behind an HTTPS load balancer. Use task IAM roles, Secrets Manager, private Aurora PostgreSQL and Redis subnets, exact CORS origins, shared-domain Secure cookies, TLS, WAF/rate limits, and CloudWatch. Configure Stripe webhook delivery to `/v1/webhooks/stripe`. The API publisher sends durable outbox events to SQS; a separate idempotent consumer must still process fulfillment and notifications before connecting real supplier systems.
 

@@ -1,0 +1,156 @@
+.page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+  background: radial-gradient(ellipse at 15% 15%, #ffe9db, transparent 55%), #faf7f4;
+}
+
+.card {
+  width: 100%;
+  max-width: 500px;
+  min-width: 0;
+  padding: 40px;
+  border: 1px solid #ecdfd5;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 16px 56px #51331f0d;
+}
+
+.heading {
+  margin: 32px 0 28px;
+}
+
+.heading h1 {
+  margin: 12px 0 16px;
+  color: #3a2b26;
+  font-family: var(--font-heading);
+  font-size: clamp(28px, 5vw, 36px);
+  font-weight: 800;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.heading p,
+.resend p {
+  margin: 0;
+  color: #74645c;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.actions {
+  display: grid;
+  gap: 28px;
+}
+
+.primary,
+.secondary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 50px;
+  padding: 14px 20px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primary {
+  color: #fff;
+  background: #a2502f;
+}
+
+.primary:hover {
+  background: #874125;
+}
+
+.secondary {
+  margin-top: 8px;
+  border-color: #dfc5b5;
+  color: #874125;
+  background: #fff8f2;
+}
+
+.secondary:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.resend {
+  padding-top: 24px;
+  border-top: 1px solid #eee5df;
+}
+
+.resend summary {
+  color: #6a5145;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.resend[open] summary {
+  margin-bottom: 16px;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.form label {
+  color: #44352f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid #e3d6ce;
+  border-radius: 12px;
+  background: #fffdfa;
+  color: #3a2b26;
+  font-size: 16px;
+}
+
+.card :is(a, button, summary, input):focus-visible {
+  outline: 3px solid #e9b08d;
+  outline-offset: 4px;
+}
+
+.success {
+  margin-top: 28px;
+}
+
+.back {
+  display: block;
+  width: fit-content;
+  margin: 32px auto 0;
+  color: #796a62;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (max-width: 540px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .card {
+    padding: 28px 24px;
+    border-radius: 22px;
+  }
+}

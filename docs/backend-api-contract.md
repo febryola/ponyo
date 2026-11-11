@@ -21,14 +21,16 @@ The storefront is a Next.js client. It must call only the public HTTPS FastAPI A
 | GET | `/v1/products/{product_id}/reviews` | public rating summary and published customer reviews |
 | POST | `/v1/products/{product_id}/reviews` | submit or update a signed-in customer's review (CSRF protected) |
 | POST | `/v1/products/{product_id}/waitlist` | save an email for a coming-soon product (CSRF protected; deduplicated per product/email) |
-| POST | `/v1/auth/register` | create account; sets session cookie |
-| POST | `/v1/auth/login` | sign in; sets session cookie |
+| POST | `/v1/auth/register` | create pending account or resend for an existing pending account; never signs in |
+| POST | `/v1/auth/verify-email/resend` | resend a 24-hour verification link for a pending account |
+| POST | `/v1/auth/verify-email/confirm` | consume a single-use token and activate the account |
+| POST | `/v1/auth/login` | sign in with a verified account; sets session cookie |
 | POST | `/v1/auth/logout` | clear session cookie |
 | POST | `/v1/auth/password-reset` | send reset email; always avoid revealing account existence |
 | GET | `/v1/auth/me` | current account/profile |
 | GET | `/v1/orders` | current customer's order history |
 | GET | `/v1/orders/{order_id}` | authorized order details and fulfillment status |
-| POST | `/v1/checkout/sessions` | validate inventory/prices, reserve stock, create Stripe/Adyen hosted session, return redirect URL |
+| POST | `/v1/checkout/sessions` | verified account required; validate inventory/prices, reserve stock, create hosted payment session |
 | GET | `/v1/checkout/sessions/{session_id}` | limited guest receipt lookup using the unguessable Stripe Checkout Session ID |
 | POST | `/v1/newsletter/subscriptions` | subscribe an email to marketing updates |
 | POST | `/v1/contact/requests` | contact or plush request form |
@@ -39,11 +41,17 @@ The storefront is a Next.js client. It must call only the public HTTPS FastAPI A
 
 ### Authentication response
 
-Register accepts `{ "firstName", "lastName", "email", "password", "marketingOptIn" }`; login accepts `{ "email", "password" }`. Successful register/login returns `{ "data": { "customer": { "id", "firstName", "lastName", "email" } } }` and sets the session cookie. Password reset accepts `{ "email" }` and returns `{ "data": { "accepted": true } }` without revealing whether the address exists. The browser does not persist credentials or bearer tokens.
+Register accepts `{ "firstName", "lastName", "email", "password", "marketingOptIn" }` and returns `{ "data": { "accepted": true, "emailVerificationRequired": true } }` only after SMTP accepts the verification message. It never sets a login session or exposes an existing pending customer's profile. Re-registering a pending address resends without changing the saved password/name; a verified address returns `409`.
+
+Resend accepts `{ "email" }`; confirm accepts `{ "token" }`. Resend returns `{ "data": { "accepted": true } }` for unknown or already-verified addresses without sending mail. Tokens are stored hashed, expire after 24 hours, and are consumed once; confirmation invalidates sibling tokens. Register/resend delivery failures return `503` with code `verification_email_delivery_failed`; the account remains pending and can recover through resend. SMTP acceptance is not proof of inbox delivery.
+
+Login accepts `{ "email", "password" }`; successful login returns `{ "data": { "customer": { "id", "firstName", "lastName", "email" } } }` and sets the session cookie. Pending login and existing unverified sessions return `403` with code `email_verification_required`. Account/order/review routes re-check the database verification flag on every request. Password reset accepts `{ "email" }` and returns `{ "data": { "accepted": true } }` without revealing whether the address exists. The browser does not persist credentials or bearer tokens.
 
 `GET /v1/orders` returns `{ "data": Order[] }`. Each order includes `id`, `orderNumber`, `createdAt`, `status`, `paymentStatus`, `fulfillmentStatus`, `customerEmail`, `deliveryAddress`, `totalAmount`, `currency`, and item snapshots with `id`, `name`, `image`, `imageAlt`, `maker`, `quantity`, `unitPrice`, and `currency`.
 
 ### Checkout request/response
+
+Live checkout requires a verified signed-in customer (`401` for guests, `403` for pending accounts). The submitted email must match the verified account email (`422` otherwise). These checks run before payment creation or stock reservation. Offline demo orders are previews only, not server orders or payments.
 
 `POST /v1/checkout/sessions` accepts `{ "email", "shippingAddress": { "firstName", "lastName", "address1", "city", "postalCode", "countryCode" }, "shippingMethod", "paymentMethod": "card" | "paypal" | "apple_pay", "items": [{ "variantId", "quantity" }], "successUrl", "cancelUrl" }`. The backend chooses Stripe or Adyen from server configuration, recalculates prices, and validates inventory; client-submitted prices are ignored. It responds `{ "data": { "checkoutUrl", "orderId", "expiresAt" } }`. The client redirects to the HTTPS `checkoutUrl`; webhook processing confirms payment and updates fulfillment asynchronously.
 `POST /v1/checkout/sessions` accepts `{ "email", "shippingAddress": { "firstName", "lastName", "address1", "city", "postalCode", "countryCode" }, "shippingMethod", "paymentMethod": "card" | "paypal" | "apple_pay", "items": [{ "variantId", "quantity" }], "successUrl", "cancelUrl" }`. The backend currently supports Stripe card checkout, recalculates prices, and validates/reserves inventory; client-submitted prices are ignored. It responds `{ "data": { "checkoutUrl", "orderId", "expiresAt" } }`. The client redirects to the HTTPS `checkoutUrl`; webhook processing verifies amount/session/signature and updates payment state. The hosted success URL includes Stripe's `{CHECKOUT_SESSION_ID}` placeholder; the receipt endpoint returns only a non-PII summary.

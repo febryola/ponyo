@@ -3,6 +3,23 @@ import type { Product } from "@/types/product";
 export const PONYO_API_BASE_URL =
 	process.env.NEXT_PUBLIC_PONYO_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
+function apiUrl(path: string) {
+	// Browsers use the same-origin proxy; Node fetch needs an absolute API URL.
+	let base = PONYO_API_BASE_URL;
+	if (typeof window === "undefined" && base.startsWith("/")) {
+		base = (
+			process.env.PONYO_API_SERVER_BASE_URL ??
+			(process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "")
+		).replace(/\/$/, "");
+		if (!base || !/^https?:\/\//.test(base)) {
+			throw new Error(
+				"Set PONYO_API_SERVER_BASE_URL to an absolute backend URL when using a relative public API URL.",
+			);
+		}
+	}
+	return `${base}/v1${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export class ApiNotConfiguredError extends Error {
 	constructor() {
 		super("Ponyo API is not configured.");
@@ -147,7 +164,7 @@ async function ensureCsrfToken() {
 	const cookieToken = readCsrfCookie();
 	if (cookieToken) return cookieToken;
 	if (cachedCsrfToken) return cachedCsrfToken;
-	const response = await fetch(`${PONYO_API_BASE_URL}/v1/auth/csrf`, {
+	const response = await fetch(apiUrl("/auth/csrf"), {
 		credentials: "include",
 		cache: "no-store",
 		referrerPolicy: "no-referrer",
@@ -178,7 +195,7 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
 	}
 
 	const response = await fetch(
-		`${PONYO_API_BASE_URL}/v1${path.startsWith("/") ? path : `/${path}`}`,
+		apiUrl(path),
 		{
 			...init,
 			method,
@@ -265,19 +282,29 @@ export const ponyoApi = {
 		marketingOptIn: boolean;
 		lastName: string;
 	}) => {
-		const response = await apiRequest<{ customer: CustomerProfile }>(
+		const response = await apiRequest<{ accepted: boolean; emailVerificationRequired: boolean }>(
 			"/auth/register",
 			{
 				method: "POST",
 				body: JSON.stringify(input),
 			},
 		);
-		return response.customer;
+		return response;
 	},
 	requestPasswordReset: (email: string) =>
 		apiRequest<{ accepted: boolean }>("/auth/password-reset", {
 			method: "POST",
 			body: JSON.stringify({ email }),
+		}),
+	resendVerificationEmail: (email: string) =>
+		apiRequest<{ accepted: boolean }>("/auth/verify-email/resend", {
+			method: "POST",
+			body: JSON.stringify({ email }),
+		}),
+	verifyEmail: (token: string) =>
+		apiRequest<{ accepted: boolean }>("/auth/verify-email/confirm", {
+			method: "POST",
+			body: JSON.stringify({ token }),
 		}),
 	confirmPasswordReset: (token: string, password: string) =>
 		apiRequest<{ accepted: boolean }>("/auth/password-reset/confirm", {

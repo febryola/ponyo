@@ -420,7 +420,7 @@ resource "aws_iam_role_policy" "task_secrets" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["secretsmanager:GetSecretValue"]
-      Resource = [var.jwt_secret_arn, var.stripe_secret_key_arn, var.stripe_webhook_secret_arn, aws_rds_cluster.main.master_user_secret[0].secret_arn, aws_secretsmanager_secret.redis.arn]
+      Resource = [var.jwt_secret_arn, var.stripe_secret_key_arn, var.stripe_webhook_secret_arn, var.smtp_password_secret_arn, aws_rds_cluster.main.master_user_secret[0].secret_arn, aws_secretsmanager_secret.redis.arn]
     }]
   })
 }
@@ -474,6 +474,12 @@ resource "aws_ecs_task_definition" "api" {
       { name = "API_HOST", value = "0.0.0.0" },
       { name = "API_PORT", value = "8000" },
       { name = "FRONTEND_ORIGINS", value = var.frontend_origin },
+      { name = "STOREFRONT_BASE_URL", value = var.frontend_origin },
+      { name = "SMTP_HOST", value = var.smtp_host },
+      { name = "SMTP_FROM_EMAIL", value = var.smtp_from_email },
+      { name = "SMTP_USERNAME", value = var.smtp_username },
+      { name = "SMTP_PORT", value = tostring(var.smtp_port) },
+      { name = "SMTP_STARTTLS", value = tostring(var.smtp_starttls) },
       { name = "COOKIE_DOMAIN", value = var.cookie_domain },
       { name = "COOKIE_SECURE", value = "true" },
       { name = "COOKIE_SAMESITE", value = "lax" },
@@ -492,6 +498,7 @@ resource "aws_ecs_task_definition" "api" {
       { name = "JWT_SECRET", valueFrom = var.jwt_secret_arn },
       { name = "STRIPE_SECRET_KEY", valueFrom = var.stripe_secret_key_arn },
       { name = "STRIPE_WEBHOOK_SECRET", valueFrom = var.stripe_webhook_secret_arn },
+      { name = "SMTP_PASSWORD", valueFrom = var.smtp_password_secret_arn },
       { name = "DATABASE_PASSWORD", valueFrom = "${aws_rds_cluster.main.master_user_secret[0].secret_arn}:password::" },
       { name = "REDIS_PASSWORD", valueFrom = "${aws_secretsmanager_secret.redis.arn}:password::" }
     ]

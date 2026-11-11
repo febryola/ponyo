@@ -162,6 +162,10 @@ class PasswordResetConfirm(BaseModel):
         return password
 
 
+class EmailVerificationConfirm(BaseModel):
+    token: str = Field(min_length=32, max_length=128)
+
+
 class AcceptedOut(BaseModel):
     accepted: bool = True
 

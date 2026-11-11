@@ -71,6 +71,9 @@ async def add_request_id(request: Request, call_next):
 async def http_error_handler(request: Request, error: HTTPException):
     message = error.detail if isinstance(error.detail, str) else "Request could not be completed."
     code = {400: "bad_request", 401: "unauthorized", 403: "forbidden", 404: "not_found", 409: "conflict", 422: "validation_error", 429: "rate_limited", 503: "service_unavailable"}.get(error.status_code, "request_error")
+    if isinstance(error.detail, dict):
+        message = error.detail.get("message", message)
+        code = error.detail.get("code", code)
     return JSONResponse(status_code=error.status_code, content={"error": {"code": code, "message": message, "request_id": getattr(request.state, "request_id", None)}})
 
 

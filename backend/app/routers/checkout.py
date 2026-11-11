@@ -15,7 +15,7 @@ from app.models import Customer, Order, OrderItem, ProductVariant
 from app.media import storefront_image_url
 from app.rate_limit import enforce_rate_limit
 from app.schemas import CheckoutReceiptOut, CheckoutSessionRequest
-from app.security import get_optional_customer, require_csrf
+from app.security import get_current_customer, require_csrf
 
 router = APIRouter(prefix="/checkout", tags=["checkout"])
 
@@ -58,9 +58,11 @@ async def create_checkout_session(
     payload: CheckoutSessionRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    customer: Customer | None = Depends(get_optional_customer),
+    customer: Customer = Depends(get_current_customer),
 ):
     require_csrf(request)
+    if str(payload.email).lower().strip() != customer.email.lower():
+        raise HTTPException(status_code=422, detail="Use your verified account email for checkout.")
     if not settings.stripe_secret_key:
         raise HTTPException(status_code=503, detail="Secure checkout is not configured yet.")
     shipping_price = SHIPPING_PRICES.get(payload.shippingMethod)
@@ -116,8 +118,8 @@ async def create_checkout_session(
     order = Order(
         id=order_id,
         order_number=order_number,
-        customer_id=customer.id if customer else None,
-        customer_email=str(payload.email).lower().strip(),
+        customer_id=customer.id,
+        customer_email=customer.email,
         status="pending_payment",
         payment_status="unpaid",
         fulfillment_status="unfulfilled",

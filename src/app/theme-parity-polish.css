@@ -3165,6 +3165,25 @@ body {
     line-height: 1.55;
 }
 
+.account-auth-verification-actions {
+    display: grid;
+    gap: 10px;
+}
+
+.account-auth-verification-note {
+    margin: 0;
+    color: #5f4d45;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.account-auth-submit--secondary {
+    border: 1px solid #d3b6a6;
+    background: #fffaf6;
+    box-shadow: none;
+    color: #7b4a35;
+}
+
 .account-auth-aside {
     min-height: 520px;
     padding: 42px;
@@ -9217,8 +9236,12 @@ body {
 
 @media (max-width: 767px) {
     .account-drawer {
-        width: min(440px, 100vw);
-        border-radius: 18px 0 0 18px;
+        width: 100vw;
+        max-width: 100vw;
+        border: 0;
+        border-left: 0;
+        border-radius: 0;
+        box-shadow: none;
     }
     .account-drawer-heading {
         min-height: 76px;

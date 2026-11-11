@@ -9,6 +9,7 @@ import { saveLocalOrder } from "@/lib/local-orders";
 import { useLocalization } from "@/components/layout/localization-provider";
 import { ApiNotConfiguredError, ApiRequestError, ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
+import { AccountAuthForm } from "@/components/account/account-auth-form";
 
 type CheckoutStep = 0 | 1 | 2;
 type PaymentMethod = "card" | "apple_pay" | "paypay" | "rakuten_pay" | "konbini" | "amazon_pay";
@@ -49,7 +50,7 @@ function PaymentBrandMark({ brand }: { brand: string }) {
 export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   const router = useRouter();
   const { currency, country, deliveryCountries, formatPrice, convertMajorAmount } = useLocalization();
-  const { customer } = useCustomerSession();
+  const { customer, setCustomer, isLoading: sessionLoading } = useCustomerSession();
   const cartItems = useCartItems();
   const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
   const [buyNowReady, setBuyNowReady] = useState(!buyNow);
@@ -76,7 +77,7 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
   const [previewOffer, setPreviewOffer] = useState(false);
-  const checkoutEmail = email || customer?.email || "";
+  const checkoutEmail = PONYO_API_BASE_URL ? customer?.email ?? "" : email;
   const checkoutDelivery = {
     ...delivery,
     firstName: delivery.firstName || customer?.firstName || "",
@@ -159,6 +160,10 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   async function placeLocalOrder() {
     setApiError("");
     if (PONYO_API_BASE_URL) {
+      if (!customer) {
+        setApiError("Sign in with a verified Ponyo account before checkout.");
+        return;
+      }
       if (paymentMethod !== "card" && paymentMethod !== "apple_pay") {
         setApiError("This payment method will be available when Japan payment processing is connected.");
         return;
@@ -195,6 +200,9 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
         if (buyNow) window.sessionStorage.removeItem("ponyo:buy-now-item");
         window.location.assign(checkoutUrl.toString());
       } catch (error) {
+        if (error instanceof ApiRequestError && (error.status === 401 || error.code === "email_verification_required")) {
+          setCustomer(null);
+        }
         setApiError(error instanceof ApiNotConfiguredError ? "Checkout service is not configured." : error instanceof Error ? error.message : "Unable to start checkout.");
         setPreviewOffer(error instanceof ApiRequestError && error.status === 503);
       } finally {
@@ -207,6 +215,15 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   }
 
   if (!buyNowReady) return <section className="checkout-empty" role="status"><p>Preparing your plush for checkout…</p></section>;
+
+  if (PONYO_API_BASE_URL && sessionLoading) return <section className="checkout-empty" role="status"><p>Checking your account…</p></section>;
+
+  if (PONYO_API_BASE_URL && !customer) {
+    return <section aria-label="Sign in for secure checkout">
+      <div className="checkout-empty"><h1>Sign in before checkout</h1><p>A verified Ponyo account is required to place an order. Your bag will stay here while you sign in or verify your email.</p></div>
+      <AccountAuthForm mode="login" onAuthenticated={setCustomer} />
+    </section>;
+  }
 
   if (items.length === 0) {
     return (
@@ -235,8 +252,8 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
         <div className="checkout-main-panel">
           {step === 0 && <form className="checkout-form" onSubmit={continueToPayment}>
             <section className="checkout-form-section">
-              <div className="checkout-section-heading"><span>01</span><div><h2>Contact</h2><p>{customer ? "We’ve filled in your account details. You can change them for this order." : "Where should we send your order updates?"}</p></div></div>
-              <label>Email address<input type="email" autoComplete="email" value={checkoutEmail} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required /></label>
+              <div className="checkout-section-heading"><span>01</span><div><h2>Contact</h2><p>{customer ? "Order updates will be sent to your verified account email." : "Where should we send your order updates?"}</p></div></div>
+              <label>Email address<input type="email" autoComplete="email" value={checkoutEmail} readOnly={Boolean(PONYO_API_BASE_URL)} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required /></label>
             </section>
             <section className="checkout-form-section">
               <div className="checkout-section-heading"><span>02</span><div><h2>Delivery address</h2><p>Enter the address where your new friend will arrive.</p></div></div>

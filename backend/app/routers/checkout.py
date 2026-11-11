@@ -4,18 +4,20 @@ from uuid import uuid4
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.currency import SUPPORTED_CURRENCIES, convert_minor_amount, get_jpy_rates
 from app.db import get_db
-from app.models import Customer, Order, OrderItem, ProductVariant
+from app.models import Customer, Order, OrderItem, OrderStatusHistory, ProductVariant
+from app.inventory import reserve_supplier_stock
 from app.media import storefront_image_url
 from app.rate_limit import enforce_rate_limit
 from app.schemas import CheckoutReceiptOut, CheckoutSessionRequest
-from app.security import get_optional_customer, require_csrf
+from app.security import get_current_customer, require_csrf
 
 router = APIRouter(prefix="/checkout", tags=["checkout"])
 
@@ -58,9 +60,11 @@ async def create_checkout_session(
     payload: CheckoutSessionRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    customer: Customer | None = Depends(get_optional_customer),
+    customer: Customer = Depends(get_current_customer),
 ):
     require_csrf(request)
+    if str(payload.email).lower().strip() != customer.email.lower():
+        raise HTTPException(status_code=422, detail="Use your verified account email for checkout.")
     if not settings.stripe_secret_key:
         raise HTTPException(status_code=503, detail="Secure checkout is not configured yet.")
     shipping_price = SHIPPING_PRICES.get(payload.shippingMethod)
@@ -83,6 +87,7 @@ async def create_checkout_session(
         select(ProductVariant)
         .where(ProductVariant.id.in_(variant_ids), ProductVariant.active.is_(True))
         .options(selectinload(ProductVariant.product))
+        .order_by(ProductVariant.id)
         .with_for_update()
     )
     variant_by_id = {variant.id: variant for variant in variants}
@@ -106,6 +111,12 @@ async def create_checkout_session(
         variant = variant_by_id[requested.variantId]
         if not variant.product.published or variant.stock_quantity < requested.quantity:
             raise HTTPException(status_code=409, detail="One or more items are no longer available in that quantity.")
+        if (requested.expectedPriceAmount is not None and requested.expectedPriceAmount != variant.price_amount) or (
+            requested.expectedCurrency is not None and requested.expectedCurrency.upper() != variant.currency.upper()
+        ):
+            raise HTTPException(status_code=409, detail={
+                "code": "cart_price_changed", "message": "Prices changed. Review your cart before starting payment.",
+            })
 
     currency = target_currency.lower()
     item_total = sum(converted_prices[item.variantId] * item.quantity for item in payload.items)
@@ -116,8 +127,8 @@ async def create_checkout_session(
     order = Order(
         id=order_id,
         order_number=order_number,
-        customer_id=customer.id if customer else None,
-        customer_email=str(payload.email).lower().strip(),
+        customer_id=customer.id,
+        customer_email=customer.email,
         status="pending_payment",
         payment_status="unpaid",
         fulfillment_status="unfulfilled",
@@ -131,7 +142,28 @@ async def create_checkout_session(
     line_items = []
     for requested in payload.items:
         variant = variant_by_id[requested.variantId]
-        variant.stock_quantity -= requested.quantity
+        try:
+            claimed = await db.execute(update(ProductVariant).where(
+                ProductVariant.id == variant.id, ProductVariant.active.is_(True),
+                ProductVariant.stock_quantity >= requested.quantity,
+                ProductVariant.price_amount == variant.price_amount,
+            ).values(stock_quantity=ProductVariant.stock_quantity - requested.quantity)
+                .execution_options(synchronize_session=False))
+        except OperationalError as error:
+            await db.rollback()
+            # SQLite snapshots cannot always upgrade to a writer; PostgreSQL
+            # serialization/deadlock failures also require a whole-request retry.
+            code = getattr(error.orig, "sqlstate", None) or getattr(error.orig, "pgcode", None)
+            sqlite_code = getattr(error.orig, "sqlite_errorcode", 0)
+            if code in {"40001", "40P01"} or (sqlite_code & 255) in {5, 6}:
+                raise HTTPException(409, detail={
+                    "code": "stock_reservation_conflict", "message": "Another checkout updated stock. Review your cart and try again.",
+                }) from None
+            raise
+        if claimed.rowcount != 1:
+            await db.rollback()
+            raise HTTPException(409, "Stock or price changed. Review your cart before checkout.")
+        offer_id = await reserve_supplier_stock(db, variant, requested.quantity)
         line_items.append({
             "quantity": requested.quantity,
             "price_data": {
@@ -145,6 +177,7 @@ async def create_checkout_session(
         })
         order.items.append(OrderItem(
             variant_id=variant.id,
+            supplier_offer_id=offer_id,
             product_name=variant.product.name,
             supplier_name=variant.product.supplier_name,
             image_url=storefront_image_url(variant.product.image_url),
@@ -154,6 +187,10 @@ async def create_checkout_session(
             currency=currency.upper(),
         ))
     db.add(order)
+    db.add(OrderStatusHistory(
+        order_id=order.id, to_status="pending_payment", payment_status="unpaid",
+        fulfillment_status="unfulfilled", source="checkout", event_key="checkout.created",
+    ))
     stripe.api_key = settings.stripe_secret_key
     if shipping_price:
         line_items.append({"quantity": 1, "price_data": {"currency": currency, "unit_amount": converted_shipping, "product_data": {"name": "Express delivery"}}})
@@ -175,6 +212,7 @@ async def create_checkout_session(
         raise HTTPException(status_code=503, detail="The payment provider could not start checkout. Please try again.") from None
 
     order.stripe_session_id = session.id
+    order.reservation_expires_at = datetime.fromtimestamp(session.expires_at, timezone.utc)
     db.add(order)
     try:
         await db.commit()

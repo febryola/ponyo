@@ -12,7 +12,25 @@ export type CartItem = {
 	image: string;
 	imageAlt: string;
 	qty: number;
+	validationIssue?: string;
+	availability?: "available" | "unavailable";
+	availableQuantity?: number;
 };
+
+/** Live variants are distinct lines even when they share one product. */
+export function addCartItem(items: CartItem[], incoming: CartItem): CartItem[] {
+	if (!incoming?.id || !Number.isInteger(incoming.qty) || incoming.qty < 1 ||
+		!Number.isFinite(incoming.price) || incoming.price < 0 || !incoming.currency) return items;
+	const same = (item: CartItem) => incoming.variantId
+		? item.variantId === incoming.variantId
+		: !item.variantId && item.id === incoming.id;
+	const existing = items.find(same);
+	if (!existing && items.length >= 100) return items;
+	const line = { ...incoming, id: incoming.variantId ?? incoming.id, qty: Math.min(99, incoming.qty) };
+	return existing
+		? items.map((item) => same(item) ? { ...line, id: item.id, qty: Math.min(99, item.qty + incoming.qty) } : item)
+		: [...items, line];
+}
 
 export const cartStorageKey = "ponyo-cart-v2";
 export const cartUpdatedEvent = "ponyo:cart-updated";
@@ -72,4 +90,4 @@ export function saveCart(items: CartItem[]) {
 		// The cart remains usable in memory if browser storage is unavailable.
 	}
 }
-// Checkout sessions are created by the Ponyo API; cart persistence stays local.
+// Browser storage serves guests/offline use; CartSync mirrors verified customer carts to the API.

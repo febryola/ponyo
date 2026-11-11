@@ -7,6 +7,8 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models import Product, ProductVariant
+from app.config import settings
+from app.storefront_data import link_demo_catalog
 
 PRODUCTS = [
     {"slug": "hoshi-cloud-bear", "name": "Hoshi Cloud Bear", "description": "A warm, squishy cream teddy bear with a classic gingham bow.", "price": 18800, "category": "Bears", "type": "Plush", "tags": ["bear", "new-arrival", "rare"], "size": "Medium", "dimensions": "30 cm", "supplier": "Ponyo", "image": "/images/catalog/maker-bear.jpg", "alt": "Warm cream teddy bear plush with a checkered bow", "stock": 20},
@@ -44,6 +46,8 @@ def stable_id(value: str):
 
 
 async def seed_products() -> None:
+    if settings.environment == "production":
+        raise RuntimeError("Demo catalog and supplier seeds must not run in production.")
     async with SessionLocal() as db:
         for item in PRODUCTS:
             product_id = stable_id(item["slug"])
@@ -118,8 +122,10 @@ async def seed_products() -> None:
                 variant.options = {"Size": item["size"], "Color": PRODUCT_COLORS[item["slug"]]}
                 variant.currency = "JPY"
                 variant.price_amount = item["price"]
-                variant.stock_quantity = stock_quantity
+                # Re-running the fixture must not replenish previously reserved/sold stock.
                 variant.active = True
+        await db.flush()
+        await link_demo_catalog(db)
         await db.commit()
 
 

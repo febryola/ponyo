@@ -1,6 +1,6 @@
 from functools import lru_cache
 from typing import Literal
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
     storefront_base_url: str = "http://localhost:3000"
     frontend_origins: str = "http://localhost:3000,http://localhost:3003"
-    database_url: str = "postgresql+asyncpg://ponyo:ponyo@localhost:5433/ponyo"
+    database_url: str = "sqlite+aiosqlite:///./ponyo-local.db"
     database_host: str | None = None
     database_port: int = 5432
     database_name: str | None = None
@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     session_cookie_name: str = "ponyo_session"
     csrf_cookie_name: str = "ponyo_csrf"
     cookie_domain: str | None = None
-    cookie_secure: bool = False
-    cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    cookie_secure: bool = True
+    cookie_samesite: Literal["lax", "strict", "none"] = "none"
     session_ttl_seconds: int = 60 * 60 * 24 * 7
 
     stripe_secret_key: str | None = None
@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     def validate_production_security(self):
         if self.cookie_domain == "":
             self.cookie_domain = None
+        if self.environment == "local" and any("localhost" in origin for origin in self.cors_origins):
+            self.cookie_samesite = "none"
+            self.cookie_secure = True
         if self.database_host and self.database_name and self.database_user and self.database_password:
             self.database_url = (
                 f"postgresql+asyncpg://{quote_plus(self.database_user)}:{quote_plus(self.database_password)}"
@@ -83,6 +86,11 @@ class Settings(BaseSettings):
         if self.redis_host and self.redis_password:
             self.redis_url = f"rediss://:{quote_plus(self.redis_password)}@{self.redis_host}:{self.redis_port}/0"
         if self.environment == "production":
+            storefront = urlparse(self.storefront_base_url)
+            if storefront.scheme != "https" or not storefront.netloc or storefront.username or storefront.password or storefront.path not in {"", "/"} or storefront.query or storefront.fragment or self.storefront_base_url.rstrip("/") not in self.cors_origins:
+                raise ValueError("STOREFRONT_BASE_URL must be an allowed HTTPS storefront origin in production.")
+            if not self.contact_email_configured:
+                raise ValueError("SMTP transport must be configured for account verification in production.")
             if self.jwt_secret == "development-only-change-me-32-characters":
                 raise ValueError("JWT_SECRET must be set to a unique production secret.")
             if not self.cookie_secure:

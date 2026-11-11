@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
-import { useCartItems, saveCart, type CartItem } from "@/lib/cart";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCartItems, readCart, saveCart, type CartItem } from "@/lib/cart";
+import { refreshCartItems } from "@/lib/cart-validation";
 import { saveLocalOrder } from "@/lib/local-orders";
 import { useLocalization } from "@/components/layout/localization-provider";
 import { ApiNotConfiguredError, ApiRequestError, ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
+import { AccountAuthForm } from "@/components/account/account-auth-form";
 
 type CheckoutStep = 0 | 1 | 2;
 type PaymentMethod = "card" | "apple_pay" | "paypay" | "rakuten_pay" | "konbini" | "amazon_pay";
@@ -49,7 +51,7 @@ function PaymentBrandMark({ brand }: { brand: string }) {
 export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   const router = useRouter();
   const { currency, country, deliveryCountries, formatPrice, convertMajorAmount } = useLocalization();
-  const { customer } = useCustomerSession();
+  const { customer, setCustomer, isLoading: sessionLoading } = useCustomerSession();
   const cartItems = useCartItems();
   const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
   const [buyNowReady, setBuyNowReady] = useState(!buyNow);
@@ -75,15 +77,16 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   const [delivery, setDelivery] = useState({ firstName: "", lastName: "", address: "", address2: "", region: "", city: "", postal: "", phone: "", country: deliveryCountries.find((item) => item.code === country)?.label ?? "Japan" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
-  const [previewOffer, setPreviewOffer] = useState(false);
-  const checkoutEmail = email || customer?.email || "";
+  const submitting = useRef(false);
+  const currentCurrency = useRef(currency);
+  useEffect(() => { currentCurrency.current = currency; }, [currency]);
+  const checkoutEmail = PONYO_API_BASE_URL ? customer?.email ?? "" : email;
   const checkoutDelivery = {
     ...delivery,
     firstName: delivery.firstName || customer?.firstName || "",
     lastName: delivery.lastName || customer?.lastName || "",
   };
-  const catalogCurrency = items[0]?.currency ?? "JPY";
-  const subtotal = convertMajorAmount(items.reduce((sum, item) => sum + item.price * item.qty, 0), catalogCurrency);
+  const subtotal = items.reduce((sum, item) => sum + convertMajorAmount(item.price * item.qty, item.currency), 0);
   const deliveryPrice = convertMajorAmount(shippingOptions.find((option) => option.id === shipping)?.price ?? 0, "JPY");
   const total = subtotal + deliveryPrice;
 
@@ -157,19 +160,52 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   }
 
   async function placeLocalOrder() {
+    if (submitting.current) return;
     setApiError("");
     if (PONYO_API_BASE_URL) {
+      if (!customer) {
+        setApiError("Sign in with a verified Ponyo account before checkout.");
+        return;
+      }
       if (paymentMethod !== "card" && paymentMethod !== "apple_pay") {
         setApiError("This payment method will be available when Japan payment processing is connected.");
         return;
       }
-      const checkoutItems = items.map((item) => item.variantId ? { variantId: item.variantId, quantity: item.qty } : null);
-      if (checkoutItems.some((item) => item === null)) {
-        setApiError("One or more items need a live variant ID before backend checkout can start. Refresh the catalog and try again.");
-        return;
-      }
+      submitting.current = true;
       setIsSubmitting(true);
       try {
+        // Compare the entire storage snapshot, not just quantities: never overwrite
+        // a price refresh, cross-tab edit, or replacement buy-now selection.
+        const storageSnapshot = () => buyNow ? window.sessionStorage.getItem("ponyo:buy-now-item") : JSON.stringify(readCart());
+        const original = storageSnapshot();
+        const expected = buyNow ? JSON.stringify(buyNowItem) : JSON.stringify(items);
+        if (original !== expected) throw new Error("Your cart changed. Review your cart before trying again.");
+        let accepted: string | null = original;
+        const assertUnchanged = () => {
+          if (storageSnapshot() !== accepted || currentCurrency.current !== currency) {
+            throw new Error("Your cart or currency changed during checkout. Review your cart and try again.");
+          }
+        };
+        const refreshed = await refreshCartItems(items, currency);
+        assertUnchanged();
+        const priceChanged = refreshed.validation?.items.some((line) => line.priceChanged) || refreshed.items.some((item, index) => item.price !== items[index].price || item.currency !== items[index].currency);
+        if (buyNow) {
+          window.sessionStorage.setItem("ponyo:buy-now-item", JSON.stringify(refreshed.items[0]));
+          setBuyNowItem(refreshed.items[0]);
+        } else {
+          saveCart(refreshed.items);
+        }
+        accepted = storageSnapshot();
+        if (!refreshed.validation?.canCheckout) {
+          setApiError(priceChanged ? "Prices or currencies changed. Review the updated order and try again. Stock issues must be resolved in your cart." : "Some items are unavailable, have insufficient stock, or use different source currencies. Review your cart before checkout.");
+          return;
+        }
+        if (priceChanged) {
+          setApiError("Prices or currencies changed. Review the updated order, then continue to secure payment again to accept them.");
+          return;
+        }
+        const checkoutItems = refreshed.items.map((item) => ({ variantId: item.variantId!, quantity: item.qty, expectedPriceAmount: item.price, expectedCurrency: item.currency }));
+        assertUnchanged();
         const session = await ponyoApi.createCheckoutSession({
           email: checkoutEmail,
           shippingAddress: {
@@ -186,18 +222,22 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
           shippingMethod: shipping,
           paymentMethod,
           currency,
-          items: checkoutItems.filter((item): item is { variantId: string; quantity: number } => item !== null),
+          items: checkoutItems,
           successUrl: `${window.location.origin}/orders?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${window.location.origin}/checkout?checkout=cancelled`,
         });
+        assertUnchanged();
         const checkoutUrl = new URL(session.checkoutUrl);
         if (checkoutUrl.protocol !== "https:") throw new Error("The payment service returned an invalid checkout URL.");
         if (buyNow) window.sessionStorage.removeItem("ponyo:buy-now-item");
         window.location.assign(checkoutUrl.toString());
       } catch (error) {
+        if (error instanceof ApiRequestError && (error.status === 401 || error.code === "email_verification_required")) {
+          setCustomer(null);
+        }
         setApiError(error instanceof ApiNotConfiguredError ? "Checkout service is not configured." : error instanceof Error ? error.message : "Unable to start checkout.");
-        setPreviewOffer(error instanceof ApiRequestError && error.status === 503);
       } finally {
+        submitting.current = false;
         setIsSubmitting(false);
       }
       return;
@@ -207,6 +247,15 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   }
 
   if (!buyNowReady) return <section className="checkout-empty" role="status"><p>Preparing your plush for checkout…</p></section>;
+
+  if (PONYO_API_BASE_URL && sessionLoading) return <section className="checkout-empty" role="status"><p>Checking your account…</p></section>;
+
+  if (PONYO_API_BASE_URL && !customer) {
+    return <section aria-label="Sign in for secure checkout">
+      <div className="checkout-empty"><h1>Sign in before checkout</h1><p>A verified Ponyo account is required to place an order. Your bag will stay here while you sign in or verify your email.</p></div>
+      <AccountAuthForm mode="login" onAuthenticated={setCustomer} />
+    </section>;
+  }
 
   if (items.length === 0) {
     return (
@@ -235,8 +284,8 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
         <div className="checkout-main-panel">
           {step === 0 && <form className="checkout-form" onSubmit={continueToPayment}>
             <section className="checkout-form-section">
-              <div className="checkout-section-heading"><span>01</span><div><h2>Contact</h2><p>{customer ? "We’ve filled in your account details. You can change them for this order." : "Where should we send your order updates?"}</p></div></div>
-              <label>Email address<input type="email" autoComplete="email" value={checkoutEmail} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required /></label>
+              <div className="checkout-section-heading"><span>01</span><div><h2>Contact</h2><p>{customer ? "Order updates will be sent to your verified account email." : "Where should we send your order updates?"}</p></div></div>
+              <label>Email address<input type="email" autoComplete="email" value={checkoutEmail} readOnly={Boolean(PONYO_API_BASE_URL)} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required /></label>
             </section>
             <section className="checkout-form-section">
               <div className="checkout-section-heading"><span>02</span><div><h2>Delivery address</h2><p>Enter the address where your new friend will arrive.</p></div></div>
@@ -277,9 +326,8 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
             <div className="checkout-review-block"><div><strong>Contact</strong><button type="button" onClick={() => setStep(0)}>Edit</button></div><p>{checkoutEmail}</p></div>
             <div className="checkout-review-block"><div><strong>Delivery</strong><button type="button" onClick={() => setStep(0)}>Edit</button></div><p>{checkoutDelivery.firstName} {checkoutDelivery.lastName}<br />{checkoutDelivery.address}{checkoutDelivery.address2 && <><br />{checkoutDelivery.address2}</>}<br />{[checkoutDelivery.city, checkoutDelivery.region, checkoutDelivery.postal, checkoutDelivery.country].filter(Boolean).join(", ")}<br />{shippingOptions.find((option) => option.id === shipping)?.name}</p></div>
             <div className="checkout-review-block"><div><strong>Payment</strong><button type="button" onClick={() => setStep(1)}>Edit</button></div><p>{paymentOptions.find((option) => option.id === paymentMethod)?.label ?? "Credit or debit card"}</p></div>
-            {apiError && <p className="api-form-error" role="alert">{apiError}</p>}
+            {apiError && <p className="api-form-error" role="alert">{apiError} <Link href="/cart">Review cart</Link></p>}
             <div className="checkout-step-actions"><button type="button" className="checkout-secondary-button" onClick={() => setStep(1)}>← Back to payment</button><button type="button" className="checkout-primary-button" onClick={placeLocalOrder} disabled={isSubmitting}>{isSubmitting ? "Starting checkout…" : PONYO_API_BASE_URL ? "Continue to secure payment" : "Place demo order"}<span aria-hidden="true">→</span></button></div>
-            {previewOffer && <div className="checkout-preview-fallback"><p>Secure payment setup is not available yet. You can still complete a sample order to test order history and Japan Post tracking.</p><button type="button" className="checkout-secondary-button" onClick={placePreviewOrder}>Create sample order <span aria-hidden="true">→</span></button></div>}
             {!PONYO_API_BASE_URL && <p className="checkout-preview-disclaimer">Demo checkout only. No payment is collected.</p>}
           </section>}
         </div>

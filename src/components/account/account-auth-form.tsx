@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ApiNotConfiguredError, ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
+import { ApiNotConfiguredError, ApiRequestError, ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import type { CustomerProfile } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
@@ -14,6 +14,9 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
   const router = useRouter();
   const [mode, setMode] = useState(initialMode);
   const [submitted, setSubmitted] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [notice, setNotice] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
@@ -29,12 +32,31 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
 
   function getPostAuthDestination() {
     const requested = new URLSearchParams(window.location.search).get("returnTo");
-    return requested?.startsWith("/") && !requested.startsWith("//") ? requested : "/account";
+    if (!requested?.startsWith("/")) return "/account";
+    const destination = new URL(requested, window.location.origin);
+    return destination.origin === window.location.origin ? destination.pathname + destination.search + destination.hash : "/account";
+  }
+
+  async function handleResend() {
+    setIsSubmitting(true);
+    setErrorMessage("");
+    setNotice("");
+    try {
+      await ponyoApi.resendVerificationEmail(verificationEmail || email);
+      setVerificationSent(true);
+      setNotice("If this email belongs to a pending account, a new verification link has been sent. Check your inbox and spam folder.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to resend the verification email.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
+    setNotice("");
+    setVerificationEmail("");
     if (!PONYO_API_BASE_URL) {
       setErrorMessage("Account service is not connected yet. Please try again later.");
       return;
@@ -52,19 +74,37 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
       } else if (mode === "register") {
         const fullName = String(formData.get("name") ?? "").trim();
         const [firstName = "", ...lastNameParts] = fullName.split(/\s+/);
-        const customer = await ponyoApi.register({ firstName, lastName: lastNameParts.join(" "), email, password, marketingOptIn: offers });
-        setCustomer(customer);
-        if (onAuthenticated) onAuthenticated(customer);
-        else router.push(getPostAuthDestination());
+        await ponyoApi.register({ firstName, lastName: lastNameParts.join(" "), email, password, marketingOptIn: offers });
+        setVerificationEmail(email);
+        setVerificationSent(true);
+        setSubmitted(true);
+        setEmail(email);
+        setPassword("");
+        setMode("register");
+        return;
       } else {
         await ponyoApi.requestPasswordReset(email);
         setSubmitted(true);
       }
     } catch (error) {
+      const isFetchFailure = error instanceof TypeError ||
+        (error instanceof Error && /Failed to fetch|NetworkError/i.test(error.message));
+
       if (error instanceof ApiNotConfiguredError) {
         setErrorMessage("Account service is not connected yet. Please try again later.");
+      } else if (isFetchFailure) {
+        setErrorMessage("The Ponyo service is temporarily unavailable. Please try again in a moment.");
       } else if (error instanceof Error && "status" in error && error.status === 401) {
         setErrorMessage("We couldn't sign you in. Check your details or create a new account if you haven't joined Ponyo yet.");
+      } else if (error instanceof ApiRequestError && error.code === "email_verification_required") {
+        setVerificationEmail(email);
+        setErrorMessage("Please verify your email before signing in.");
+      } else if (error instanceof ApiRequestError && error.code === "verification_email_delivery_failed") {
+        setVerificationEmail(email);
+        setVerificationSent(false);
+        setPassword("");
+        setSubmitted(true);
+        setErrorMessage(error.message);
       } else if (error instanceof Error && "status" in error && error.status === 409) {
         setEmail(email);
         setPassword("");
@@ -105,10 +145,19 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
         </div>}
         {submitted ? (
           <div className="account-auth-success" role="status">
-            <span aria-hidden="true">✓</span>
-            <strong>{mode === "forgot" ? "Password reset unavailable" : mode === "register" ? "Account preview" : "Sign-in preview"}</strong>
-            <p>{mode === "forgot" ? "If an account matches that email, look for a secure reset link in your inbox. If it doesn’t arrive, contact Ponyo support." : "Your account request was processed by Ponyo."}</p>
-            <button type="button" className="account-auth-submit" onClick={() => setSubmitted(false)}>Back to form</button>
+            <span aria-hidden="true">✉</span>
+            <strong>{mode === "forgot" ? "Check your email" : verificationSent ? "Check your email!" : "Your account is pending verification"}</strong>
+            <p>
+              {mode === "forgot"
+                ? "If an account matches that email, look for a secure reset link in your inbox. If it doesn’t arrive, contact Ponyo support."
+                : verificationSent
+                  ? `We’ve sent a verification link to ${verificationEmail || "your email"}. Please check your inbox to activate your Ponyo account.`
+                  : "Your account is not active yet. We couldn’t send the verification email. Use the resend button to try again."}
+            </p>
+            {mode !== "forgot" && <div className="account-auth-verification-actions"><p className="account-auth-verification-note">Didn’t receive the email? Check your spam folder or request another verification email.</p><button type="button" className="account-auth-submit account-auth-submit--secondary" onClick={handleResend} disabled={isSubmitting}>{isSubmitting ? "Sending…" : "Resend verification email"}</button></div>}
+            {errorMessage && <p className="api-form-error" role="alert">{errorMessage}</p>}
+            {notice && <p role="status">{notice}</p>}
+            <button type="button" className="account-auth-submit" onClick={() => { setSubmitted(false); setMode("login"); setErrorMessage(""); setNotice(""); }}>Back to sign in</button>
           </div>
         ) : (
           <form className="account-auth-form" onSubmit={handleSubmit}>
@@ -118,6 +167,8 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
             {mode === "login" && <div className="account-auth-form-options">{isDrawer ? <button type="button" onClick={() => { setMode("forgot"); setSubmitted(false); setErrorMessage(""); }}>Forgot password?</button> : <Link href="/account/forgot-password">Forgot password?</Link>}</div>}
             {mode === "register" && <label className="account-check-option"><input type="checkbox" checked={offers} onChange={(event) => setOffers(event.target.checked)} />Email me with news and offers</label>}
             {errorMessage && <div className="account-auth-error" role="alert"><p className="api-form-error">{errorMessage}</p>{mode === "login" && <Link href="/account/register">Create a Ponyo account <span aria-hidden="true">→</span></Link>}{mode === "register" && <Link href="/account/login">Go to sign in <span aria-hidden="true">→</span></Link>}</div>}
+            {mode === "login" && verificationEmail === email && verificationEmail && <button type="button" className="account-auth-submit account-auth-submit--secondary" onClick={handleResend} disabled={isSubmitting}>{isSubmitting ? "Sending…" : "Resend verification email"}</button>}
+            {notice && <p role="status">{notice}</p>}
             <button className="account-auth-submit" type="submit" disabled={isSubmitting || (mode === "register" && !isStrongRegistrationPassword)}>{isSubmitting ? "Please wait…" : mode === "register" ? "Create account" : mode === "forgot" ? "Send reset instructions" : "Sign in"}<span aria-hidden="true">→</span></button>
           </form>
         )}

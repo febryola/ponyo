@@ -7,6 +7,7 @@ import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { appTranslations } from "@/locales/app-translations";
 import { storefrontTranslations } from "@/locales/storefront-translations";
 import { checkoutTranslations } from "@/locales/checkout-translations";
+import { contactTranslations } from "@/locales/contact-translations";
 
 type Dictionary = Record<string, unknown>;
 type RatePayload = { base: string; date: string; rates: Record<string, number> };
@@ -200,7 +201,7 @@ export function LocalizationProvider({ children, initialLanguage = "en", initial
   const t = useCallback((key: string, fallback: string, values?: Record<string, string | number>) => {
     const activeDictionary = dictionary?.language === language ? dictionary.value : null;
     const automaticValue = automaticTranslations[`${language}:${key}`];
-    const appValue = checkoutTranslations[language]?.[key] ?? storefrontTranslations[language]?.[key] ?? appTranslations[language]?.[key];
+    const appValue = contactTranslations[language]?.[key] ?? checkoutTranslations[language]?.[key] ?? storefrontTranslations[language]?.[key] ?? appTranslations[language]?.[key];
     const dictionaryValue = getValue(activeDictionary, key);
     const reviewedValue = appValue ?? dictionaryValue;
     if (!reviewedValue && !automaticValue) queueTranslation(language, key, fallback);

@@ -52,9 +52,13 @@ export function DeliveryRegionBanner() {
 					<p className="delivery-location-description">{t("delivery.location_description", "Delivery options and delivery speeds may vary by location.")}</p>
 					<a className="delivery-location-signin" href="/account">{t("delivery.sign_in_addresses", "Sign in to see your addresses")}</a>
 					<div className="delivery-location-current"><span aria-hidden="true">📍</span><span>{t("delivery.deliver_to", "Deliver to")} <b>{selectedCountry.label}</b></span><span className="delivery-region-flag" aria-hidden="true">{selectedCountry.flag}</span></div>
-					<label className="delivery-country-search"><span aria-hidden="true">⌕</span><input autoFocus type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("delivery.search_country", "Search countries")} /></label>
+					<label className="delivery-country-search"><span aria-hidden="true">⌕</span><input type="search" aria-label={t("delivery.search_country", "Search countries")} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("delivery.search_country", "Search countries")} /></label>
 					<div className="delivery-country-options" role="listbox" aria-label={t("delivery.available_countries", "Available delivery countries")}>
-						{filteredCountries.map((item) => <button type="button" role="option" aria-selected={country === item.code} key={item.code} onClick={async () => { await setDeliveryCountry(item.code); setModalOpen(false); }}>
+						{filteredCountries.map((item) => <button type="button" role="option" aria-selected={country === item.code} key={item.code} onClick={() => {
+							setModalOpen(false);
+							void setDeliveryCountry(item.code);
+							void dismissDeliveryNotice();
+						}}>
 							<span aria-hidden="true">{item.flag}</span><b>{item.label}</b><small>{item.code}</small>{country === item.code && <span className="delivery-country-check" aria-hidden="true">✓</span>}
 						</button>)}
 						{filteredCountries.length === 0 && <p>{t("delivery.no_countries", "No countries found. Try another search.")}</p>}

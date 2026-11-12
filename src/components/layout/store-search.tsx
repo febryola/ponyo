@@ -45,7 +45,7 @@ export function StoreSearch({ compactHeader = false }: { compactHeader?: boolean
 
   useEffect(() => {
     if (!open) return;
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
     const onPointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) closeSearch();
     };

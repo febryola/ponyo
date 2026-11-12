@@ -10,6 +10,16 @@ FastAPI service for the Ponyo storefront. It is intentionally in the same reposi
 
 Interactive API docs are available at `http://localhost:8000/docs` in local development.
 
+### Contact notification email configuration
+
+The API reads **backend** `.env`, then **backend** `.env.local` (local values win), using absolute paths relative to its application code, regardless of the launch directory. Process environment variables override both files. The repository-root/frontend `.env.local` is not a backend configuration source; never put SMTP secrets in `NEXT_PUBLIC_*` variables. An explicit `Settings(_env_file=None)` disables file loading for isolated tests. Containers can continue supplying environment variables without these files.
+
+Contact mail uses `CONTACT_NOTIFICATION_EMAIL` for the admin recipient, `SMTP_HOST`, `SMTP_PORT` (default 587), `SMTP_FROM_EMAIL` (falls back to `SMTP_USERNAME`), `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_STARTTLS` (default true), and `SMTP_TIMEOUT_SECONDS`. If `SMTP_USERNAME` is set, a password is required. No alternate `EMAIL_*` or `MAIL_*` aliases are supported. Restart the backend after changing these values: settings are cached when the process imports the application, not reloaded per request.
+
+`POST /v1/contact/requests` commits the contact record and `contact.request_received` outbox event **before** attempting SMTP. `emailNotificationSent=true` means SMTP accepted the message, not that it arrived in the inbox. False leaves the request saved; skipped transports log `reason=transport_not_configured`, and failures log only exception type and numeric SMTP status code (not provider response text, credentials, addresses, or message bodies). The contact outbox is an event-publication record, **not** a contact email retry queue: a pending event does not establish SMTP failure, and the order email worker does not resend these contact messages. Avoid resubmitting real customer requests merely to test email.
+
+For diagnosis, compare only variable names/presence and masked equality between the process and backend files, and inspect contact/outbox counts, statuses, and timestamps without payloads. A single clearly labelled diagnostic to the configured admin can establish SMTP acceptance. For missing inbox delivery after acceptance, inspect spam, filtering rules, provider delivery/bounce logs, and SPF/DKIM/DMARC. SMTP acceptance alone cannot establish or repair downstream mailbox delivery. Historical contact records do not store the SMTP result, so their delivery outcome cannot be reconstructed from their status alone.
+
 ## Direct Python development
 
 Use Python 3.12+ and install the project with its `test` extra. Start PostgreSQL and Redis first, then run `alembic upgrade head`, `python -m app.seed`, and `uvicorn app.main:app --reload` from this directory.

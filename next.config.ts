@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
 	devIndicators: false,
+	// Keep the temporary mobile-preview dev cache separate from the local production build.
+	...(process.env.PONYO_DEV_TUNNEL_ORIGIN ? { distDir: ".next-mobile-preview" } : {}),
 	...(process.env.PONYO_DEV_TUNNEL_ORIGIN
 		? { allowedDevOrigins: [new URL(process.env.PONYO_DEV_TUNNEL_ORIGIN).hostname] }
 		: {}),

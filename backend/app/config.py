@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 from urllib.parse import quote_plus, urlparse
 
@@ -6,8 +7,13 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+BACKEND_ENV_FILES = tuple(Path(__file__).resolve().parents[1] / name for name in (".env", ".env.local"))
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=(".env.local", ".env"), extra="ignore")
+    # Never depend on uvicorn's working directory or read frontend-only env files.
+    # Explicit Settings values and process variables still override these files.
+    model_config = SettingsConfigDict(env_file=BACKEND_ENV_FILES, env_file_encoding="utf-8", extra="ignore")
 
     environment: str = "local"
     api_host: str = "0.0.0.0"

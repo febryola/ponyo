@@ -184,12 +184,18 @@ def _send_contact_email(name: str, email: str, request_type: str, message_text: 
 async def send_contact_notification(name: str, email: str, request_type: str, message_text: str) -> bool:
     """Send the optional owner notification; database/outbox persistence is handled separately."""
     if not settings.contact_email_configured:
+        logger.warning("Ponyo contact notification email skipped reason=transport_not_configured")
         return False
     try:
         await asyncio.to_thread(_send_contact_email, name, email, request_type, message_text)
         return True
     except Exception as error:
-        logger.warning("Ponyo contact notification email failed exception_type=%s", type(error).__name__)
+        # SMTP response text can contain recipients or credentials; log only a numeric code.
+        smtp_code = getattr(error, "smtp_code", None)
+        logger.warning(
+            "Ponyo contact notification email failed exception_type=%s smtp_status_code=%s",
+            type(error).__name__, smtp_code if isinstance(smtp_code, int) else None,
+        )
         return False
 
 

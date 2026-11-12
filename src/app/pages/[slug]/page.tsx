@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFrame } from "@/components/layout/site-frame";
 import { LocalContactForm } from "@/components/layout/local-store-forms";
+import { LocalizedText } from "@/components/layout/localization-provider";
 import { PartnerInquiryForm } from "@/components/layout/partner-inquiry-form";
 import { ProductGrid } from "@/components/product/product-grid";
 import { getLocalizedProducts } from "@/services/localized-products.server";
@@ -57,7 +58,21 @@ function FaqPage() {
 }
 
 function ContactPage() {
-  return <div className="store-container contact-page"><div className="contact-layout"><div><h1>How can we help?</h1><p>Questions about an order, delivery, or finding a plush? Send us a note and the Ponyo team will get back to you.</p></div><LocalContactForm /></div></div>;
+  return <div className="store-container contact-page contact-page--studio">
+    <div className="contact-studio-layout">
+      <section className="contact-studio-intro" aria-labelledby="contact-title">
+        <span className="contact-studio-eyebrow"><span aria-hidden="true">✦</span> <LocalizedText translationKey="contact.eyebrow" fallback="A LITTLE HELP, A LOT OF HEART" /></span>
+        <h1 id="contact-title"><LocalizedText translationKey="contact.title" fallback="How can we help?" /></h1>
+        <p className="contact-studio-lead"><LocalizedText translationKey="contact.intro" fallback="Questions about an order, delivery, or finding a plush? You’re in the right place." /></p>
+        <div className="contact-team-note"><span className="contact-mascot" aria-hidden="true"><Image src="/ponyo-jellyfish.svg" alt="" width={64} height={64} /></span><div><h2><LocalizedText translationKey="contact.team" fallback="Real people. Thoughtful help." /></h2><p><LocalizedText translationKey="contact.team_body" fallback="Send the Ponyo team a note. We’ll reply to the email address you share." /></p></div></div>
+        <div className="contact-help-links">
+          <Link href="/pages/faq"><span className="contact-help-icon" aria-hidden="true">?</span><span><strong><LocalizedText translationKey="contact.faq" fallback="A quick answer might be waiting" /></strong><small><LocalizedText translationKey="contact.faq_body" fallback="Explore delivery, sizing, and care in our FAQs." /></small><b><LocalizedText translationKey="contact.faq_cta" fallback="Explore FAQs" /> <span aria-hidden="true">↗</span></b></span></Link>
+          <Link href="/orders"><span className="contact-help-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m4 7 8-4 8 4v10l-8 4-8-4V7Zm0 0 8 4 8-4M12 11v10M8 5l8 4" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg></span><span><strong><LocalizedText translationKey="contact.orders" fallback="Your order, close at hand" /></strong><small><LocalizedText translationKey="contact.orders_body" fallback="Check your order history before sending an order question." /></small><b><LocalizedText translationKey="contact.orders_cta" fallback="View your orders" /> <span aria-hidden="true">↗</span></b></span></Link>
+        </div>
+      </section>
+      <LocalContactForm />
+    </div>
+  </div>;
 }
 
 function PartnerPage() {

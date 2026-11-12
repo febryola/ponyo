@@ -10,15 +10,7 @@ const source = ts.transpileModule(
   readFileSync(new URL("../src/components/account/account-drawer.tsx", import.meta.url), "utf8"),
   { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } },
 ).outputText;
-const settle = () => new Promise((resolve) => setImmediate(resolve));
 const profile = { id: "customer-1", firstName: "Ponyo", email: "buyer@example.com" };
-
-function deferred() {
-  let resolve;
-  let reject;
-  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
-  return { promise, resolve, reject };
-}
 
 function find(node, predicate) {
   if (!node || typeof node !== "object") return undefined;
@@ -32,7 +24,6 @@ function find(node, predicate) {
 // Execute the real transpiled component with dependency-aware effects, committed
 // dialog refs, stable hook setters/router and explicit render/cleanup boundaries.
 function harness(t, { customer = null, isLoading = false, baseUrl = "/ponyo-api" } = {}) {
-  const probe = deferred();
   const hooks = [];
   const listeners = new Map();
   const calls = { pushes: [], session: [], getMe: 0, showModal: 0, close: 0, lateState: 0 };
@@ -96,7 +87,7 @@ function harness(t, { customer = null, isLoading = false, baseUrl = "/ponyo-api"
       };
       if (id === "@/services/ponyo-api.client") return {
         PONYO_API_BASE_URL: baseUrl,
-        ponyoApi: { getMe() { calls.getMe++; return probe.promise; } },
+        ponyoApi: { logout: async () => {} },
       };
       if (id === "react/jsx-runtime") return require(id);
       throw new Error(`Unexpected account drawer import: ${id}`);
@@ -127,7 +118,7 @@ function harness(t, { customer = null, isLoading = false, baseUrl = "/ponyo-api"
   }
   t.after(unmount);
   return {
-    calls, dialog, probe, render, unmount, AccountAuthForm,
+    calls, dialog, render, unmount, AccountAuthForm,
     session: () => session,
     setSession(value) { session = { ...session, ...value }; return render(); },
     listenerCount: () => listeners.get("ponyo:account-open")?.size ?? 0,
@@ -175,35 +166,31 @@ test("the account-open listener uses the latest session customer after a provide
   assert.equal(h.calls.getMe, 0);
 });
 
-test("successful getMe during initial session loading closes the open drawer and navigates", async (t) => {
+test("drawer waits for the shared customer session without starting a duplicate request", async (t) => {
   const h = harness(t, { isLoading: true });
   h.render();
   h.open();
   const tree = h.render();
   assert.equal(h.dialog.open, true);
   assert.ok(find(tree, (node) => node.props?.role === "status"));
-  assert.equal(h.calls.getMe, 1);
+  assert.equal(h.calls.getMe, 0);
   assert.deepEqual(h.calls.pushes, []);
-  h.probe.resolve(profile);
-  await settle();
+  h.setSession({ customer: profile, isLoading: false });
   h.render();
   assert.equal(h.dialog.open, false);
   assert.equal(h.calls.close, 1);
   assert.deepEqual(h.calls.pushes, ["/account"]);
-  assert.deepEqual(h.calls.session, [profile]);
+  assert.deepEqual(h.calls.session, []);
   assert.equal(h.session().customer, profile);
-  assert.equal(h.calls.getMe, 1, "state updates must not restart the session probe");
+  assert.equal(h.calls.getMe, 0, "the drawer must reuse the provider session request");
 });
 
-test("a failed session probe leaves guest actions visible without redirect or error copy", async (t) => {
+test("a guest session shows sign-in actions without starting a duplicate probe", (t) => {
   const h = harness(t);
   h.render();
   h.open();
-  h.render();
-  h.probe.reject(new Error("Unauthorized"));
-  await settle();
   const tree = h.render();
-  assert.equal(h.calls.getMe, 1);
+  assert.equal(h.calls.getMe, 0);
   assert.equal(h.dialog.open, true);
   assert.equal(h.calls.close, 0);
   assert.ok(find(tree, (node) => node.props?.["aria-label"] === "Guest account"));
@@ -211,12 +198,12 @@ test("a failed session probe leaves guest actions visible without redirect or er
   assert.equal(find(tree, (node) => node.props?.role === "status"), undefined);
   assert.equal(find(tree, (node) => node.props?.role === "alert"), undefined);
   assert.deepEqual(h.calls.pushes, []);
-  assert.deepEqual(h.calls.session, [null]);
+  assert.deepEqual(h.calls.session, []);
   assert.equal(h.session().customer, null);
 });
 
 for (const mode of ["login", "register"]) {
-  test(`${mode}: onAuthenticated updates the session, closes the drawer and pushes /account`, (t) => {
+  test(`${mode}: onAuthenticated updates the session, closes the drawer and pushes /`, (t) => {
     const h = harness(t, { baseUrl: "" });
     h.render();
     h.open();
@@ -232,26 +219,14 @@ for (const mode of ["login", "register"]) {
     assert.equal(h.session().customer, profile);
     assert.equal(h.dialog.open, false);
     assert.equal(h.calls.close, 1);
-    assert.deepEqual(h.calls.pushes, ["/account"]);
+    assert.deepEqual(h.calls.pushes, ["/"]);
     assert.equal(find(tree, (node) => node.type === h.AccountAuthForm), undefined);
   });
 }
 
-for (const outcome of ["resolve", "reject"]) {
-  test(`unmount removes the listener and ignores a late getMe ${outcome}`, async (t) => {
-    const h = harness(t, { isLoading: true });
-    h.render();
-    h.open();
-    h.render();
-    assert.equal(h.calls.getMe, 1);
-    h.unmount();
-    assert.equal(h.listenerCount(), 0);
-    h.open();
-    h.probe[outcome](outcome === "resolve" ? profile : new Error("Late failure"));
-    await settle();
-    assert.deepEqual(h.calls.pushes, []);
-    assert.deepEqual(h.calls.session, []);
-    assert.equal(h.calls.lateState, 0, "then/catch/finally must respect effect cleanup");
-    assert.equal(h.calls.getMe, 1);
-  });
-}
+test("unmount removes the account-open listener", (t) => {
+  const h = harness(t);
+  h.render();
+  h.unmount();
+  assert.equal(h.listenerCount(), 0);
+});

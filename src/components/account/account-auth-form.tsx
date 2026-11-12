@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ApiNotConfiguredError, ApiRequestError, ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import type { CustomerProfile } from "@/services/ponyo-api.client";
@@ -27,7 +27,7 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorCode, setErrorCode] = useState("");
-  const { setCustomer } = useCustomerSession();
+  const { customer: sessionCustomer, isLoading: isSessionLoading, setCustomer } = useCustomerSession();
   const passwordHasLength = password.length >= 8 && password.length <= 128;
   const passwordHasNumber = /\d/.test(password);
   const passwordHasSpecial = /[^\p{L}\p{N}]/u.test(password);
@@ -47,10 +47,16 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
 
   function getPostAuthDestination() {
     const requested = new URLSearchParams(window.location.search).get("returnTo");
-    if (!requested?.startsWith("/")) return "/account";
+    if (!requested?.startsWith("/")) return "/";
     const destination = new URL(requested, window.location.origin);
-    return destination.origin === window.location.origin ? destination.pathname + destination.search + destination.hash : "/account";
+    return destination.origin === window.location.origin ? destination.pathname + destination.search + destination.hash : "/";
   }
+
+  useEffect(() => {
+    if (presentation === "page" && mode === "login" && !isSessionLoading && sessionCustomer) {
+      router.replace(getPostAuthDestination());
+    }
+  }, [isSessionLoading, mode, presentation, router, sessionCustomer]);
 
   async function handleResend() {
     setIsSubmitting(true);
@@ -86,7 +92,7 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
         const customer = await ponyoApi.login(email, password);
         setCustomer(customer);
         if (onAuthenticated) onAuthenticated(customer);
-        else router.push(getPostAuthDestination());
+        else router.replace(getPostAuthDestination());
       } else if (mode === "register") {
         const fullName = String(formData.get("name") ?? "").trim();
         const [firstName = "", ...lastNameParts] = fullName.split(/\s+/);

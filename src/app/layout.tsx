@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Libre_Baskerville, Nunito_Sans } from "next/font/google";
-import { StoreSplash } from "@/components/layout/store-splash";
 import { CookieConsentBanner } from "@/components/layout/cookie-consent-banner";
 import { LocalizationProvider } from "@/components/layout/localization-provider";
 import { CustomerSessionProvider } from "@/components/layout/customer-session-provider";
@@ -47,7 +46,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className={`min-h-full ${bodyFont.variable} ${headingFont.variable}`}>
         <LocalizationProvider initialLanguage={initialLanguage} initialCurrency={initialCurrency} initialCountry={initialCountry} initialDeliveryNoticeDismissed={initialDeliveryNoticeDismissed}>
           <CustomerSessionProvider>
-            <StoreSplash />
             <CookieConsentBanner initialConsent={initialCookieConsent} initialAnalyticsConsent={initialAnalyticsConsent} initialMarketingConsent={initialMarketingConsent} />
             {children}
           </CustomerSessionProvider>

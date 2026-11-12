@@ -1,50 +1,6 @@
 /* Route behavior and small components not covered by the theme's generated utility stylesheet. */
 
 .store-hero-track {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-}
-
-.store-hero-track::-webkit-scrollbar {
-    display: none;
-}
-
-.store-hero-slide {
-    width: 100%;
-    height: 100%;
-    flex: 0 0 100%;
-    position: relative;
-    overflow: hidden;
-    scroll-snap-align: start;
-}
-
-.store-hero-image {
-    z-index: 0;
-    object-position: center;
-}
-
-.store-hero-overlay {
-    z-index: 1;
-    background: linear-gradient(90deg, #2e211d99 0%, #2e211d33 50%, transparent 100%);
-}
-
-.store-hero-copy {
-    z-index: 2;
-}
-
-@media (min-width: 768px) {
-    .store-hero-copy {
-        width: 640px;
-        max-width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-        padding: 0 56px 64px 96px;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
@@ -52,7 +8,6 @@
         gap: 12px;
         transform: none;
     }
-}
 
 .store-hero-copy h2 {
     margin: 0;
@@ -14890,4 +14845,48 @@ body {
         height: 100px;
         padding: 17px;
     }
+}
+
+.route-loading {
+    width: min(1120px, calc(100% - 32px));
+    min-height: 34vh;
+    margin: 20px auto;
+    padding: 32px;
+    border: 1px solid #eee5dc;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 14px;
+    background: linear-gradient(120deg, #fffdfa, #faf6f0);
+}
+
+.route-loading-mark {
+    margin-bottom: 4px;
+    color: #b28a46;
+    font-size: 24px;
+    animation: ponyo-route-pulse 1.1s ease-in-out infinite alternate;
+}
+
+.route-loading-bar {
+    width: min(420px, 85%);
+    height: 12px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #f1ebe2, #fff9ec, #f1ebe2);
+    background-size: 200% 100%;
+    animation: ponyo-route-shimmer 1.4s ease-in-out infinite;
+}
+
+.route-loading-bar--short {
+    width: min(220px, 52%);
+    height: 18px;
+}
+
+@keyframes ponyo-route-shimmer {
+    to { background-position: -200% 0; }
+}
+
+@keyframes ponyo-route-pulse {
+    to { opacity: .42; transform: scale(.88); }
 }

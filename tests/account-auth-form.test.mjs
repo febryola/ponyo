@@ -49,6 +49,7 @@ function formHarness(error, presentation = "page", { locale = "en", mode = "logi
           if (!(index in states)) states[index] = initial;
           return [states[index], (value) => { states[index] = typeof value === "function" ? value(states[index]) : value; }];
         },
+        useEffect() {},
       };
       if (id === "next/link") return { default: "a" };
       if (id === "next/image") return { default: "img" };
@@ -281,3 +282,11 @@ for (const locale of ["ja", "ko"]) {
     assert.ok(find(tree, (node) => node.type === "button" && text(node) === translations[locale]["account.auth.resend_verification"]));
   });
 }
+
+test("successful page login replaces the auth route and defaults to homepage while retaining returnTo", () => {
+  const component = readFileSync(new URL("../src/components/account/account-auth-form.tsx", import.meta.url), "utf8");
+  assert.match(component, /if \(!requested\?\.startsWith\("\/"\)\) return "\/"/);
+  assert.match(component, /destination\.origin === window\.location\.origin \? destination\.pathname \+ destination\.search \+ destination\.hash : "\/"/);
+  assert.match(component, /else router\.replace\(getPostAuthDestination\(\)\)/);
+  assert.match(component, /router\.replace\(getPostAuthDestination\(\)\)/);
+});

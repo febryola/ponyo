@@ -8,7 +8,7 @@ export function CookieConsentBanner({ initialConsent, initialAnalyticsConsent = 
 	const [consent, setConsent] = useState<ConsentChoice | null>(initialConsent);
 	const [detailsOpen, setDetailsOpen] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
-	const [splashFinished, setSplashFinished] = useState(false);
+	const [readyToShow, setReadyToShow] = useState(false);
 	const [isLeaving, setIsLeaving] = useState(false);
 	const [saveError, setSaveError] = useState(false);
 	const [analyticsEnabled, setAnalyticsEnabled] = useState(initialAnalyticsConsent);
@@ -18,22 +18,17 @@ export function CookieConsentBanner({ initialConsent, initialAnalyticsConsent = 
 
 	useEffect(() => {
 		if (initialConsent) return;
-		const revealBanner = () => setSplashFinished(true);
-		window.addEventListener("ponyo:splash-finished", revealBanner, { once: true });
-		const fallbackTimer = window.setTimeout(revealBanner, 1400);
-		return () => {
-			window.removeEventListener("ponyo:splash-finished", revealBanner);
-			window.clearTimeout(fallbackTimer);
-		};
+		const revealTimer = window.setTimeout(() => setReadyToShow(true), 250);
+		return () => window.clearTimeout(revealTimer);
 	}, [initialConsent]);
 
 	useEffect(() => {
-		if (consent || !splashFinished) return;
+		if (consent || !readyToShow) return;
 		const previousOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
 		firstActionRef.current?.focus();
 		return () => { document.body.style.overflow = previousOverflow; };
-	}, [consent, detailsOpen, splashFinished]);
+	}, [consent, detailsOpen, readyToShow]);
 
 	async function chooseConsent(choice: ConsentChoice, allowAnalytics = false, allowMarketing = false) {
 		setIsSaving(true);
@@ -69,7 +64,7 @@ export function CookieConsentBanner({ initialConsent, initialAnalyticsConsent = 
 		}
 	}
 
-	if (consent || !splashFinished) return null;
+	if (consent || !readyToShow) return null;
 
 	return (
 		<div className="cookie-consent-layer">

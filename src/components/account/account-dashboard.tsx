@@ -5,18 +5,19 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { addCartItem, readCart, saveCart, type CartItem } from "@/lib/cart";
-import { ponyoApi, ApiRequestError, PONYO_API_BASE_URL, type BackendOrder, type CustomerProfile } from "@/services/ponyo-api.client";
+import { ponyoApi, PONYO_API_BASE_URL, type BackendOrder } from "@/services/ponyo-api.client";
 import { refreshCartItems } from "@/lib/cart-validation";
 import { AccountAuthForm } from "@/components/account/account-auth-form";
 import { useLocalization } from "@/components/layout/localization-provider";
+import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
 type ViewState = "loading" | "guest" | "signed-in";
 
 export function AccountDashboard() {
   const router = useRouter();
   const { t } = useLocalization();
-  const [customer, setCustomer] = useState<CustomerProfile | null>(null);
-  const [view, setView] = useState<ViewState>(PONYO_API_BASE_URL ? "loading" : "guest");
+  const { customer, isLoading: isSessionLoading, setCustomer: setSessionCustomer } = useCustomerSession();
+  const view: ViewState = isSessionLoading ? "loading" : customer ? "signed-in" : "guest";
   const [editProfile, setEditProfile] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -29,34 +30,21 @@ export function AccountDashboard() {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
-    if (!PONYO_API_BASE_URL) return;
+    if (isSessionLoading || !customer || !PONYO_API_BASE_URL) return;
     let active = true;
-    ponyoApi.getMe().then((profile) => {
-      if (!active) return;
-      setCustomer(profile);
-      setFirstName(profile.firstName);
-      setLastName(profile.lastName);
-      setView("signed-in");
-      ponyoApi.getOrders().then((orders) => {
-        if (active) {
-          setOrdersCount(orders.length);
-          setRecentOrder([...orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0] ?? null);
-        }
-      }).catch(() => {
+    ponyoApi.getOrders().then((orders) => {
+      if (active) {
+        setOrdersCount(orders.length);
+        setRecentOrder([...orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0] ?? null);
+      }
+    }).catch(() => {
         if (active) {
           setOrdersCount(null);
           setRecentOrder(null);
         }
-      });
-    }).catch((error: unknown) => {
-      if (!active) return;
-      setView("guest");
-      if (!(error instanceof ApiRequestError && error.status === 401)) {
-        setErrorMessage(error instanceof Error ? error.message : "We couldn't check your Ponyo account.");
-      }
     });
     return () => { active = false; };
-  }, []);
+  }, [customer, isSessionLoading]);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,7 +52,7 @@ export function AccountDashboard() {
     setIsSaving(true);
     try {
       const updated = await ponyoApi.updateMe({ firstName: firstName.trim(), lastName: lastName.trim() });
-      setCustomer(updated);
+      setSessionCustomer(updated);
       setEditProfile(false);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Your profile could not be saved.");
@@ -78,8 +66,7 @@ export function AccountDashboard() {
     setIsSigningOut(true);
     try {
       await ponyoApi.logout();
-      setCustomer(null);
-      setView("guest");
+      setSessionCustomer(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to sign out right now.");
     } finally {
@@ -139,7 +126,7 @@ export function AccountDashboard() {
     }
   }
 
-  if (view === "loading") {
+  if (view === "loading" || isSessionLoading) {
     return <section className="account-loading" role="status"><Image src="/ponyo-jellyfish.svg" alt="" width={52} height={52} /><p>Finding your little corner of Ponyo…</p></section>;
   }
 
@@ -148,10 +135,9 @@ export function AccountDashboard() {
       <div className="account-guest-doodle" aria-hidden="true"><span>🐚</span><Image src="/ponyo-jellyfish.svg" alt="" width={52} height={52} /><span>♡</span></div>
       {errorMessage && <p className="account-service-note" role="status">{errorMessage}</p>}
       <AccountAuthForm mode="login" onAuthenticated={(profile) => {
-        setCustomer(profile);
+        setSessionCustomer(profile);
         setFirstName(profile.firstName);
         setLastName(profile.lastName);
-        setView("signed-in");
       }} />
     </div>;
   }

@@ -32,6 +32,43 @@ const animalCategories = [
 
 const collectibleCategories = animalCategories;
 
+function DesktopCollectiblesMenu() {
+  const { t } = useLocalization();
+  const pathname = usePathname();
+  const menu = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    if (menu.current) menu.current.open = false;
+  }, [pathname]);
+
+  return (
+    <details
+      ref={menu}
+      className="desktop-collectibles-menu"
+      onPointerEnter={(event) => { if (event.pointerType === "mouse") event.currentTarget.open = true; }}
+      onPointerLeave={(event) => { if (event.pointerType === "mouse") event.currentTarget.open = false; }}
+      onFocusCapture={(event) => { event.currentTarget.open = true; }}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.currentTarget.querySelector("summary")?.focus();
+          event.currentTarget.open = false;
+        }
+      }}
+    >
+      <summary>{t("home.header.collectibles", "Collectibles")}</summary>
+      <div className="desktop-collectibles-panel">
+        {collectibleCategories.map((item) => <Link key={item.title} href={item.href} onClick={() => { if (menu.current) menu.current.open = false; }}>
+          <Image src={item.image} alt="" width={44} height={44} />
+          <span>{t(`home.categories.${item.title === "Cute Characters" ? "characters" : item.title.toLowerCase()}`, item.title)}</span>
+          <span className="desktop-collectibles-arrow" aria-hidden="true">→</span>
+        </Link>)}
+      </div>
+    </details>
+  );
+}
+
 const ticker = [
   { text: "NEW: DOMINA GIANT PLUSH UP TO 120 CM", key: "home.announce_2", href: "/pages/domina-xl" },
   { text: "JOIN RARE DROP ALERTS AND BE FIRST TO KNOW", key: "home.announce_3", href: "/#drops" },
@@ -230,7 +267,7 @@ export function SiteHeader() {
         <div className={`store-category-row${categoryPinned ? " is-pinned" : ""}`} style={categoryPinned ? { top: smartHeaderVisible ? 64 : 0 } : undefined}>
           <nav className="store-navigation" aria-label="Main navigation">
             {mainLinks.map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? "page" : undefined}>{t(item.key, item.title)}</Link>)}
-            <details className="desktop-collectibles-menu"><summary>{t("home.header.collectibles", "Collectibles")} <span aria-hidden="true">⌄</span></summary><div className="desktop-collectibles-panel">{collectibleCategories.map((item) => <Link key={item.title} href={item.href}><Image src={item.image} alt="" width={44} height={44} /><span>{t(`home.categories.${item.title === "Cute Characters" ? "characters" : item.title.toLowerCase()}`, item.title)}</span><span className="desktop-collectibles-arrow" aria-hidden="true">→</span></Link>)}</div></details>
+            <DesktopCollectiblesMenu />
           </nav>
           <Link href="/pages/domina-xl" className="domina-link"><span>DOMINA by Ponyo</span><span className="domina-promo-copy">· {t("home.header.giant_plush_range", "Giant plush from 70 to 120 cm")}</span><span className="domina-arrow" aria-hidden="true">›</span></Link>
         </div>
@@ -255,7 +292,7 @@ export function SiteHeader() {
         <div className="smart-header-category">
           <nav aria-label="Sticky main navigation">
             {mainLinks.map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? "page" : undefined}>{t(item.key, item.title)}</Link>)}
-            <details className="desktop-collectibles-menu"><summary>{t("home.header.collectibles", "Collectibles")} <span aria-hidden="true">⌄</span></summary><div className="desktop-collectibles-panel">{collectibleCategories.map((item) => <Link key={item.title} href={item.href}><Image src={item.image} alt="" width={44} height={44} /><span>{t(`home.categories.${item.title === "Cute Characters" ? "characters" : item.title.toLowerCase()}`, item.title)}</span><span className="desktop-collectibles-arrow" aria-hidden="true">→</span></Link>)}</div></details>
+            <DesktopCollectiblesMenu />
           </nav>
           <Link href="/pages/domina-xl" className="smart-domina-link">{t("home.header.domina", "DOMINA by Ponyo")}</Link>
         </div>

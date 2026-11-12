@@ -9,6 +9,7 @@ import { ProductPriceHistory } from "@/components/product/product-price-history"
 import { ProductGrid } from "@/components/product/product-grid";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { getLocalizedProductById, getLocalizedProducts } from "@/services/localized-products.server";
+import { selectRelatedProducts } from "@/lib/related-products";
 
 const getProductPageData = cache(async (identifier: string) => {
   const products = await getLocalizedProducts("?limit=100");
@@ -30,7 +31,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   if (!product) notFound();
   if (product.id !== id) redirect(`/products/${encodeURIComponent(product.id)}`);
 
-  const related = products.filter((item) => item.id !== product.id && (item.categoryName === product.categoryName || item.tags?.some((tag) => product.tags?.includes(tag)))).slice(0, 4);
+  const related = selectRelatedProducts(products, product);
   const hasWaitlist = product.availability === "unavailable"
     || ["Coming Soon", "Waitlist", "Unavailable"].includes(product.availabilityStatus ?? "");
 

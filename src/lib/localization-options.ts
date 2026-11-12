@@ -27,6 +27,16 @@ export const deliveryCountries: DeliveryCountryOption[] = [
 	{ code: "CA", label: "Canada", flag: "🇨🇦" },
 ];
 
+export function regionName(code: string, language: string, fallback: string) {
+	try { return new Intl.DisplayNames([language], { type: "region" }).of(code) ?? fallback; }
+	catch { return fallback; }
+}
+
+export function currencyName(code: string, language: string, fallback: string) {
+	try { return new Intl.DisplayNames([language], { type: "currency" }).of(code) ?? fallback; }
+	catch { return fallback; }
+}
+
 export const languages: LanguageOption[] = [
 	{ code: "en", label: "English", country: "United Kingdom", flag: "🇬🇧" },
 	{ code: "es", label: "Español", country: "Spain", flag: "🇪🇸" },

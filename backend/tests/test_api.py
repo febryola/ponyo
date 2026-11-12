@@ -503,7 +503,8 @@ async def test_account_endpoints_require_existing_authenticated_customer(test_cl
         json={"email": "not-registered@example.com", "password": "valid-password-123"},
     )
     assert unknown_login.status_code == 401
-    assert unknown_login.json()["error"]["message"] == "Email or password is incorrect."
+    assert unknown_login.json()["error"]["code"] == "customer_not_found"
+    assert unknown_login.json()["error"]["message"] == "This email is not registered. Please create a Ponyo account."
 
 
 @pytest.mark.asyncio

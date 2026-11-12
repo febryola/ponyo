@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalization } from "@/components/layout/localization-provider";
+import { currencyName, regionName } from "@/lib/localization-options";
 
 type PickerTab = "language" | "currency";
+
+const countryCodes: Record<string, string> = { "United Kingdom": "GB", Spain: "ES", Indonesia: "ID", Japan: "JP", "South Korea": "KR", China: "CN", "United States": "US", "Euro area": "EU", Australia: "AU", Canada: "CA" };
 
 export function LocalizationPicker({ compact = false }: { compact?: boolean }) {
   const { language, currency, languages, currencies, rates, setLanguage, setCurrency, t } = useLocalization();
@@ -13,18 +16,20 @@ export function LocalizationPicker({ compact = false }: { compact?: boolean }) {
   const wrapper = useRef<HTMLDivElement>(null);
   const selectedLanguage = languages.find((item) => item.code === language) ?? languages[0];
   const selectedCurrency = currencies.find((item) => item.code === currency) ?? currencies[0];
+  const displayCountry = (country: string) => regionName(countryCodes[country] ?? "", language, country);
+  const selectedCurrencyName = currencyName(selectedCurrency.code, language, selectedCurrency.label);
 
   const filteredLanguages = useMemo(() => {
     const search = query.trim().toLocaleLowerCase();
     if (!search) return languages;
-    return languages.filter((item) => `${item.label} ${item.country} ${item.code}`.toLocaleLowerCase().includes(search));
-  }, [languages, query]);
+    return languages.filter((item) => `${item.label} ${item.country} ${item.code} ${regionName(countryCodes[item.country] ?? "", language, item.country)}`.toLocaleLowerCase().includes(search));
+  }, [languages, language, query]);
 
   const filteredCurrencies = useMemo(() => {
     const search = query.trim().toLocaleLowerCase();
     if (!search) return currencies;
-    return currencies.filter((item) => `${item.label} ${item.country} ${item.code}`.toLocaleLowerCase().includes(search));
-  }, [currencies, query]);
+    return currencies.filter((item) => `${item.label} ${item.country} ${item.code} ${currencyName(item.code, language, item.label)} ${regionName(countryCodes[item.country] ?? "", language, item.country)}`.toLocaleLowerCase().includes(search));
+  }, [currencies, language, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -52,7 +57,7 @@ export function LocalizationPicker({ compact = false }: { compact?: boolean }) {
       <button
         type="button"
         className="store-localization-trigger"
-        aria-label={t("localization.change_language", `Language ${selectedLanguage.label}, currency ${selectedCurrency.label}. Change language or currency`, { language: selectedLanguage.label, currency: selectedCurrency.label })}
+        aria-label={t("localization.change_language", `Language ${selectedLanguage.label}, currency ${selectedCurrencyName}. Change language or currency`, { language: selectedLanguage.label, currency: selectedCurrencyName })}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
@@ -79,9 +84,9 @@ export function LocalizationPicker({ compact = false }: { compact?: boolean }) {
         </label>
         <div className="localization-options" role="listbox" aria-label={t(tab === "language" ? "localization.languages" : "localization.currencies", tab === "language" ? "Languages" : "Currencies")}>
           {tab === "language" ? filteredLanguages.map((item) => <button type="button" role="option" aria-selected={language === item.code} className="localization-option" key={item.code} onClick={async () => { await setLanguage(item.code); setOpen(false); }}>
-            <span className="localization-flag" aria-hidden="true">{item.flag}</span><span className="localization-option-copy"><b>{item.label}</b><small>{item.country}</small></span><span className="localization-option-code">{item.code.toUpperCase()}</span>{language === item.code && <span className="localization-check" aria-hidden="true">✓</span>}
+            <span className="localization-flag" aria-hidden="true">{item.flag}</span><span className="localization-option-copy"><b>{item.label}</b><small>{displayCountry(item.country)}</small></span><span className="localization-option-code">{item.code.toUpperCase()}</span>{language === item.code && <span className="localization-check" aria-hidden="true">✓</span>}
           </button>) : filteredCurrencies.map((item) => <button type="button" role="option" aria-selected={currency === item.code} className="localization-option" key={item.code} onClick={async () => { await setCurrency(item.code); setOpen(false); }}>
-            <span className="localization-flag" aria-hidden="true">{item.flag}</span><span className="localization-option-copy"><b>{item.label}</b><small>{item.country}</small></span><span className="localization-option-code">{item.code}</span>{currency === item.code && <span className="localization-check" aria-hidden="true">✓</span>}
+            <span className="localization-flag" aria-hidden="true">{item.flag}</span><span className="localization-option-copy"><b>{currencyName(item.code, language, item.label)}</b><small>{displayCountry(item.country)}</small></span><span className="localization-option-code">{item.code}</span>{currency === item.code && <span className="localization-check" aria-hidden="true">✓</span>}
           </button>)}
           {tab === "currency" && !rates[currency] && currency !== "JPY" && <p className="localization-rates-note">{t("localization.rates_unavailable", "Exchange rates are temporarily unavailable. Display prices use the catalog currency until rates load.")}</p>}
           {((tab === "language" && filteredLanguages.length === 0) || (tab === "currency" && filteredCurrencies.length === 0)) && <p className="localization-empty">{t("localization.no_matches", "No matches yet. Try another search.")}</p>}

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { currencies, deliveryCountries, languages, type CurrencyOption } from "@/lib/localization-options";
 import { ponyoApi, PONYO_API_BASE_URL } from "@/services/ponyo-api.client";
 import { appTranslations } from "@/locales/app-translations";
+import { storefrontTranslations } from "@/locales/storefront-translations";
+import { checkoutTranslations } from "@/locales/checkout-translations";
 
 type Dictionary = Record<string, unknown>;
 type RatePayload = { base: string; date: string; rates: Record<string, number> };
@@ -59,7 +61,8 @@ export function LocalizationProvider({ children, initialLanguage = "en", initial
     let alive = true;
     fetch(`/api/locales/${encodeURIComponent(language)}`, { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<Dictionary> : null)
-      .then((payload) => { if (alive && payload) setDictionary({ language, value: payload }); });
+      .then((payload) => { if (alive && payload) setDictionary({ language, value: payload }); })
+      .catch(() => { /* Reviewed app translations remain available offline. */ });
     return () => { alive = false; };
   }, [language]);
 
@@ -197,10 +200,12 @@ export function LocalizationProvider({ children, initialLanguage = "en", initial
   const t = useCallback((key: string, fallback: string, values?: Record<string, string | number>) => {
     const activeDictionary = dictionary?.language === language ? dictionary.value : null;
     const automaticValue = automaticTranslations[`${language}:${key}`];
-    if (!automaticValue) queueTranslation(language, key, fallback);
-    const appValue = appTranslations[language]?.[key];
+    const appValue = checkoutTranslations[language]?.[key] ?? storefrontTranslations[language]?.[key] ?? appTranslations[language]?.[key];
     const dictionaryValue = getValue(activeDictionary, key);
-    const value = automaticValue ?? appValue ?? dictionaryValue;
+    const reviewedValue = appValue ?? dictionaryValue;
+    if (!reviewedValue && !automaticValue) queueTranslation(language, key, fallback);
+    // Machine translation must never overwrite reviewed, app-owned copy.
+    const value = reviewedValue ?? automaticValue;
     return substitute(typeof value === "string" && value.trim() ? value : fallback, values);
   }, [automaticTranslations, dictionary, language, queueTranslation]);
 

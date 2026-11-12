@@ -61,7 +61,13 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
         <Link href={`/products/${product.id}`} className="shop-product-title">{productName}</Link>
         <div className="shop-product-meta"><span>{categoryLabel}</span></div>
         {statusLabel && <p className="shop-product-availability">{statusLabel}</p>}
-        <div className="shop-product-bottom"><strong>{product.compareAtAmount && product.compareAtAmount > product.priceAmount ? <><span>{formatPrice(product.priceAmount, product.currency)}</span><del>{formatPrice(product.compareAtAmount, product.currency)}</del></> : formatPrice(product.priceAmount, product.currency)}</strong><Link href={`/products/${product.id}`} aria-label={`View ${product.name}`} className="product-card-arrow">→</Link></div>
+        <div className="shop-product-bottom">
+          <strong className="shop-product-prices">
+            <span className="shop-product-current-price">{formatPrice(product.priceAmount, product.currency)}</span>
+            {product.compareAtAmount && product.compareAtAmount > product.priceAmount ? <del>{formatPrice(product.compareAtAmount, product.currency)}</del> : null}
+          </strong>
+          <Link href={`/products/${product.id}`} aria-label={`View ${product.name}`} className="product-card-arrow">→</Link>
+        </div>
         {product.dispatchTime && <p className="shop-product-dispatch">{product.dispatchTime}</p>}
       </div>
     </article>

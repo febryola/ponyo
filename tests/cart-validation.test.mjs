@@ -482,6 +482,8 @@ function checkoutHarness({
             if (name === "@/components/layout/localization-provider")
                 return {
                     useLocalization: () => ({
+                        language: "en",
+                        t: (_, fallback, values = {}) => fallback.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key) => String(values[key] ?? match)),
                         currency,
                         country: "JP",
                         deliveryCountries: [{ code: "JP", label: "Japan" }],
@@ -489,6 +491,8 @@ function checkoutHarness({
                         convertMajorAmount: (value) => value,
                     }),
                 };
+            if (name === "@/lib/localization-options")
+                return { regionName: (_, __, fallback) => fallback };
             if (name === "@/components/layout/customer-session-provider")
                 return {
                     useCustomerSession: () => ({

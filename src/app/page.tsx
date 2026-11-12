@@ -11,6 +11,7 @@ import { getLocalizedProducts } from "@/services/localized-products.server";
 import { LocalizedPrice, LocalizedText } from "@/components/layout/localization-provider";
 import type { Product } from "@/types/product";
 import locale from "@/locales/en.default.json";
+import { uniqueProducts } from "@/lib/featured-products";
 
 const images = {
   bunny: "/images/catalog/maker-bunny.jpg",
@@ -57,19 +58,16 @@ function AisleCard({ title, description, titleKey, descriptionKey, href, product
 
 export default async function Home() {
   const products = await getLocalizedProducts();
-  const rare = byTag(products, "rare", 5);
+  const rare = uniqueProducts(products.filter((product) => product.tags?.includes("rare")));
   const premium = byTag(products, "premium", 12);
   const domina = byTag(products, "domina-xl", 6);
   const arrivals = byTag(products, "new-arrival", 10);
-  const mintDino = products.find((product) => product.slug === "mint-dino");
-  const rareSpotlight = products.find((product) => product.slug === "cherry-blossom-bunny")
-    ?? rare.find((product) => product.id !== mintDino?.id)
-    ?? products.find((product) => product.id !== mintDino?.id)
-    ?? rare[0];
-  const rareSupporting = rare.filter((product) => product.id !== rareSpotlight?.id).slice(0, 2);
+  const rarePreview = rare.slice(0, 3);
+  const rareSpotlight = rarePreview[0];
+  const rareSupporting = rarePreview.slice(1);
   const allTrending = products.filter((product) => !product.tags?.includes("new-arrival")).slice(0, 12);
   const aisles = [
-    { title: "Rare Finds", description: "Hard-to-find and limited-edition plush.", titleKey: "home.aisles.rare_title", descriptionKey: "home.aisles.rare_sub", href: "/collections/rare-finds", products: rare },
+    { title: "Rare Finds", description: "Hard-to-find and limited-edition plush.", titleKey: "home.aisles.rare_title", descriptionKey: "home.aisles.rare_sub", href: "/collections/rare-finds", products: rarePreview },
     { title: "Premium Plushies", description: "Top-quality plush with extra-soft finishes.", titleKey: "home.aisles.premium_title", descriptionKey: "home.aisles.premium_sub", href: "/collections/premium", products: premium.slice(0, 4) },
     { title: "XL Goodies", description: "Giant plush, big enough to hug back.", titleKey: "home.aisles.xl_title", descriptionKey: "home.aisles.xl_sub", href: "/collections/domina-xl", products: domina },
     { title: "Shop by animal", description: "Bears, bunnies, cats and more.", titleKey: "home.aisles.animal_title", descriptionKey: "home.aisles.animal_sub", href: "/collections", products: ["bears", "bunnies", "cats", "pandas"].map((category) => products.find((product) => product.categoryName.toLocaleLowerCase() === category || product.tags?.some((tag) => tag.toLocaleLowerCase() === category))).filter((product): product is Product => Boolean(product)) },
@@ -146,7 +144,12 @@ export default async function Home() {
             { className: "size-guide-jellyfish size-guide-jellyfish--friend", delay: "-1.1s" },
             { className: "size-guide-jellyfish size-guide-jellyfish--tiny", delay: "-2.2s" },
           ].map((jellyfish) => <span key={jellyfish.className} className={jellyfish.className} style={{ animationDelay: jellyfish.delay }} aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M12 29C12 16 20 7 32 7s20 9 20 22c0 5-4 8-8 8H20c-4 0-8-3-8-8Z"/><circle cx="26" cy="24" r="2.5"/><circle cx="38" cy="24" r="2.5"/><path d="M22 30c2 2 4 2 6 0M19 39c0 5-2 7-2 11m10-11c0 5 2 7 0 12m8-12c0 5-1 7 1 12m7-12c0 5 2 7 1 11"/></svg></span>)}
-          {[{ name: "Small", range: "Under 25 cm", image: images.chick, size: "Small" }, { name: "Medium", range: "25–45 cm", image: images.bear, size: "Medium" }, { name: "Large", range: "45–70 cm", image: images.dog, size: "Large" }, { name: "XL", range: "70 cm +", image: images.xlCat, size: "XL" }].map((tile) => <Link className={`size-guide-tile size-guide-tile--${tile.name.toLowerCase()}`} href={`/collections/all?filter.p.m.ponyo.size_tier=${tile.size}`} key={tile.name}><span><Image src={tile.image} alt={`${tile.name} plush size example`} fill sizes="(max-width: 640px) 30vw, 230px" /></span><strong>{tile.name}</strong><small>{tile.range}</small></Link>)}
+          {[
+            { name: "Small", range: "Under 25 cm", rangeKey: "under_25", image: images.chick, size: "Small" },
+            { name: "Medium", range: "25–45 cm", rangeKey: "range_medium", image: images.bear, size: "Medium" },
+            { name: "Large", range: "45–70 cm", rangeKey: "range_large", image: images.dog, size: "Large" },
+            { name: "XL", range: "70 cm +", rangeKey: "range_xl", image: images.xlCat, size: "XL" },
+          ].map((tile) => <Link className={`size-guide-tile size-guide-tile--${tile.name.toLowerCase()}`} href={`/collections/all?filter.p.m.ponyo.size_tier=${tile.size}`} key={tile.name}><span><Image src={tile.image} alt={`${tile.name} plush size example`} fill sizes="(max-width: 640px) 30vw, 265px" /></span><strong><LocalizedText translationKey={`home.size.${tile.name.toLowerCase()}`} fallback={tile.name} /></strong><small><LocalizedText translationKey={`home.size.${tile.rangeKey}`} fallback={tile.range} /></small></Link>)}
         </div>
       </section>
 

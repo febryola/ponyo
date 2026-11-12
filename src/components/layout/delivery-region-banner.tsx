@@ -2,18 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocalization } from "@/components/layout/localization-provider";
+import { regionName } from "@/lib/localization-options";
 
 export function DeliveryRegionBanner() {
-	const { country, deliveryCountries, setDeliveryCountry, deliveryNoticeDismissed, dismissDeliveryNotice, t } = useLocalization();
+	const { language, country, deliveryCountries, setDeliveryCountry, deliveryNoticeDismissed, dismissDeliveryNotice, t } = useLocalization();
 	const [modalOpen, setModalOpen] = useState(false);
 	const [query, setQuery] = useState("");
-	const selectedCountry = deliveryCountries.find((item) => item.code === country) ?? deliveryCountries[0];
+	const localizedCountries = useMemo(() => deliveryCountries.map((item) => ({ ...item, label: regionName(item.code, language, item.label) })), [deliveryCountries, language]);
+	const selectedCountry = localizedCountries.find((item) => item.code === country) ?? localizedCountries[0];
 	const filteredCountries = useMemo(() => {
 		const search = query.trim().toLocaleLowerCase();
 		return search
-			? deliveryCountries.filter((item) => `${item.label} ${item.code}`.toLocaleLowerCase().includes(search))
-			: deliveryCountries;
-	}, [deliveryCountries, query]);
+			? localizedCountries.filter((item) => `${item.label} ${item.code} ${deliveryCountries.find((entry) => entry.code === item.code)?.label}`.toLocaleLowerCase().includes(search))
+			: localizedCountries;
+	}, [deliveryCountries, localizedCountries, query]);
 
 	useEffect(() => {
 		if (!modalOpen) return;
@@ -30,7 +32,6 @@ export function DeliveryRegionBanner() {
 				<button type="button" className="delivery-region-trigger" aria-expanded={modalOpen} aria-haspopup="dialog" onClick={() => { setQuery(""); setModalOpen(true); }}>
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
 					<span>{t("delivery.deliver_to", "Deliver to")} <b>{selectedCountry.label}</b></span>
-					<span className="delivery-region-flag" aria-hidden="true">{selectedCountry.flag}</span>
 					<svg className="delivery-region-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 4 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
 				</button>
 			</div>

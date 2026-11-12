@@ -8,17 +8,13 @@ import { useCartItems, readCart, saveCart, type CartItem } from "@/lib/cart";
 import { refreshCartItems } from "@/lib/cart-validation";
 import { saveLocalOrder } from "@/lib/local-orders";
 import { useLocalization } from "@/components/layout/localization-provider";
+import { regionName } from "@/lib/localization-options";
 import { ApiNotConfiguredError, ApiRequestError, ponyoApi, PONYO_API_BASE_URL, type CheckoutQuote, type CheckoutQuoteInput } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
 import { AccountAuthForm } from "@/components/account/account-auth-form";
 
 type CheckoutStep = 0 | 1 | 2;
 type PaymentMethod = "card" | "apple_pay" | "paypay" | "rakuten_pay" | "konbini" | "amazon_pay";
-
-const shippingOptions = [
-  { id: "standard", name: "Standard delivery", detail: "5–8 business days", price: 0 },
-  { id: "express", name: "Express delivery", detail: "2–4 business days", price: 1200 },
-] as const
 
 // API totals are minor units. Do not convert a server quote using local FX rates.
 function formatQuotedAmount(amount: number, currency: string) {
@@ -28,16 +24,17 @@ function formatQuotedAmount(amount: number, currency: string) {
 }
 
 function PaymentBrandMark({ brand }: { brand: string }) {
+  const { t } = useLocalization();
   const label: Record<string, string> = {
-    visa: "Visa",
-    mastercard: "Mastercard",
-    jcb: "JCB",
-    amex: "American Express",
-    apple_pay: "Apple Pay",
-    paypay: "PayPay",
-    rakuten_pay: "Rakuten Pay",
-    konbini: "Konbini",
-    amazon_pay: "Amazon Pay",
+    visa: t("checkout.brand_visa", "Visa"),
+    mastercard: t("checkout.brand_mastercard", "Mastercard"),
+    jcb: t("checkout.brand_jcb", "JCB"),
+    amex: t("checkout.brand_amex", "American Express"),
+    apple_pay: t("checkout.apple_pay", "Apple Pay"),
+    paypay: t("checkout.paypay", "PayPay"),
+    rakuten_pay: t("checkout.rakuten_pay", "Rakuten Pay"),
+    konbini: t("checkout.brand_konbini", "Konbini"),
+    amazon_pay: t("checkout.amazon_pay", "Amazon Pay"),
   };
 
   return <span className={`payment-brand-mark payment-brand-mark--${brand}`} role="img" aria-label={label[brand] ?? brand}>
@@ -57,7 +54,11 @@ function PaymentBrandMark({ brand }: { brand: string }) {
 
 export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   const router = useRouter();
-  const { currency, country, deliveryCountries, formatPrice, convertMajorAmount } = useLocalization();
+  const { t, language, currency, country, deliveryCountries, formatPrice, convertMajorAmount } = useLocalization();
+  const shippingOptions = [
+    { id: "standard", name: t("checkout.shipping_standard", "Standard delivery"), detail: t("checkout.shipping_standard_days", "5–8 business days"), price: 0 },
+    { id: "express", name: t("checkout.shipping_express", "Express delivery"), detail: t("checkout.shipping_express_days", "2–4 business days"), price: 1200 },
+  ] as const;
   const { customer, setCustomer, isLoading: sessionLoading } = useCustomerSession();
   const cartItems = useCartItems();
   const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
@@ -135,7 +136,7 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
 
   function checkoutInput(): CheckoutQuoteInput {
     if (paymentMethod !== "card" && paymentMethod !== "apple_pay") {
-      throw new Error("This payment method is not available for secure checkout.");
+      throw new Error(t("checkout.error_payment_unavailable", "This payment method is not available for secure checkout."));
     }
     return {
       ...checkoutDetails,
@@ -152,23 +153,23 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
     setQuoteState(null);
     setApiError("");
     try {
-      if (!customer) throw new Error("Sign in with a verified Ponyo account before checkout.");
-      if (!items.length || items.some((item) => !item.variantId)) throw new Error("Review your cart before requesting a quote.");
+      if (!customer) throw new Error(t("checkout.error_verified_account", "Sign in with a verified Ponyo account before checkout."));
+      if (!items.length || items.some((item) => !item.variantId)) throw new Error(t("checkout.error_review_before_quote", "Review your cart before requesting a quote."));
       const storageSnapshot = () => buyNow ? window.sessionStorage.getItem("ponyo:buy-now-item") : JSON.stringify(readCart());
       const original = storageSnapshot();
       const expected = buyNow ? JSON.stringify(buyNowItem) : JSON.stringify(items);
-      if (original !== expected) throw new Error("Your cart changed. Review your cart before trying again.");
+      if (original !== expected) throw new Error(t("checkout.error_cart_changed", "Your cart changed. Review your cart before trying again."));
       const result = await ponyoApi.getCheckoutQuote(checkoutInput());
       if (storageSnapshot() !== original || currentQuoteInputKey.current !== quoteInputKey || currentCurrency.current !== currency) {
-        throw new Error("Your checkout details changed. Request a new quote before payment.");
+        throw new Error(t("checkout.error_details_changed", "Your checkout details changed. Request a new quote before payment."));
       }
       if (result.currency !== currency || ![result.subtotalAmount, result.discountAmount, result.shippingAmount, result.taxAmount, result.totalAmount, result.taxRateBps].every((amount) => Number.isSafeInteger(amount) && amount >= 0)) {
-        throw new Error("The checkout service returned an invalid quote. Please try again.");
+        throw new Error(t("checkout.error_invalid_quote", "The checkout service returned an invalid quote. Please try again."));
       }
       setQuoteState({ inputKey: quoteInputKey, quote: result });
     } catch (error) {
       if (error instanceof ApiRequestError && (error.status === 401 || error.code === "email_verification_required")) setCustomer(null);
-      setApiError(error instanceof Error ? error.message : "Unable to quote your order.");
+      setApiError(error instanceof Error ? error.message : t("checkout.error_quote_failed", "Unable to quote your order."));
     } finally {
       quoting.current = false;
       setIsQuoting(false);
@@ -176,12 +177,12 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   }
 
   const paymentOptions: Array<{ id: PaymentMethod; label: string; detail: string; brands?: string[]; enabled: boolean }> = [
-    { id: "card", label: "Credit or debit card", detail: PONYO_API_BASE_URL ? "Secure card checkout when payment service is enabled" : "Demo checkout · cards are not charged", brands: ["visa", "mastercard", "jcb", "amex"], enabled: true },
-    { id: "apple_pay", label: "Apple Pay", detail: PONYO_API_BASE_URL ? "Available on supported Apple devices" : "Demo checkout · no payment collected", brands: ["apple_pay"], enabled: true },
-    { id: "paypay", label: "PayPay", detail: PONYO_API_BASE_URL ? "Available after Japan payment setup" : "Demo checkout · no payment collected", brands: ["paypay"], enabled: !PONYO_API_BASE_URL },
-    { id: "rakuten_pay", label: "Rakuten Pay", detail: PONYO_API_BASE_URL ? "Available after Japan payment setup" : "Demo checkout · no payment collected", brands: ["rakuten_pay"], enabled: !PONYO_API_BASE_URL },
-    { id: "konbini", label: "Konbini payment", detail: PONYO_API_BASE_URL ? "Available after Japan payment setup" : "Demo checkout · no payment collected", brands: ["konbini"], enabled: !PONYO_API_BASE_URL },
-    { id: "amazon_pay", label: "Amazon Pay", detail: PONYO_API_BASE_URL ? "Available after payment integration" : "Demo checkout · no payment collected", brands: ["amazon_pay"], enabled: !PONYO_API_BASE_URL },
+    { id: "card", label: t("checkout.card", "Credit or debit card"), detail: PONYO_API_BASE_URL ? t("checkout.card_secure_detail", "Secure card checkout when payment service is enabled") : t("checkout.card_demo_detail", "Demo checkout · cards are not charged"), brands: ["visa", "mastercard", "jcb", "amex"], enabled: true },
+    { id: "apple_pay", label: t("checkout.apple_pay", "Apple Pay"), detail: PONYO_API_BASE_URL ? t("checkout.apple_pay_detail", "Available on supported Apple devices") : t("checkout.demo_no_payment", "Demo checkout · no payment collected"), brands: ["apple_pay"], enabled: true },
+    { id: "paypay", label: t("checkout.paypay", "PayPay"), detail: PONYO_API_BASE_URL ? t("checkout.japan_payment_detail", "Available after Japan payment setup") : t("checkout.demo_no_payment", "Demo checkout · no payment collected"), brands: ["paypay"], enabled: !PONYO_API_BASE_URL },
+    { id: "rakuten_pay", label: t("checkout.rakuten_pay", "Rakuten Pay"), detail: PONYO_API_BASE_URL ? t("checkout.japan_payment_detail", "Available after Japan payment setup") : t("checkout.demo_no_payment", "Demo checkout · no payment collected"), brands: ["rakuten_pay"], enabled: !PONYO_API_BASE_URL },
+    { id: "konbini", label: t("checkout.konbini_payment", "Konbini payment"), detail: PONYO_API_BASE_URL ? t("checkout.japan_payment_detail", "Available after Japan payment setup") : t("checkout.demo_no_payment", "Demo checkout · no payment collected"), brands: ["konbini"], enabled: !PONYO_API_BASE_URL },
+    { id: "amazon_pay", label: t("checkout.amazon_pay", "Amazon Pay"), detail: PONYO_API_BASE_URL ? t("checkout.payment_integration_detail", "Available after payment integration") : t("checkout.demo_no_payment", "Demo checkout · no payment collected"), brands: ["amazon_pay"], enabled: !PONYO_API_BASE_URL },
   ];
 
   useEffect(() => {
@@ -221,20 +222,25 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  const previewPayment = paymentOptions.find((option) => option.id === paymentMethod)?.label ?? t("checkout.card", "Credit or debit card");
+  const previewPaymentDescription = t("checkout.preview_payment", "Preview · {{ payment }}", { payment: previewPayment });
+  const previewTrackingCarrier = t("checkout.demo_tracking", "Japan Post · Demo tracking");
+
   function placePreviewOrder() {
+    // eslint-disable-next-line react-hooks/purity -- Submit-event-only helper; never called during render.
     const id = `PNY-${Date.now().toString().slice(-8)}`;
-    const previewPayment = paymentOptions.find((option) => option.id === paymentMethod)?.label ?? "Credit or debit card";
     saveLocalOrder({
       id,
       createdAt: new Date().toISOString(),
       status: "Processing",
-      payment: `Preview · ${previewPayment}`,
+      payment: previewPaymentDescription,
       customerEmail: checkoutEmail,
       deliveryAddress: [checkoutDelivery.firstName + " " + checkoutDelivery.lastName, checkoutDelivery.address, checkoutDelivery.address2, checkoutDelivery.region, checkoutDelivery.city, checkoutDelivery.postal, checkoutDelivery.country].filter(Boolean).join(", "),
       total,
       currency,
+      // eslint-disable-next-line react-hooks/purity -- Submit-event-only tracking ID, not render-time state.
       trackingNumber: `JP${Date.now().toString().slice(-10)}`,
-      trackingCarrier: "Japan Post · Demo tracking",
+      trackingCarrier: previewTrackingCarrier,
       items: items.map((item) => ({ ...item, price: convertMajorAmount(item.price, item.currency), currency })),
     });
     if (buyNow) window.sessionStorage.removeItem("ponyo:buy-now-item");
@@ -250,11 +256,11 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
     setApiError("");
     if (PONYO_API_BASE_URL) {
       if (!customer) {
-        setApiError("Sign in with a verified Ponyo account before checkout.");
+        setApiError(t("checkout.error_verified_account", "Sign in with a verified Ponyo account before checkout."));
         return;
       }
       if (paymentMethod !== "card" && paymentMethod !== "apple_pay") {
-        setApiError("This payment method will be available when Japan payment processing is connected.");
+        setApiError(t("checkout.error_japan_payment", "This payment method will be available when Japan payment processing is connected."));
         return;
       }
       submitting.current = true;
@@ -265,11 +271,11 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
         const storageSnapshot = () => buyNow ? window.sessionStorage.getItem("ponyo:buy-now-item") : JSON.stringify(readCart());
         const original = storageSnapshot();
         const expected = buyNow ? JSON.stringify(buyNowItem) : JSON.stringify(items);
-        if (original !== expected) throw new Error("Your cart changed. Review your cart before trying again.");
+        if (original !== expected) throw new Error(t("checkout.error_cart_changed", "Your cart changed. Review your cart before trying again."));
         let accepted: string | null = original;
         const assertUnchanged = () => {
           if (storageSnapshot() !== accepted || currentCurrency.current !== currency) {
-            throw new Error("Your cart or currency changed during checkout. Review your cart and try again.");
+            throw new Error(t("checkout.error_cart_currency_changed", "Your cart or currency changed during checkout. Review your cart and try again."));
           }
         };
         const refreshed = await refreshCartItems(items, currency);
@@ -284,18 +290,18 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
         accepted = storageSnapshot();
         if (!refreshed.validation?.canCheckout) {
           setQuoteState(null);
-          setApiError(priceChanged ? "Prices or currencies changed. Review the updated order and try again. Stock issues must be resolved in your cart." : "Some items are unavailable, have insufficient stock, or use different source currencies. Review your cart before checkout.");
+          setApiError(priceChanged ? t("checkout.error_prices_stock", "Prices or currencies changed. Review the updated order and try again. Stock issues must be resolved in your cart.") : t("checkout.error_stock", "Some items are unavailable, have insufficient stock, or use different source currencies. Review your cart before checkout."));
           return;
         }
         if (priceChanged) {
           setQuoteState(null);
-          setApiError("Prices or currencies changed. Review the updated order, then continue to secure payment again to accept them.");
+          setApiError(t("checkout.error_prices_changed", "Prices or currencies changed. Review the updated order, then continue to secure payment again to accept them."));
           return;
         }
         const checkoutItems = refreshed.items.map((item) => ({ variantId: item.variantId!, quantity: item.qty, expectedPriceAmount: item.price, expectedCurrency: item.currency }));
         assertUnchanged();
         if (!quote || currentQuoteInputKey.current !== quoteInputKey) {
-          throw new Error("Request and review an updated quote before continuing to payment.");
+          throw new Error(t("checkout.error_updated_quote", "Request and review an updated quote before continuing to payment."));
         }
         const requestKey = "ponyo:checkout-idempotency-key";
         const idempotencyKey = checkoutIdempotencyKey.current ?? window.sessionStorage.getItem(requestKey) ?? crypto.randomUUID();
@@ -308,12 +314,12 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
           expectedTotalAmount: quote.totalAmount,
         });
         assertUnchanged();
-        if (currentQuoteInputKey.current !== quoteInputKey) throw new Error("Your checkout details changed during payment creation. Review your order again.");
+        if (currentQuoteInputKey.current !== quoteInputKey) throw new Error(t("checkout.error_payment_details_changed", "Your checkout details changed during payment creation. Review your order again."));
         if (session.totalAmount !== quote.totalAmount || session.currency !== quote.currency) {
-          throw new Error("The payment total changed. Request and review a new quote before payment.");
+          throw new Error(t("checkout.error_total_changed", "The payment total changed. Request and review a new quote before payment."));
         }
         const checkoutUrl = new URL(session.checkoutUrl);
-        if (checkoutUrl.protocol !== "https:") throw new Error("The payment service returned an invalid checkout URL.");
+        if (checkoutUrl.protocol !== "https:") throw new Error(t("checkout.error_invalid_url", "The payment service returned an invalid checkout URL."));
         if (buyNow) window.sessionStorage.removeItem("ponyo:buy-now-item");
         window.location.assign(checkoutUrl.toString());
       } catch (error) {
@@ -325,7 +331,7 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
         if (error instanceof ApiRequestError && (error.status === 401 || error.code === "email_verification_required")) {
           setCustomer(null);
         }
-        setApiError(error instanceof ApiNotConfiguredError ? "Checkout service is not configured." : error instanceof Error ? error.message : "Unable to start checkout.");
+        setApiError(error instanceof ApiNotConfiguredError ? t("checkout.error_not_configured", "Checkout service is not configured.") : error instanceof Error ? error.message : t("checkout.error_start_failed", "Unable to start checkout."));
       } finally {
         submitting.current = false;
         setIsSubmitting(false);
@@ -336,13 +342,13 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
     placePreviewOrder();
   }
 
-  if (!buyNowReady) return <section className="checkout-empty" role="status"><p>Preparing your plush for checkout…</p></section>;
+  if (!buyNowReady) return <section className="checkout-empty" role="status"><p>{t("checkout.preparing", "Preparing your plush for checkout…")}</p></section>;
 
-  if (PONYO_API_BASE_URL && sessionLoading) return <section className="checkout-empty" role="status"><p>Checking your account…</p></section>;
+  if (PONYO_API_BASE_URL && sessionLoading) return <section className="checkout-empty" role="status"><p>{t("checkout.checking_account", "Checking your account…")}</p></section>;
 
   if (PONYO_API_BASE_URL && !customer) {
-    return <section aria-label="Sign in for secure checkout">
-      <div className="checkout-empty"><h1>Sign in before checkout</h1><p>A verified Ponyo account is required to place an order. Your bag will stay here while you sign in or verify your email.</p></div>
+    return <section aria-label={t("checkout.sign_in_label", "Sign in for secure checkout")}>
+      <div className="checkout-empty"><h1>{t("checkout.sign_in_heading", "Sign in before checkout")}</h1><p>{t("checkout.sign_in_body", "A verified Ponyo account is required to place an order. Your bag will stay here while you sign in or verify your email.")}</p></div>
       <AccountAuthForm mode="login" onAuthenticated={setCustomer} />
     </section>;
   }
@@ -351,9 +357,9 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
     return (
       <section className="checkout-empty">
         <span aria-hidden="true">♡</span>
-        <h1>Your bag is waiting for a plush friend.</h1>
-        <p>Add a plush to your bag, then come back to finish your order.</p>
-        <Link className="shop-button shop-button-orange" href="/collections/all">Browse all plush <b>→</b></Link>
+        <h1>{t("checkout.empty_heading", "Your bag is waiting for a plush friend.")}</h1>
+        <p>{t("checkout.empty_body", "Add a plush to your bag, then come back to finish your order.")}</p>
+        <Link className="shop-button shop-button-orange" href="/collections/all">{t("checkout.browse", "Browse all plush")} <b>→</b></Link>
       </section>
     );
   }
@@ -361,83 +367,83 @@ export function CheckoutPageClient({ buyNow = false }: { buyNow?: boolean }) {
   return (
     <div className="checkout-flow">
       <div className="checkout-flow-heading">
-        <div><p className="eyebrow">A LITTLE BUNDLE OF JOY</p><h1>Checkout</h1></div>
-        <span className="checkout-secure-note"><span aria-hidden="true">♧</span> {PONYO_API_BASE_URL ? "Secure payment checkout" : "Demo checkout · no payment collected"}</span>
+        <div><p className="eyebrow">{t("checkout.eyebrow", "A LITTLE BUNDLE OF JOY")}</p><h1>{t("checkout.heading", "Checkout")}</h1></div>
+        <span className="checkout-secure-note"><span aria-hidden="true">♧</span> {PONYO_API_BASE_URL ? t("checkout.secure_payment", "Secure payment checkout") : t("checkout.demo_no_payment", "Demo checkout · no payment collected")}</span>
         <span className="checkout-jellyfish" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M12 28C12 15 20 6 32 6C44 6 52 15 52 28C52 33 48 36 44 36H20C16 36 12 33 12 28Z"/><circle cx="26" cy="23" r="2.6"/><circle cx="38" cy="23" r="2.6"/><path d="M22 29c1.4 1.6 3 1.6 4.4 0M19 38c0 4-2 6-2 10M27 38c0 5 2 7 0 12M35 38c0 5-1 7 1 12M43 38c0 4 2 6 1 10"/></svg></span>
       </div>
 
-      <ol className="checkout-steps" aria-label="Checkout steps">
-        {["Delivery", "Payment", "Review"].map((label, index) => <li className={index === step ? "is-current" : index < step ? "is-complete" : ""} key={label}><span>{index < step ? "✓" : index + 1}</span><b>{label}</b></li>)}
+      <ol className="checkout-steps" aria-label={t("checkout.steps", "Checkout steps")}>
+        {[t("checkout.delivery", "Delivery"), t("checkout.payment", "Payment"), t("checkout.review", "Review")].map((label, index) => <li className={index === step ? "is-current" : index < step ? "is-complete" : ""} key={label}><span>{index < step ? "✓" : index + 1}</span><b>{label}</b></li>)}
       </ol>
 
       <div className="checkout-columns">
         <div className="checkout-main-panel">
           {step === 0 && <form className="checkout-form" onSubmit={continueToPayment}>
             <section className="checkout-form-section">
-              <div className="checkout-section-heading"><span>01</span><div><h2>Contact</h2><p>{customer ? "Order updates will be sent to your verified account email." : "Where should we send your order updates?"}</p></div></div>
-              <label>Email address<input type="email" autoComplete="email" value={checkoutEmail} readOnly={Boolean(PONYO_API_BASE_URL)} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required /></label>
+              <div className="checkout-section-heading"><span>01</span><div><h2>{t("checkout.contact", "Contact")}</h2><p>{customer ? t("checkout.contact_verified", "Order updates will be sent to your verified account email.") : t("checkout.contact_question", "Where should we send your order updates?")}</p></div></div>
+              <label>{t("checkout.email", "Email address")}<input type="email" autoComplete="email" value={checkoutEmail} readOnly={Boolean(PONYO_API_BASE_URL)} onChange={(event) => setEmail(event.target.value)} placeholder={t("checkout.email_placeholder", "you@example.com")} required /></label>
             </section>
             <section className="checkout-form-section">
-              <div className="checkout-section-heading"><span>02</span><div><h2>Delivery address</h2><p>Enter the address where your new friend will arrive.</p></div></div>
+              <div className="checkout-section-heading"><span>02</span><div><h2>{t("checkout.address_heading", "Delivery address")}</h2><p>{t("checkout.address_body", "Enter the address where your new friend will arrive.")}</p></div></div>
               <div className="checkout-field-grid">
-                <label>First name *<input name="first-name" autoComplete="given-name" placeholder="First name" value={checkoutDelivery.firstName} onChange={(event) => setDelivery({ ...delivery, firstName: event.target.value })} required /></label>
-                <label>Last name *<input name="last-name" autoComplete="family-name" placeholder="Last name" value={checkoutDelivery.lastName} onChange={(event) => setDelivery({ ...delivery, lastName: event.target.value })} required /></label>
+                <label>{t("checkout.first_name_required", "First name *")}<input name="first-name" autoComplete="given-name" placeholder={t("checkout.first_name", "First name")} value={checkoutDelivery.firstName} onChange={(event) => setDelivery({ ...delivery, firstName: event.target.value })} required /></label>
+                <label>{t("checkout.last_name_required", "Last name *")}<input name="last-name" autoComplete="family-name" placeholder={t("checkout.last_name", "Last name")} value={checkoutDelivery.lastName} onChange={(event) => setDelivery({ ...delivery, lastName: event.target.value })} required /></label>
               </div>
-              <label>Address *<input name="address" autoComplete="address-line1" placeholder="Street address" value={delivery.address} onChange={(event) => setDelivery({ ...delivery, address: event.target.value })} required /></label>
-              <label>Apartment, suite, etc. (if applicable)<input name="address2" autoComplete="address-line2" placeholder="Building, apartment, room" value={delivery.address2} onChange={(event) => setDelivery({ ...delivery, address2: event.target.value })} /></label>
-              <div className="checkout-field-grid checkout-field-grid-city"><label>City *<input name="city" autoComplete="address-level2" placeholder="City" value={delivery.city} onChange={(event) => setDelivery({ ...delivery, city: event.target.value })} required /></label><label>Prefecture / region *<input name="region" autoComplete="address-level1" placeholder="Tokyo" value={delivery.region} onChange={(event) => setDelivery({ ...delivery, region: event.target.value })} required /></label></div>
-              <div className="checkout-field-grid checkout-field-grid-city"><label>Postal code *<input name="postal" autoComplete="postal-code" placeholder="Postal code" value={delivery.postal} onChange={(event) => setDelivery({ ...delivery, postal: event.target.value })} required /></label><label>Phone *<input name="phone" type="tel" autoComplete="tel" placeholder="For delivery updates" value={delivery.phone} onChange={(event) => setDelivery({ ...delivery, phone: event.target.value })} required /></label></div>
-              <label>Country or region *<select name="country" value={delivery.country} onChange={(event) => setDelivery({ ...delivery, country: event.target.value })} required>{deliveryCountries.map((item) => <option key={item.code} value={item.label}>{item.label}</option>)}</select></label>
+              <label>{t("checkout.address_required", "Address *")}<input name="address" autoComplete="address-line1" placeholder={t("checkout.street_placeholder", "Street address")} value={delivery.address} onChange={(event) => setDelivery({ ...delivery, address: event.target.value })} required /></label>
+              <label>{t("checkout.address2", "Apartment, suite, etc. (if applicable)")}<input name="address2" autoComplete="address-line2" placeholder={t("checkout.address2_placeholder", "Building, apartment, room")} value={delivery.address2} onChange={(event) => setDelivery({ ...delivery, address2: event.target.value })} /></label>
+              <div className="checkout-field-grid checkout-field-grid-city"><label>{t("checkout.city_required", "City *")}<input name="city" autoComplete="address-level2" placeholder={t("checkout.city", "City")} value={delivery.city} onChange={(event) => setDelivery({ ...delivery, city: event.target.value })} required /></label><label>{t("checkout.region_required", "Prefecture / region *")}<input name="region" autoComplete="address-level1" placeholder={t("checkout.region_placeholder", "Tokyo")} value={delivery.region} onChange={(event) => setDelivery({ ...delivery, region: event.target.value })} required /></label></div>
+              <div className="checkout-field-grid checkout-field-grid-city"><label>{t("checkout.postal_required", "Postal code *")}<input name="postal" autoComplete="postal-code" placeholder={t("checkout.postal", "Postal code")} value={delivery.postal} onChange={(event) => setDelivery({ ...delivery, postal: event.target.value })} required /></label><label>{t("checkout.phone_required", "Phone *")}<input name="phone" type="tel" autoComplete="tel" placeholder={t("checkout.phone_placeholder", "For delivery updates")} value={delivery.phone} onChange={(event) => setDelivery({ ...delivery, phone: event.target.value })} required /></label></div>
+              <label>{t("checkout.country_required", "Country or region *")}<select name="country" value={delivery.country} onChange={(event) => setDelivery({ ...delivery, country: event.target.value })} required>{deliveryCountries.map((item) => <option key={item.code} value={item.label}>{regionName(item.code, language, item.label)}</option>)}</select></label>
             </section>
             <section className="checkout-form-section">
-              <div className="checkout-section-heading"><span>03</span><div><h2>Delivery method</h2><p>Choose how quickly your plush should travel.</p></div></div>
-              <div className="checkout-choice-list">{shippingOptions.map((option) => <label className={`checkout-choice${shipping === option.id ? " is-selected" : ""}`} key={option.id}><input type="radio" name="shipping" value={option.id} checked={shipping === option.id} onChange={() => setShipping(option.id)} /><span><b>{option.name}</b><small>{option.detail}</small></span><strong>{option.price ? formatPrice(option.price, "JPY") : "Complimentary"}</strong></label>)}</div>
+              <div className="checkout-section-heading"><span>03</span><div><h2>{t("checkout.shipping_heading", "Delivery method")}</h2><p>{t("checkout.shipping_body", "Choose how quickly your plush should travel.")}</p></div></div>
+              <div className="checkout-choice-list">{shippingOptions.map((option) => <label className={`checkout-choice${shipping === option.id ? " is-selected" : ""}`} key={option.id}><input type="radio" name="shipping" value={option.id} checked={shipping === option.id} onChange={() => setShipping(option.id)} /><span><b>{option.name}</b><small>{option.detail}</small></span><strong>{option.price ? formatPrice(option.price, "JPY") : t("checkout.complimentary", "Complimentary")}</strong></label>)}</div>
             </section>
-            <button type="submit" className="checkout-primary-button">Continue to payment <span aria-hidden="true">→</span></button>
+            <button type="submit" className="checkout-primary-button">{t("checkout.continue_payment", "Continue to payment")} <span aria-hidden="true">→</span></button>
           </form>}
 
           {step === 1 && <form className="checkout-form" onSubmit={continueToReview}>
             <section className="checkout-form-section">
-              <div className="checkout-section-heading"><span>04</span><div><h2>Payment method</h2><p>Choose a secure way to pay in Japan.</p></div></div>
+              <div className="checkout-section-heading"><span>04</span><div><h2>{t("checkout.payment_heading", "Payment method")}</h2><p>{t("checkout.payment_body", "Choose a secure way to pay in Japan.")}</p></div></div>
               <div className="checkout-choice-list checkout-payment-list">
                 {paymentOptions.map((option) => <label className={`checkout-choice checkout-payment-choice${paymentMethod === option.id ? " is-selected" : ""}${!option.enabled ? " is-coming-soon" : ""}`} key={option.id}>
                   <input type="radio" name="payment" value={option.id} checked={paymentMethod === option.id} disabled={!option.enabled} onChange={() => setPaymentMethod(option.id)} />
                   <span><b>{option.label}</b><small>{option.detail}</small>{option.brands && <span className="checkout-payment-icons">{option.brands.map((brand) => <PaymentBrandMark brand={brand} key={brand} />)}</span>}</span>
-                  {!option.enabled && <strong className="checkout-coming-soon">Coming soon</strong>}
+                  {!option.enabled && <strong className="checkout-coming-soon">{t("checkout.coming_soon", "Coming soon")}</strong>}
                 </label>)}
               </div>
-              <p className="checkout-preview-disclaimer">Card details are entered only on the secure payment page. Ponyo never stores your card number.</p>
+              <p className="checkout-preview-disclaimer">{t("checkout.card_privacy", "Card details are entered only on the secure payment page. Ponyo never stores your card number.")}</p>
             </section>
-            <div className="checkout-step-actions"><button type="button" className="checkout-secondary-button" onClick={() => setStep(0)}>← Back to delivery</button><button type="submit" className="checkout-primary-button">Review order <span aria-hidden="true">→</span></button></div>
+            <div className="checkout-step-actions"><button type="button" className="checkout-secondary-button" onClick={() => setStep(0)}>{t("checkout.back_delivery", "← Back to delivery")}</button><button type="submit" className="checkout-primary-button">{t("checkout.review_order", "Review order")} <span aria-hidden="true">→</span></button></div>
           </form>}
 
           {step === 2 && <section className="checkout-review-panel">
-            <div className="checkout-section-heading"><span>05</span><div><h2>Review your order</h2><p>{PONYO_API_BASE_URL ? "Confirm your details, then continue to secure payment." : "Everything looks good? Place your local preview order."}</p></div></div>
-            <div className="checkout-review-block"><div><strong>Contact</strong><button type="button" onClick={() => setStep(0)}>Edit</button></div><p>{checkoutEmail}</p></div>
-            <div className="checkout-review-block"><div><strong>Delivery</strong><button type="button" onClick={() => setStep(0)}>Edit</button></div><p>{checkoutDelivery.firstName} {checkoutDelivery.lastName}<br />{checkoutDelivery.address}{checkoutDelivery.address2 && <><br />{checkoutDelivery.address2}</>}<br />{[checkoutDelivery.city, checkoutDelivery.region, checkoutDelivery.postal, checkoutDelivery.country].filter(Boolean).join(", ")}<br />{shippingOptions.find((option) => option.id === shipping)?.name}</p></div>
-            <div className="checkout-review-block"><div><strong>Payment</strong><button type="button" onClick={() => setStep(1)}>Edit</button></div><p>{paymentOptions.find((option) => option.id === paymentMethod)?.label ?? "Credit or debit card"}</p></div>
+            <div className="checkout-section-heading"><span>05</span><div><h2>{t("checkout.review_heading", "Review your order")}</h2><p>{PONYO_API_BASE_URL ? t("checkout.review_secure_body", "Confirm your details, then continue to secure payment.") : t("checkout.review_demo_body", "Everything looks good? Place your local preview order.")}</p></div></div>
+            <div className="checkout-review-block"><div><strong>{t("checkout.contact", "Contact")}</strong><button type="button" onClick={() => setStep(0)}>{t("checkout.edit", "Edit")}</button></div><p>{checkoutEmail}</p></div>
+            <div className="checkout-review-block"><div><strong>{t("checkout.delivery", "Delivery")}</strong><button type="button" onClick={() => setStep(0)}>{t("checkout.edit", "Edit")}</button></div><p>{checkoutDelivery.firstName} {checkoutDelivery.lastName}<br />{checkoutDelivery.address}{checkoutDelivery.address2 && <><br />{checkoutDelivery.address2}</>}<br />{[checkoutDelivery.city, checkoutDelivery.region, checkoutDelivery.postal, regionName(deliveryCountries.find((item) => item.label === checkoutDelivery.country)?.code ?? "JP", language, checkoutDelivery.country)].filter(Boolean).join(", ")}<br />{shippingOptions.find((option) => option.id === shipping)?.name}</p></div>
+            <div className="checkout-review-block"><div><strong>{t("checkout.payment", "Payment")}</strong><button type="button" onClick={() => setStep(1)}>{t("checkout.edit", "Edit")}</button></div><p>{paymentOptions.find((option) => option.id === paymentMethod)?.label ?? t("checkout.card", "Credit or debit card")}</p></div>
             {PONYO_API_BASE_URL && <form className="checkout-form checkout-form-section" onSubmit={(event) => { event.preventDefault(); void requestQuote(); }} aria-busy={isQuoting}>
-              <label htmlFor="checkout-coupon">Coupon code (optional)<input id="checkout-coupon" name="coupon" autoComplete="off" value={couponCode} disabled={isQuoting || isSubmitting} onChange={(event) => { setCouponCode(event.target.value); setQuoteState(null); }} placeholder="Enter a coupon code" /></label>
-              <button type="submit" className="checkout-secondary-button" disabled={isQuoting || isSubmitting}>{isQuoting ? "Calculating your quote…" : couponCode.trim() ? "Apply coupon / refresh quote" : "Refresh order quote"}</button>
-              <p role="status">{isQuoting ? "Checking current prices, shipping, discounts and tax…" : quote ? `Server quote ready${quote.couponCode ? ` · Coupon ${quote.couponCode} applied` : ""}. Review the totals before payment.` : "Request a quote to confirm shipping, discounts and tax before payment. Clear the code and refresh to remove a coupon."}</p>
+              <label htmlFor="checkout-coupon">{t("checkout.coupon_label", "Coupon code (optional)")}<input id="checkout-coupon" name="coupon" autoComplete="off" value={couponCode} disabled={isQuoting || isSubmitting} onChange={(event) => { setCouponCode(event.target.value); setQuoteState(null); }} placeholder={t("checkout.coupon_placeholder", "Enter a coupon code")} /></label>
+              <button type="submit" className="checkout-secondary-button" disabled={isQuoting || isSubmitting}>{isQuoting ? t("checkout.quote_calculating", "Calculating your quote…") : couponCode.trim() ? t("checkout.coupon_refresh", "Apply coupon / refresh quote") : t("checkout.quote_refresh", "Refresh order quote")}</button>
+              <p role="status">{isQuoting ? t("checkout.quote_checking", "Checking current prices, shipping, discounts and tax…") : quote ? quote.couponCode ? t("checkout.quote_ready_coupon", "Server quote ready · Coupon {{ code }} applied. Review the totals before payment.", { code: quote.couponCode }) : t("checkout.quote_ready", "Server quote ready. Review the totals before payment.") : t("checkout.quote_request", "Request a quote to confirm shipping, discounts and tax before payment. Clear the code and refresh to remove a coupon.")}</p>
             </form>}
-            {apiError && <p className="api-form-error" role="alert">{apiError} <Link href="/cart">Review cart</Link></p>}
-            <div className="checkout-step-actions"><button type="button" className="checkout-secondary-button" onClick={() => setStep(1)} disabled={isSubmitting || isQuoting}>← Back to payment</button><button type="button" className="checkout-primary-button" onClick={placeLocalOrder} disabled={isSubmitting || isQuoting || Boolean(PONYO_API_BASE_URL && !quote)}>{isSubmitting ? "Starting checkout…" : PONYO_API_BASE_URL ? "Continue to secure payment" : "Place demo order"}<span aria-hidden="true">→</span></button></div>
-            {!PONYO_API_BASE_URL && <p className="checkout-preview-disclaimer">Demo checkout only. No payment is collected.</p>}
+            {apiError && <p className="api-form-error" role="alert">{apiError} <Link href="/cart">{t("checkout.review_cart", "Review cart")}</Link></p>}
+            <div className="checkout-step-actions"><button type="button" className="checkout-secondary-button" onClick={() => setStep(1)} disabled={isSubmitting || isQuoting}>{t("checkout.back_payment", "← Back to payment")}</button><button type="button" className="checkout-primary-button" onClick={placeLocalOrder} disabled={isSubmitting || isQuoting || Boolean(PONYO_API_BASE_URL && !quote)}>{isSubmitting ? t("checkout.starting", "Starting checkout…") : PONYO_API_BASE_URL ? t("checkout.continue_secure", "Continue to secure payment") : t("checkout.place_demo", "Place demo order")}<span aria-hidden="true">→</span></button></div>
+            {!PONYO_API_BASE_URL && <p className="checkout-preview-disclaimer">{t("checkout.demo_disclaimer", "Demo checkout only. No payment is collected.")}</p>}
           </section>}
         </div>
 
-        <aside className="checkout-order-card" aria-label="Order summary">
-          <div className="checkout-order-heading"><h2>Your order</h2><span>{items.reduce((sum, item) => sum + item.qty, 0)} items</span></div>
+        <aside className="checkout-order-card" aria-label={t("checkout.summary", "Order summary")}>
+          <div className="checkout-order-heading"><h2>{t("checkout.your_order", "Your order")}</h2><span>{t("checkout.item_count", "{{ count }} items", { count: items.reduce((sum, item) => sum + item.qty, 0) })}</span></div>
           <div className="checkout-order-items">{items.map((item) => <div className="checkout-order-item" key={item.id}><span className="checkout-order-image"><Image src={item.image} alt={item.imageAlt} fill sizes="72px"/><b>{item.qty}</b></span><span className="checkout-order-item-copy"><strong>{item.name}</strong><small>{item.maker}</small></span><b>{formatPrice(item.price * item.qty, item.currency)}</b></div>)}</div>
           {PONYO_API_BASE_URL ? <div className="checkout-totals" aria-live="polite" aria-busy={isQuoting}>
-            <div><span>Subtotal{!quote && " (estimate)"}</span><strong>{quote ? formatQuotedAmount(quote.subtotalAmount, quote.currency) : formatPrice(subtotal, currency)}</strong></div>
-            <div><span>Discount{quote?.couponCode ? ` (${quote.couponCode})` : ""}</span><strong>{quote ? formatQuotedAmount(-quote.discountAmount, quote.currency) : "Awaiting quote"}</strong></div>
-            <div><span>Delivery</span><strong>{quote ? formatQuotedAmount(quote.shippingAmount, quote.currency) : "Awaiting quote"}</strong></div>
-            <div><span>Tax{quote ? ` (${quote.taxRateBps / 100}%)` : ""}</span><strong>{quote ? formatQuotedAmount(quote.taxAmount, quote.currency) : "Awaiting quote"}</strong></div>
-            <div className="checkout-grand-total"><span>Total{quote ? ` (${quote.currency})` : ""}</span><strong>{quote ? formatQuotedAmount(quote.totalAmount, quote.currency) : "Awaiting quote"}</strong></div>
-          </div> : <div className="checkout-totals"><div><span>Subtotal</span><strong>{formatPrice(subtotal, currency)}</strong></div><div><span>Delivery</span><strong>{deliveryPrice ? formatPrice(deliveryPrice, currency) : "Complimentary"}</strong></div><div className="checkout-grand-total"><span>Total</span><strong>{formatPrice(total, currency)}</strong></div></div>}
-          <p className="checkout-order-note"><span aria-hidden="true">♡</span> A little bundle of joy, packed with care.</p>
+            <div><span>{quote ? t("checkout.subtotal", "Subtotal") : t("checkout.subtotal_estimate", "Subtotal (estimate)")}</span><strong>{quote ? formatQuotedAmount(quote.subtotalAmount, quote.currency) : formatPrice(subtotal, currency)}</strong></div>
+            <div><span>{quote?.couponCode ? t("checkout.discount_coupon", "Discount ({{ code }})", { code: quote.couponCode }) : t("checkout.discount", "Discount")}</span><strong>{quote ? formatQuotedAmount(-quote.discountAmount, quote.currency) : t("checkout.awaiting_quote", "Awaiting quote")}</strong></div>
+            <div><span>{t("checkout.delivery", "Delivery")}</span><strong>{quote ? formatQuotedAmount(quote.shippingAmount, quote.currency) : t("checkout.awaiting_quote", "Awaiting quote")}</strong></div>
+            <div><span>{quote ? t("checkout.tax_rate", "Tax ({{ rate }}%)", { rate: quote.taxRateBps / 100 }) : t("checkout.tax", "Tax")}</span><strong>{quote ? formatQuotedAmount(quote.taxAmount, quote.currency) : t("checkout.awaiting_quote", "Awaiting quote")}</strong></div>
+            <div className="checkout-grand-total"><span>{quote ? t("checkout.total_currency", "Total ({{ currency }})", { currency: quote.currency }) : t("checkout.total", "Total")}</span><strong>{quote ? formatQuotedAmount(quote.totalAmount, quote.currency) : t("checkout.awaiting_quote", "Awaiting quote")}</strong></div>
+          </div> : <div className="checkout-totals"><div><span>{t("checkout.subtotal", "Subtotal")}</span><strong>{formatPrice(subtotal, currency)}</strong></div><div><span>{t("checkout.delivery", "Delivery")}</span><strong>{deliveryPrice ? formatPrice(deliveryPrice, currency) : t("checkout.complimentary", "Complimentary")}</strong></div><div className="checkout-grand-total"><span>{t("checkout.total", "Total")}</span><strong>{formatPrice(total, currency)}</strong></div></div>}
+          <p className="checkout-order-note"><span aria-hidden="true">♡</span> {t("checkout.order_note", "A little bundle of joy, packed with care.")}</p>
         </aside>
       </div>
     </div>

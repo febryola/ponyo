@@ -115,8 +115,16 @@ async def login(payload: AuthCredentials, request: Request, response: Response, 
     check_csrf(request)
     await enforce_rate_limit(request, "login", 10, 60)
     customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == str(payload.email).lower().strip()))
-    if not customer or not verify_password(payload.password, customer.password_hash):
-        raise HTTPException(status_code=401, detail="Email or password is incorrect.")
+    if not customer:
+        raise HTTPException(status_code=401, detail={
+            "code": "customer_not_found",
+            "message": "This email is not registered. Please create a Ponyo account.",
+        })
+    if not verify_password(payload.password, customer.password_hash):
+        raise HTTPException(status_code=401, detail={
+            "code": "invalid_password",
+            "message": "Incorrect password. Try again or reset your password.",
+        })
     if not customer.email_verified:
         raise HTTPException(status_code=403, detail={"code": "email_verification_required", "message": "Please verify your email before signing in."})
     if customer.role != "customer":

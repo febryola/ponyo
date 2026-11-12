@@ -155,6 +155,29 @@ async def test_customer_login_and_profile_expose_additive_role_and_current_versi
     assert updated.json()["data"]["firstName"] == "Updated"
 
 
+@pytest.mark.parametrize("email,password,verified,code,message", [
+    ("missing@example.com", PASSWORD, True, "customer_not_found", "This email is not registered. Please create a Ponyo account."),
+    ("  BUYER@EXAMPLE.COM  ", "wrong-password-123", True, "invalid_password", "Incorrect password. Try again or reset your password."),
+    ("buyer@example.com", "wrong-password-123", False, "invalid_password", "Incorrect password. Try again or reset your password."),
+])
+@pytest.mark.asyncio
+async def test_login_failures_offer_specific_recovery_without_creating_session(
+    test_client, email, password, verified, code, message,
+):
+    client, factory = test_client
+    await seed_customer_session(client, factory, verified=verified)
+    use_session(client, None)
+
+    response = await auth_post(client, "login", {"email": email, "password": password})
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == code
+    assert response.json()["error"]["message"] == message
+    assert response.json()["error"]["request_id"]
+    assert client.cookies.get(settings.session_cookie_name) is None
+    assert (await client.get("/v1/auth/me")).status_code == 401
+
+
 @pytest.mark.parametrize("auth_version", [0, 9])
 def test_session_token_contains_required_claims_and_version(auth_version):
     customer_id = uuid4()

@@ -122,6 +122,8 @@ Resend accepts `{ "email" }`; confirm accepts `{ "token" }`. Resend returns `{ "
 
 Login accepts `{ "email", "password" }`; successful login returns `{ "data": { "customer": { "id", "firstName", "lastName", "email" } } }` and sets the session cookie. Pending login and existing unverified sessions return `403` with code `email_verification_required`. Account/order/review routes re-check the database verification flag on every request. Password reset accepts `{ "email" }` and returns `{ "data": { "accepted": true } }` without revealing whether the address exists. The browser does not persist credentials or bearer tokens.
 
+Failed login returns `401` with code `customer_not_found` for an unregistered email (the storefront offers account creation), or `invalid_password` for an existing account with an incorrect password (the storefront offers password reset). Neither failure creates a session. These intentionally distinct login messages disclose whether an email is registered; CSRF checks and the login rate limit of 10 attempts per minute remain enforced. Password-reset and verification-resend responses remain non-enumerating.
+
 #### Customer authentication and access control
 
 - Passwords use salted Argon2 hashing through `pwdlib`. Registration/reset enforce length 8–128, a digit, and a special character. Reset tokens use 32 random bytes, SHA-256 storage, a one-hour expiry, and an atomic one-time claim; confirmation invalidates sibling reset tokens and all existing account sessions, without changing email verification status.

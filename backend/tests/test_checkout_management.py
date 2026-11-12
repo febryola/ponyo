@@ -239,8 +239,22 @@ async def test_checkout_quote_supports_south_korea_delivery(flow):
     client, _, _, _, variant = flow
     payload = checkout_payload(variant)
     payload["shippingAddress"]["countryCode"] = "KR"
+    payload["shippingAddress"]["postalCode"] = "04524"
     response = await post(client, "/v1/checkout/quote", payload)
     assert response.status_code == 200, response.text
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("postalCode", "not-a-postal-code"),
+    ("phone", "letters only"),
+    ("address1", "   "),
+])
+async def test_checkout_rejects_invalid_delivery_address(flow, field, value):
+    client, _, _, _, variant = flow
+    payload = checkout_payload(variant)
+    payload["shippingAddress"][field] = value
+    response = await post(client, "/v1/checkout/quote", payload)
+    assert response.status_code == 422, response.text
 
 
 async def test_coupon_failure_retains_retryable_reservation_and_unique_order_numbers(flow, mocked_services):

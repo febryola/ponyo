@@ -1,8 +1,8 @@
 "use client";
 
-export function SortSelect({ value, category, search, preservedFilters = {} }: { value: string; category: string; search: string; preservedFilters?: Record<string, string> }) {
+export function SortSelect({ value, category, search, action = "/shop", preservedFilters = {} }: { value: string; category: string; search: string; action?: string; preservedFilters?: Record<string, string> }) {
   return (
-    <form className="sort-select-form" action="/shop" method="get">
+    <form className="sort-select-form" action={action} method="get">
       {category && <input type="hidden" name="category" value={category} />}
       {search && <input type="hidden" name="q" value={search} />}
       {Object.entries(preservedFilters).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}

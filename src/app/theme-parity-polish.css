@@ -1,13 +1,46 @@
 /* Route behavior and small components not covered by the theme's generated utility stylesheet. */
 
 .store-hero-track {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        justify-content: center;
-        gap: 12px;
-        transform: none;
-    }
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    transform: none;
+}
+
+.store-hero-track::-webkit-scrollbar {
+    display: none;
+}
+
+.store-hero-slide {
+    min-width: 100%;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    flex: 0 0 100%;
+    overflow: hidden;
+    scroll-snap-align: start;
+}
+
+.store-hero-image {
+    z-index: 0;
+}
+
+.store-hero-overlay {
+    z-index: 1;
+}
+
+.store-hero-copy {
+    z-index: 2;
+}
 
 .store-hero-copy h2 {
     margin: 0;
@@ -1204,24 +1237,23 @@ body {
     display: contents;
 }
 
+
 /* Progressive enhancement: no JS, no observer, and reduced motion stay visible. */
+
 @media (prefers-reduced-motion: no-preference) {
     .journal-reveal-root[data-journal-motion="ready"] [data-journal-reveal] {
         opacity: 0;
         translate: 0 30px;
     }
-
     .journal-reveal-root[data-journal-motion="ready"] [data-journal-reveal].is-journal-visible {
         opacity: 1;
         translate: 0 0;
         transition: opacity .7s ease, translate .7s cubic-bezier(.16, 1, .3, 1);
     }
-
-    .journal-reveal-root[data-journal-motion="ready"] .journal-card-grid > [data-journal-reveal]:nth-child(2) {
+    .journal-reveal-root[data-journal-motion="ready"] .journal-card-grid>[data-journal-reveal]:nth-child(2) {
         transition-delay: .09s;
     }
-
-    .journal-reveal-root[data-journal-motion="ready"] .journal-card-grid > [data-journal-reveal]:nth-child(3) {
+    .journal-reveal-root[data-journal-motion="ready"] .journal-card-grid>[data-journal-reveal]:nth-child(3) {
         transition-delay: .18s;
     }
 }
@@ -6520,7 +6552,9 @@ body {
 
 /* A compact, playful bridge from newsletter signup into the footer. */
 
+
 /* Shared by every newsletter on desktop and mobile, not a mobile-only keyframe. */
+
 @keyframes newsletter-jellyfish-drift {
     0%,
     100% {
@@ -7844,7 +7878,7 @@ body {
         height: 12px;
         content: "";
     }
-    .desktop-collectibles-menu:not([open]) > .desktop-collectibles-panel {
+    .desktop-collectibles-menu:not([open])>.desktop-collectibles-panel {
         display: none;
     }
     .desktop-collectibles-panel a {
@@ -8272,7 +8306,8 @@ body {
     font-size: 16px;
 }
 
-@media (hover: none), (pointer: coarse) {
+@media (hover: none),
+(pointer: coarse) {
     .localization-search input {
         font-size: 16px;
     }
@@ -8633,13 +8668,19 @@ body {
         text-overflow: ellipsis;
     }
     .delivery-region-notice {
-        padding: 12px 14px 14px;
-        gap: 9px;
+        padding: 8px 12px 10px;
+        gap: 6px;
     }
     .delivery-region-notice>p {
         width: 100%;
         max-width: 100%;
-        font-size: 13px;
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        font-size: 11px;
+        line-height: 1.3;
     }
     .delivery-region-notice .delivery-region-actions {
         width: auto;
@@ -8647,13 +8688,21 @@ body {
         margin: 0;
         align-self: center;
         justify-content: center;
+        gap: 7px;
+    }
+    .delivery-region-notice .delivery-region-actions button {
+        min-height: 30px;
+        padding-inline: 12px;
+        font-size: 10px;
     }
 }
 
 
 /* Refine size portraits and inset the desktop FAQ panel from the page edges. */
 
+
 /* Scale the whole portrait, not a shallow crop of the plush's head. */
+
 @media (min-width: 768px) {
     .store-home .size-guide-tiles a.size-guide-tile {
         min-width: 0;
@@ -8666,10 +8715,18 @@ body {
         overflow: hidden;
         border-radius: 50% 50% 12px 12px;
     }
-    .store-home .size-guide-tile--small { --size-portrait: 130px; }
-    .store-home .size-guide-tile--medium { --size-portrait: 175px; }
-    .store-home .size-guide-tile--large { --size-portrait: 220px; }
-    .store-home .size-guide-tile--xl { --size-portrait: 265px; }
+    .store-home .size-guide-tile--small {
+        --size-portrait: 130px;
+    }
+    .store-home .size-guide-tile--medium {
+        --size-portrait: 175px;
+    }
+    .store-home .size-guide-tile--large {
+        --size-portrait: 220px;
+    }
+    .store-home .size-guide-tile--xl {
+        --size-portrait: 265px;
+    }
     .store-home .size-guide-tiles a.size-guide-tile img {
         object-fit: cover;
         object-position: center;
@@ -9815,7 +9872,7 @@ body {
     font-weight: 800;
 }
 
-.account-overview-tile:nth-child(n + 4) .account-tile-arrow {
+.account-overview-tile:nth-child(n+4) .account-tile-arrow {
     color: #80602d;
 }
 
@@ -10324,17 +10381,25 @@ body {
     }
 }
 
+
 /* Contact studio: warm editorial introduction and an accessible stationery card. */
+
 .contact-page--studio {
     padding-block: clamp(32px, 5vw, 76px);
 }
+
 .contact-studio-layout {
     display: grid;
     grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
     align-items: start;
     gap: clamp(28px, 5vw, 80px);
 }
-.contact-studio-intro { min-width: 0; padding-block: 22px; }
+
+.contact-studio-intro {
+    min-width: 0;
+    padding-block: 22px;
+}
+
 .contact-studio-eyebrow {
     display: flex;
     align-items: center;
@@ -10345,7 +10410,12 @@ body {
     letter-spacing: .14em;
     line-height: 1.6;
 }
-.contact-studio-eyebrow>span:first-child { font-size: 23px; color: #cf943a; }
+
+.contact-studio-eyebrow>span:first-child {
+    font-size: 23px;
+    color: #cf943a;
+}
+
 .contact-studio-intro h1 {
     max-width: 620px;
     margin: 20px 0;
@@ -10355,7 +10425,14 @@ body {
     text-wrap: balance;
     overflow-wrap: anywhere;
 }
-.contact-studio-lead { max-width: 470px; color: #796359; font-size: 16px; line-height: 1.85; }
+
+.contact-studio-lead {
+    max-width: 470px;
+    color: #796359;
+    font-size: 16px;
+    line-height: 1.85;
+}
+
 .contact-team-note {
     display: flex;
     gap: 16px;
@@ -10366,18 +10443,93 @@ body {
     border-radius: 20px;
     background: #f5eadc;
 }
-.contact-mascot { display: grid; place-items: center; flex: 0 0 68px; width: 68px; height: 78px; border-radius: 45% 45% 40% 40%; background: #fffaf3; transform: rotate(-6deg); }
-.contact-team-note h2 { margin: 0 0 7px; font-size: 15px; line-height: 1.45; }
-.contact-team-note p { margin: 0; color: #796359; font-size: 13px; line-height: 1.7; }
-.contact-help-links { display: grid; gap: 12px; }
-.contact-help-links>a { display: flex; gap: 14px; padding: 18px; border: 1px solid #eadfd6; border-radius: 16px; background: #fffcf8; text-decoration: none; transition: background .2s, border-color .2s; }
-.contact-help-links>a:hover { background: #fff5e3; border-color: #d7b794; }
-.contact-help-icon { flex: 0 0 34px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #f4e7d8; color: #a2502f; font-size: 20px; font-weight: 700; }
-.contact-help-icon svg { width: 22px; height: 22px; }
-.contact-help-links strong,.contact-help-links small,.contact-help-links b { display: block; }
-.contact-help-links strong { font-size: 14px; line-height: 1.5; }
-.contact-help-links small { margin: 5px 0 10px; color: #796359; font-size: 12px; line-height: 1.65; }
-.contact-help-links b { color: #a2502f; font-size: 12px; }
+
+.contact-mascot {
+    display: grid;
+    place-items: center;
+    flex: 0 0 68px;
+    width: 68px;
+    height: 78px;
+    border-radius: 45% 45% 40% 40%;
+    background: #fffaf3;
+    transform: rotate(-6deg);
+}
+
+.contact-team-note h2 {
+    margin: 0 0 7px;
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+.contact-team-note p {
+    margin: 0;
+    color: #796359;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.contact-help-links {
+    display: grid;
+    gap: 12px;
+}
+
+.contact-help-links>a {
+    display: flex;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid #eadfd6;
+    border-radius: 16px;
+    background: #fffcf8;
+    text-decoration: none;
+    transition: background .2s, border-color .2s;
+}
+
+.contact-help-links>a:hover {
+    background: #fff5e3;
+    border-color: #d7b794;
+}
+
+.contact-help-icon {
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #f4e7d8;
+    color: #a2502f;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.contact-help-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.contact-help-links strong,
+.contact-help-links small,
+.contact-help-links b {
+    display: block;
+}
+
+.contact-help-links strong {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.contact-help-links small {
+    margin: 5px 0 10px;
+    color: #796359;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.contact-help-links b {
+    color: #a2502f;
+    font-size: 12px;
+}
+
 .contact-form-card {
     min-width: 0;
     position: relative;
@@ -10388,31 +10540,151 @@ body {
     background: #fffdfa;
     box-shadow: 0 16px 48px rgb(75 45 30 / 7%);
 }
-.contact-form-heading { position: relative; margin-bottom: 26px; padding-right: 50px; }
-.contact-mail-icon { position: absolute; top: 0; right: 0; color: #b66c43; transform: rotate(8deg); }
-.contact-form-kicker { margin: 0 0 8px; color: #a2502f; font-size: 10px; font-weight: 800; letter-spacing: .15em; line-height: 1.7; }
-.contact-form-heading h2 { margin: 0 0 10px; font-size: clamp(24px, 2.4vw, 32px); line-height: 1.2; letter-spacing: -.025em; }
-.contact-form-heading>p:last-child { margin: 0; color: #897568; font-size: 12px; line-height: 1.7; }
-.contact-message-form { display: grid; gap: 18px; }
-.contact-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.contact-field { display: grid; min-width: 0; gap: 8px; }
-.contact-field label { font-size: 12px; font-weight: 700; line-height: 1.6; }
-.contact-field label>span { color: #a2502f; font-size: 11px; font-weight: 400; }
-.contact-message-form input,.contact-message-form select,.contact-message-form textarea {
-    width: 100%; min-width: 0; max-width: 100%; margin: 0; padding: 13px 14px;
-    border: 1px solid #decec2; border-radius: 10px; background: #fff;
-    color: #40312b; font: inherit; font-size: 15px; line-height: 1.5;
+
+.contact-form-heading {
+    position: relative;
+    margin-bottom: 26px;
+    padding-right: 50px;
+}
+
+.contact-mail-icon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: #b66c43;
+    transform: rotate(8deg);
+}
+
+.contact-form-kicker {
+    margin: 0 0 8px;
+    color: #a2502f;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .15em;
+    line-height: 1.7;
+}
+
+.contact-form-heading h2 {
+    margin: 0 0 10px;
+    font-size: clamp(24px, 2.4vw, 32px);
+    line-height: 1.2;
+    letter-spacing: -.025em;
+}
+
+.contact-form-heading>p:last-child {
+    margin: 0;
+    color: #897568;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.contact-message-form {
+    display: grid;
+    gap: 18px;
+}
+
+.contact-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.contact-field {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+}
+
+.contact-field label {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.6;
+}
+
+.contact-field label>span {
+    color: #a2502f;
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.contact-message-form input,
+.contact-message-form select,
+.contact-message-form textarea {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    padding: 13px 14px;
+    border: 1px solid #decec2;
+    border-radius: 10px;
+    background: #fff;
+    color: #40312b;
+    font: inherit;
+    font-size: 15px;
+    line-height: 1.5;
     transition: border-color .2s, box-shadow .2s;
 }
-.contact-message-form input,.contact-message-form select { min-height: 48px; }
-.contact-message-form textarea { min-height: 150px; resize: vertical; }
-.contact-message-form textarea::placeholder { color: #a39185; }
-.contact-message-form :is(input, select, textarea):focus-visible { outline: 2px solid #aa5a34; outline-offset: 3px; border-color: #aa5a34; box-shadow: 0 0 0 4px #f7e9dd; }
-.contact-form-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px; padding-top: 4px; }
-.contact-privacy-note { margin: 0; color: #8a7669; font-size: 10px; line-height: 1.7; }
-.contact-form-footer .shop-button { display: inline-flex; gap: 15px; align-items: center; justify-content: center; min-height: 48px; padding: 13px 20px; border-radius: 11px; font-size: 13px; line-height: 1.5; white-space: normal; }
-.contact-form-footer .shop-button:disabled { opacity: .65; cursor: wait; }
-.contact-form-footer .shop-button svg { flex-shrink: 0; }
+
+.contact-message-form input,
+.contact-message-form select {
+    min-height: 48px;
+}
+
+.contact-message-form textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+.contact-message-form textarea::placeholder {
+    color: #a39185;
+}
+
+.contact-message-form :is(input,
+select,
+textarea):focus-visible {
+    outline: 2px solid #aa5a34;
+    outline-offset: 3px;
+    border-color: #aa5a34;
+    box-shadow: 0 0 0 4px #f7e9dd;
+}
+
+.contact-form-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    padding-top: 4px;
+}
+
+.contact-privacy-note {
+    margin: 0;
+    color: #8a7669;
+    font-size: 10px;
+    line-height: 1.7;
+}
+
+.contact-form-footer .shop-button {
+    display: inline-flex;
+    gap: 15px;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 13px 20px;
+    border-radius: 11px;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: normal;
+}
+
+.contact-form-footer .shop-button:disabled {
+    opacity: .65;
+    cursor: wait;
+}
+
+.contact-form-footer .shop-button svg {
+    flex-shrink: 0;
+}
+
 .contact-form-card.contact-success {
     display: grid;
     justify-items: center;
@@ -10427,9 +10699,27 @@ body {
     scroll-margin-block: 110px 24px;
     overflow-wrap: anywhere;
 }
-.contact-success:focus-visible { outline: 2px solid #aa5a34; outline-offset: 5px; }
-.contact-success-art { display: grid; place-items: center; position: relative; width: min(220px, 100%); height: 150px; }
-.contact-success-halo { position: absolute; width: 100%; height: 100%; color: #e9b957; }
+
+.contact-success:focus-visible {
+    outline: 2px solid #aa5a34;
+    outline-offset: 5px;
+}
+
+.contact-success-art {
+    display: grid;
+    place-items: center;
+    position: relative;
+    width: min(220px, 100%);
+    height: 150px;
+}
+
+.contact-success-halo {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    color: #e9b957;
+}
+
 .contact-success-medallion {
     display: grid;
     place-items: center;
@@ -10441,33 +10731,119 @@ body {
     background: linear-gradient(145deg, #f8b765, #ee8b43);
     box-shadow: 0 0 0 1px #efc786, 0 12px 25px rgb(194 111 43 / 18%);
 }
-.contact-success-icon { color: #55331e; }
-.contact-success h2 { margin: 0; font-size: clamp(26px, 3vw, 34px); line-height: 1.2; letter-spacing: -.03em; text-wrap: balance; }
-.contact-success p { max-width: 40ch; margin: 0; color: #796359; font-size: 15px; line-height: 1.8; }
-.contact-success-footer { width: 100%; margin-top: 6px; padding-top: 20px; border-top: 1px solid #efdfcc; }
-.contact-success-footer a { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 44px; padding: 8px 18px; border: 1px solid #dfb994; border-radius: 999px; color: #924323; background: #fff7e9; font-size: 13px; font-weight: 700; text-decoration: none; }
-.contact-success-footer a:hover { background: #ffecd0; border-color: #a2502f; }
-.contact-success-footer a:focus-visible { outline: 2px solid #aa5a34; outline-offset: 4px; }
-@media (max-width: 900px) {
-    .contact-studio-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-    .contact-studio-intro { padding-block: 0; }
-    .contact-studio-intro h1 { max-width: 550px; }
-    .contact-help-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 520px) {
-    .contact-page--studio { padding-block: 28px 40px; }
-    .contact-studio-intro h1 { margin-block: 16px; font-size: 40px; }
-    .contact-studio-lead { font-size: 14px; }
-    .contact-studio-eyebrow { font-size: 9px; letter-spacing: .1em; }
-    .contact-team-note { margin-block: 22px; padding: 16px; gap: 12px; }
-    .contact-help-links { grid-template-columns: minmax(0, 1fr); }
-    .contact-field-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
-    .contact-form-footer { grid-template-columns: minmax(0, 1fr); }
-    .contact-form-footer .shop-button { width: 100%; }
-    .contact-message-form input,.contact-message-form select,.contact-message-form textarea { font-size: 16px; }
+
+.contact-success-icon {
+    color: #55331e;
 }
 
+.contact-success h2 {
+    margin: 0;
+    font-size: clamp(26px, 3vw, 34px);
+    line-height: 1.2;
+    letter-spacing: -.03em;
+    text-wrap: balance;
+}
+
+.contact-success p {
+    max-width: 40ch;
+    margin: 0;
+    color: #796359;
+    font-size: 15px;
+    line-height: 1.8;
+}
+
+.contact-success-footer {
+    width: 100%;
+    margin-top: 6px;
+    padding-top: 20px;
+    border-top: 1px solid #efdfcc;
+}
+
+.contact-success-footer a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 8px 18px;
+    border: 1px solid #dfb994;
+    border-radius: 999px;
+    color: #924323;
+    background: #fff7e9;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.contact-success-footer a:hover {
+    background: #ffecd0;
+    border-color: #a2502f;
+}
+
+.contact-success-footer a:focus-visible {
+    outline: 2px solid #aa5a34;
+    outline-offset: 4px;
+}
+
+@media (max-width: 900px) {
+    .contact-studio-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+    }
+    .contact-studio-intro {
+        padding-block: 0;
+    }
+    .contact-studio-intro h1 {
+        max-width: 550px;
+    }
+    .contact-help-links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .contact-page--studio {
+        padding-block: 28px 40px;
+    }
+    .contact-studio-intro h1 {
+        margin-block: 16px;
+        font-size: 40px;
+    }
+    .contact-studio-lead {
+        font-size: 14px;
+    }
+    .contact-studio-eyebrow {
+        font-size: 9px;
+        letter-spacing: .1em;
+    }
+    .contact-team-note {
+        margin-block: 22px;
+        padding: 16px;
+        gap: 12px;
+    }
+    .contact-help-links {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .contact-field-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+    .contact-form-footer {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .contact-form-footer .shop-button {
+        width: 100%;
+    }
+    .contact-message-form input,
+    .contact-message-form select,
+    .contact-message-form textarea {
+        font-size: 16px;
+    }
+}
+
+
 /* Scoped product-card overflow fixes and product-detail recommendations only. */
+
 .store-main .shop-product-card {
     container-type: inline-size;
 }
@@ -10475,7 +10851,8 @@ body {
 .store-main .shop-product-card .product-labels {
     top: 6px;
     left: 6px;
-    right: 56px; /* Reserve the 44px wishlist target plus inset and gap. */
+    right: 56px;
+    /* Reserve the 44px wishlist target plus inset and gap. */
     max-width: calc(100% - 62px);
     flex-direction: row;
     flex-wrap: wrap;
@@ -10499,7 +10876,7 @@ body {
 .store-main .shop-product-card .shop-product-info,
 .store-main .shop-product-card .shop-product-title,
 .store-main .shop-product-card .shop-product-meta,
-.store-main .shop-product-card .shop-product-meta > span,
+.store-main .shop-product-card .shop-product-meta>span,
 .store-main .shop-product-card .shop-product-availability,
 .store-main .shop-product-card .shop-product-bottom {
     min-width: 0;
@@ -10523,32 +10900,32 @@ body {
     overflow-wrap: anywhere;
 }
 
-.store-main .shop-product-card .shop-product-prices > span,
-.store-main .shop-product-card .shop-product-prices > del {
+.store-main .shop-product-card .shop-product-prices>span,
+.store-main .shop-product-card .shop-product-prices>del {
     min-width: 0;
     max-width: 100%;
     white-space: normal;
     overflow-wrap: anywhere;
 }
 
-.store-main .shop-product-card .shop-product-prices > del {
+.store-main .shop-product-card .shop-product-prices>del {
     margin-left: 0;
 }
 
-.product-page .related-products > .product-grid {
+.product-page .related-products>.product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
 }
 
 @media (min-width: 640px) {
-    .product-page .related-products > .product-grid {
+    .product-page .related-products>.product-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 16px;
     }
 }
 
 @media (min-width: 1200px) {
-    .product-page .related-products > .product-grid {
+    .product-page .related-products>.product-grid {
         grid-template-columns: repeat(6, minmax(0, 1fr));
     }
 }
@@ -10672,8 +11049,8 @@ body {
     height: 88px;
     top: 24px;
     right: max(28px, calc((100vw - 1320px) / 2));
-    z-index: 2;
-    opacity: .46;
+    z-index: 35;
+    opacity: .62;
 }
 
 @media (min-width: 768px) {
@@ -10760,9 +11137,9 @@ body {
     .store-home>.page-jellyfish-accent {
         width: 64px;
         height: 64px;
-        top: 12px;
+        top: 18px;
         right: 14px;
-        opacity: .3;
+        opacity: .46;
     }
 }
 
@@ -10874,7 +11251,7 @@ body {
     background: #ffe4c7;
 }
 
-.journal-hero-copy > .journal-hero-note {
+.journal-hero-copy>.journal-hero-note {
     margin-top: 8px;
     color: #947261;
     font-size: 12px;
@@ -11191,8 +11568,8 @@ body {
     transform: translateY(-50%) rotate(-5deg);
 }
 
-.journal-prose > p,
-.journal-prose-section > p {
+.journal-prose>p,
+.journal-prose-section>p {
     margin: 0 0 1.15em;
 }
 
@@ -11888,13 +12265,23 @@ body {
     width: 104px;
     height: 104px;
     position: absolute;
-    z-index: 0;
+    z-index: 35;
     top: 12px;
     right: max(20px, calc((100vw - 1200px) / 2));
     color: #a2502f;
-    opacity: .13;
+    opacity: .56;
     pointer-events: none;
     animation: page-jellyfish-float 5.2s ease-in-out infinite;
+    transition: opacity .16s ease, visibility .16s ease;
+}
+
+
+/* A pinned compact header covers the page-top flourish; hide it cleanly instead of letting it peek out from underneath. */
+
+body:has(.smart-header.is-shown) .page-jellyfish-accent,
+body:has(.smart-header.is-mobile-pinned) .page-jellyfish-accent {
+    visibility: hidden;
+    opacity: 0;
 }
 
 .page-jellyfish-accent svg {
@@ -11928,9 +12315,9 @@ body {
     .page-jellyfish-accent {
         width: 78px;
         height: 78px;
-        top: 8px;
+        top: 24px;
         right: 16px;
-        opacity: .12;
+        opacity: .38;
     }
 }
 
@@ -12889,6 +13276,10 @@ body {
     border-radius: 22px;
     background: #fff;
     box-shadow: 0 10px 26px rgb(57 38 29 / 5%);
+}
+
+#product-waitlist {
+    scroll-margin-top: 104px;
 }
 
 .product-review-form-card {
@@ -13992,6 +14383,10 @@ body {
 }
 
 @media (max-width: 767px) {
+    #product-waitlist {
+        scroll-margin-top: 18px;
+        scroll-margin-bottom: 96px;
+    }
     .product-gallery-zoom img {
         padding: 0;
         object-fit: cover;
@@ -14884,9 +15279,147 @@ body {
 }
 
 @keyframes ponyo-route-shimmer {
-    to { background-position: -200% 0; }
+    to {
+        background-position: -200% 0;
+    }
 }
 
 @keyframes ponyo-route-pulse {
-    to { opacity: .42; transform: scale(.88); }
+    to {
+        opacity: .42;
+        transform: scale(.88);
+    }
+}
+
+
+/* Desktop account hub: tighter typography and balanced card proportions. */
+
+@media (min-width: 980px) {
+    .account-hub {
+        max-width: 1080px;
+        margin-top: 28px;
+    }
+    .account-hub-hero {
+        min-height: 232px;
+        padding: 31px 34px 18px;
+        border-radius: 24px;
+    }
+    .account-hub-kicker {
+        font-size: 9px;
+        letter-spacing: .13em;
+    }
+    .account-hub-hero h1 {
+        margin: 7px 0 5px;
+        font-size: clamp(32px, 3vw, 36px);
+        line-height: 1.12;
+    }
+    .account-hub-hero-copy>p {
+        font-size: 13px;
+    }
+    .account-hub-mascot {
+        width: 160px;
+        height: 145px;
+        top: 16px;
+        right: 28px;
+    }
+    .account-hub-jelly {
+        width: 84px;
+        height: 84px;
+        padding: 14px;
+        top: 27px;
+        right: 36px;
+    }
+    .account-hub-shortcuts {
+        margin-top: 23px;
+        gap: 9px;
+    }
+    .account-hub-shortcuts a {
+        min-height: 40px;
+        padding: 0 14px;
+        font-size: 11px;
+    }
+    .account-hub-content {
+        grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
+        align-items: start;
+        gap: 16px;
+        margin-top: 16px;
+    }
+    .account-profile-card {
+        min-height: 0;
+        padding: 21px;
+    }
+    .account-section-heading h2 {
+        font-size: 20px;
+    }
+    .account-section-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+    }
+    .account-text-button {
+        font-size: 11px;
+    }
+    .account-profile-details {
+        margin-top: 14px;
+    }
+    .account-profile-details>div {
+        grid-template-columns: 76px minmax(0, 1fr);
+        padding: 10px 0;
+    }
+    .account-profile-details dt {
+        font-size: 11px;
+    }
+    .account-profile-details dd {
+        font-size: 13px;
+    }
+    .account-overview-grid {
+        gap: 10px;
+    }
+    .account-overview-tile {
+        min-height: 68px;
+        padding: 9px 15px;
+        grid-template-columns: 34px minmax(0, 1fr) 18px;
+        grid-template-rows: repeat(3, auto);
+        column-gap: 11px;
+        row-gap: 1px;
+        align-content: center;
+    }
+    .account-tile-art {
+        grid-row: 1 / span 3;
+        font-size: 23px;
+    }
+    .account-overview-tile>.account-hub-kicker,
+    .account-overview-tile>strong,
+    .account-overview-tile>small {
+        grid-column: 2;
+        min-width: 0;
+    }
+    .account-overview-tile>.account-hub-kicker {
+        font-size: 8px;
+    }
+    .account-overview-tile>strong {
+        font-size: 16px;
+        line-height: 1.2;
+    }
+    .account-overview-tile>small {
+        font-size: 10px;
+        line-height: 1.35;
+    }
+    .account-tile-arrow {
+        position: static;
+        grid-column: 3;
+        grid-row: 1 / span 3;
+        align-self: center;
+        justify-self: end;
+        transform: none;
+        font-size: 15px;
+    }
+    .account-hub-footer {
+        margin-top: 15px;
+        padding-top: 12px;
+    }
+    .account-hub-footer p,
+    .account-signout-button {
+        font-size: 11px;
+    }
 }

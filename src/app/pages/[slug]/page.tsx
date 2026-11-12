@@ -6,6 +6,7 @@ import { LocalContactForm } from "@/components/layout/local-store-forms";
 import { LocalizedText } from "@/components/layout/localization-provider";
 import { PartnerInquiryForm } from "@/components/layout/partner-inquiry-form";
 import { ProductGrid } from "@/components/product/product-grid";
+import { SortSelect } from "@/components/product/sort-select";
 import { getLocalizedProducts } from "@/services/localized-products.server";
 import locale from "@/locales/en.default.json";
 
@@ -95,21 +96,48 @@ function PartnerPage() {
   );
 }
 
-async function DominaPage() {
-  const products = (await getLocalizedProducts()).filter((product) => product.tags?.includes("domina-xl"));
+type Query = Record<string, string | string[] | undefined>;
+const firstQueryValue = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+
+async function DominaPage({ searchParams }: { searchParams: Promise<Query> }) {
+  const query = await searchParams;
+  const minimum = Number(firstQueryValue(query.min) ?? 0);
+  const maximum = Number(firstQueryValue(query.max) ?? Number.POSITIVE_INFINITY);
+  const size = firstQueryValue(query.size) ?? "";
+  const availability = firstQueryValue(query["filter.v.availability"]) ?? "";
+  const sort = firstQueryValue(query.sort_by) ?? "best-selling";
+  const allProducts = (await getLocalizedProducts()).filter((product) => product.tags?.includes("domina-xl"));
+  const products = allProducts.filter((product) => {
+    const productSize = (product.sizeTier ?? product.size ?? "").toLowerCase();
+    const sizeMatches = !size || (size.toLowerCase() === "xl" ? true : productSize.startsWith(size.toLowerCase()));
+    return product.priceAmount >= minimum && product.priceAmount <= maximum && sizeMatches && (!availability || availability !== "1" || product.availability === "available");
+  }).sort((a, b) => {
+    if (sort === "price-ascending") return a.priceAmount - b.priceAmount;
+    if (sort === "price-descending") return b.priceAmount - a.priceAmount;
+    if (sort === "title-descending") return b.name.localeCompare(a.name);
+    if (sort === "title-ascending") return a.name.localeCompare(b.name);
+    if (sort === "created-ascending") return Number(a.tags?.includes("new-arrival")) - Number(b.tags?.includes("new-arrival"));
+    return Number(b.tags?.includes("new-arrival")) - Number(a.tags?.includes("new-arrival")) || a.name.localeCompare(b.name);
+  });
+  const preservedFilters = {
+    ...(size ? { size } : {}),
+    ...(minimum ? { min: String(minimum) } : {}),
+    ...(Number.isFinite(maximum) ? { max: String(maximum) } : {}),
+    ...(availability ? { "filter.v.availability": availability } : {}),
+  };
   return <div className="domina-page">
     <section className="domina-page-hero"><div className="domina-page-hero-copy"><span>OVERSIZED PLUSH</span><h1>Domina XL</h1><p>Oversized plush companions that bring comfort, character, and a little wonder into your space.</p><a href="#domina-products">Shop Domina XL →</a></div><Image src="/images/catalog/ponyo-3.png" alt="An oversized bunny plush shown beside a person for scale" fill priority sizes="(max-width: 700px) 100vw, 52vw"/></section>
     <section className="domina-trust store-container" aria-label="Domina XL details">{[["↕", "See the scale", "Every Domina XL listing shows its full height so you can picture it in your room before it arrives."], ["♡", "Product details", "Sizes from 60 cm to 120 cm, with materials and care listed on each plush."], ["¥", "Compare prices", "Prices are shown in your currency, with duties confirmed before checkout."], ["↗", "Delivery info", "XL plush ship in large-format boxes. Options and estimates depend on your destination."]].map(([icon, title, text]) => <article key={title}><span>{icon}</span><h2>{title}</h2><p>{text}</p></article>)}</section>
-    <section className="store-container domina-products" id="domina-products"><header><p className="eyebrow">Big plush, memorable presence</p><h2>XL Goodies</h2></header><ProductGrid products={products}/></section>
+    <section className="store-container domina-products" id="domina-products"><header><p className="eyebrow">Big plush, memorable presence</p><h2>XL Goodies</h2></header><div className="domina-catalog-toolbar"><form className="domina-catalog-filters" action="/pages/domina-xl" method="get"><input type="hidden" name="sort_by" value={sort} /><label>Size<select name="size" defaultValue={size}><option value="">Any size</option>{["Small", "Medium", "Large", "XL"].map((tier) => <option key={tier} value={tier}>{tier}</option>)}</select></label><label>Price from ¥<input type="number" name="min" min="0" defaultValue={minimum || ""} placeholder="0" /></label><label>To ¥<input type="number" name="max" min="0" defaultValue={Number.isFinite(maximum) ? maximum : ""} placeholder="No limit" /></label><label className="domina-stock-filter"><input type="checkbox" name="filter.v.availability" value="1" defaultChecked={availability === "1"} /> In stock</label><button type="submit">Filter <span aria-hidden="true">→</span></button></form><span className="domina-catalog-count">{products.length} {products.length === 1 ? "plush" : "plushies"}</span><SortSelect action="/pages/domina-xl" value={sort} category="" search="" preservedFilters={preservedFilters} /></div><ProductGrid products={products}/>{products.length === 0 && <p className="empty-collection">No plush matches those filters. <Link href="/pages/domina-xl">Clear filters</Link></p>}</section>
   </div>;
 }
 
-export default async function ContentPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ContentPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<Query> }) {
   const { slug } = await params;
   if (slug === "about") return <SiteFrame className="store-page"><AboutPage/></SiteFrame>;
   if (slug === "faq") return <SiteFrame className="store-page"><FaqPage/></SiteFrame>;
   if (slug === "contact") return <SiteFrame className="store-page"><ContactPage/></SiteFrame>;
   if (slug === "partners") return <SiteFrame className="store-page"><PartnerPage /></SiteFrame>;
-  if (slug === "domina-xl") return <SiteFrame className="store-page"><DominaPage /></SiteFrame>;
+  if (slug === "domina-xl") return <SiteFrame className="store-page"><DominaPage searchParams={searchParams} /></SiteFrame>;
   notFound();
 }

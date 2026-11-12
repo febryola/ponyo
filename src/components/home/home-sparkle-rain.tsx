@@ -33,6 +33,10 @@ export function HomeSparkleRain() {
     const particles: Particle[] = [];
     let frameId = 0;
     let previousTime = 0;
+    let lastDrawTime = 0;
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const particleCount = isMobile ? 8 : 16;
+    const frameInterval = isMobile ? 1000 / 30 : 1000 / 45;
 
     const makeParticle = (fromTop: boolean): Particle => {
       const isStar = Math.random() < 0.45;
@@ -53,14 +57,14 @@ export function HomeSparkleRain() {
     };
 
     const resize = () => {
-      pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      pixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.5);
       width = window.innerWidth;
       height = window.innerHeight;
       canvas.width = width * pixelRatio;
       canvas.height = height * pixelRatio;
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-      while (particles.length < 20) particles.push(makeParticle(false));
-      particles.length = 20;
+      while (particles.length < particleCount) particles.push(makeParticle(false));
+      particles.length = particleCount;
     };
 
     const drawParticle = (particle: Particle, time: number) => {
@@ -101,6 +105,11 @@ export function HomeSparkleRain() {
     };
 
     const animate = (now: number) => {
+      if (now - lastDrawTime < frameInterval) {
+        frameId = window.requestAnimationFrame(animate);
+        return;
+      }
+      lastDrawTime = now;
       const delta = Math.min(0.05, (now - (previousTime || now)) / 1000);
       previousTime = now;
       const time = now / 1000;
@@ -120,6 +129,7 @@ export function HomeSparkleRain() {
     const start = () => {
       if (!frameId) {
         previousTime = 0;
+        lastDrawTime = 0;
         frameId = window.requestAnimationFrame(animate);
       }
     };

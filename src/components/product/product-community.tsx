@@ -184,7 +184,7 @@ export function ProductWaitlistForm({ productId, productName }: { productId: str
     }
   }
 
-  return <section className="product-waitlist" aria-labelledby="product-waitlist-title">
+  return <section className="product-waitlist" id="product-waitlist" aria-labelledby="product-waitlist-title" tabIndex={-1}>
     <div className="product-waitlist-art" aria-hidden="true"><span>✦</span><span>♡</span></div>
     <p className="eyebrow">A LITTLE HEADS-UP</p>
     <h2 id="product-waitlist-title">Join the waitlist</h2>

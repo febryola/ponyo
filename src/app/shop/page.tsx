@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SiteFrame } from "@/components/layout/site-frame";
 import { ProductGrid } from "@/components/product/product-grid";
 import { SortSelect } from "@/components/product/sort-select";
+import { CatalogFilterPanel } from "@/components/product/catalog-filter-panel";
 import { getLocalizedProducts } from "@/services/localized-products.server";
 
 export const metadata = { title: "The Full Collection" };
@@ -78,10 +79,18 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
       && sizeMatches && (!availability || availability !== "1" || product.availability === "available");
   });
   const sorted = [...filtered].sort((a, b) => {
+    if (sort === "featured" || sort === "best-selling") {
+      const rank = (product: typeof a) => trendingHandles.has(product.slug) ? 0 : product.tags?.includes("new-arrival") ? 1 : 2;
+      return rank(a) - rank(b) || a.name.localeCompare(b.name);
+    }
+    if (sort === "relevance" && search) {
+      const rank = (product: typeof a) => product.name.toLowerCase().startsWith(search.toLowerCase()) ? 0 : product.name.toLowerCase().includes(search.toLowerCase()) ? 1 : 2;
+      return rank(a) - rank(b) || a.name.localeCompare(b.name);
+    }
     if (sort === "price-ascending") return a.priceAmount - b.priceAmount;
     if (sort === "price-descending") return b.priceAmount - a.priceAmount;
     if (sort === "title-descending") return b.name.localeCompare(a.name);
-    if (sort === "created-descending" || sort === "best-selling") return Number((b.tags ?? []).includes("new-arrival")) - Number((a.tags ?? []).includes("new-arrival"));
+    if (sort === "created-descending") return Number((b.tags ?? []).includes("new-arrival")) - Number((a.tags ?? []).includes("new-arrival"));
     if (sort === "created-ascending") return Number((a.tags ?? []).includes("new-arrival")) - Number((b.tags ?? []).includes("new-arrival"));
     return a.name.localeCompare(b.name);
   });
@@ -100,6 +109,11 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     return `/collections/all${suffix ? `?${suffix}` : ""}`;
   };
   const clearFiltersUrl = filterUrl(["size", "filter.p.m.ponyo.size_tier", "filter.v.availability", "min", "max", "filter.v.price.gte", "filter.v.price.lte"]);
+  const preservedQuery = Object.fromEntries(Object.entries(query).flatMap(([key, value]) => {
+    if (["category", "collection", "size", "filter.p.m.ponyo.size_tier", "filter.v.availability", "min", "max", "filter.v.price.gte", "filter.v.price.lte", "sort_by", "page"].includes(key)) return [];
+    const entry = first(value);
+    return entry === undefined ? [] : [[key, entry]];
+  }));
   const activeFilters = [
     ...(size ? [{ label: `Size: ${size}`, remove: filterUrl(["size", "filter.p.m.ponyo.size_tier"]) }] : []),
     ...(availability ? [{ label: "In stock", remove: filterUrl(["filter.v.availability"]) }] : []),
@@ -126,12 +140,12 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               return <Link key={item.slug} href={`/collections/${item.slug}`} className={category === item.slug ? "is-selected" : ""}><span>{item.title}</span><b>{count}</b></Link>;
             })}
           </nav>
-          <details className="sidebar-filter" open><summary>Availability</summary><Link href={`/shop?${new URLSearchParams({ ...(category ? { category } : {}), "filter.v.availability": "1" }).toString()}`} className={availability === "1" ? "is-selected" : ""}>In stock <b>{products.filter((product) => product.availability === "available").length}</b></Link></details>
-          <details className="sidebar-filter" open><summary>Price</summary><form action="/shop" method="get">{category && <input type="hidden" name="category" value={category} />}<label>¥ <input type="number" name="min" min="0" defaultValue={minimum || ""} placeholder="From" /></label><span>to</span><label>¥ <input type="number" name="max" min="0" defaultValue={Number.isFinite(maximum) ? maximum : ""} placeholder="To" /></label><button type="submit" aria-label="Apply price range">›</button></form></details>
+          <details className="sidebar-filter" open><summary>Availability</summary><Link href={`/shop?${new URLSearchParams({ ...(category ? { category } : {}), ...(size ? { size } : {}), ...(minimum ? { min: String(minimum) } : {}), ...(Number.isFinite(maximum) ? { max: String(maximum) } : {}), ...(sort !== "best-selling" ? { sort_by: sort } : {}), "filter.v.availability": "1" }).toString()}`} className={availability === "1" ? "is-selected" : ""}>In stock <b>{products.filter((product) => product.availability === "available").length}</b></Link></details>
+          <details className="sidebar-filter" open><summary>Price</summary><form action="/shop" method="get">{category && <input type="hidden" name="category" value={category} />}{search && <input type="hidden" name="q" value={search} />}{size && <input type="hidden" name="size" value={size} />}{availability && <input type="hidden" name="filter.v.availability" value={availability} />}{sort !== "best-selling" && <input type="hidden" name="sort_by" value={sort} />}<label>¥ <input type="number" name="min" min="0" defaultValue={minimum || ""} placeholder="From" /></label><span>to</span><label>¥ <input type="number" name="max" min="0" defaultValue={Number.isFinite(maximum) ? maximum : ""} placeholder="To" /></label><button type="submit" aria-label="Apply price range">›</button></form></details>
         </aside>
         <section className="collection-products" aria-label="Products">
           <div className="collection-toolbar">
-            <details className="all-filters"><summary><span aria-hidden="true">☷</span> All filters <b>⌄</b></summary><div className="all-filters-panel"><h2>Filters</h2><p>Category</p><div className="filter-chip-wrap">{collections.map((item) => <Link key={item.slug} href={`/shop?category=${item.slug}`} className={category === item.slug ? "is-selected" : ""}>{item.title}</Link>)}</div><p>Size</p><div className="filter-chip-wrap">{["Small", "Medium", "Large", "XL"].map((tier) => <Link key={tier} href={`/shop?${new URLSearchParams({ ...(category ? { category } : {}), size: tier }).toString()}`} className={size === tier ? "is-selected" : ""}>{tier}</Link>)}</div><p>Availability</p><Link className={availability === "1" ? "is-selected" : ""} href={`/shop?${new URLSearchParams({ ...(category ? { category } : {}), "filter.v.availability": "1" }).toString()}`}>In stock</Link></div></details>
+            <CatalogFilterPanel categories={collections} category={category} size={size} minimum={minimum} maximum={maximum} availability={availability} preservedQuery={preservedQuery} clearHref={clearFiltersUrl} />
             <span className="collection-count">{sorted.length} products</span>
             <SortSelect value={sort} category={category} search={search} preservedFilters={{ ...(minimum ? { min: String(minimum) } : {}), ...(Number.isFinite(maximum) ? { max: String(maximum) } : {}), ...(size ? { size } : {}), ...(availability ? { "filter.v.availability": availability } : {}) }} />
           </div>

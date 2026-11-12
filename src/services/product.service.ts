@@ -237,7 +237,7 @@ const storefrontPreviewMetadata: Record<
 > = {
 	"cherry-blossom-bunny": {
 		productType: "Bunny",
-		tags: ["bunny", "rare"],
+		tags: ["bunny", "rare", "limited-edition"],
 		supplierName: "Ponyo",
 		size: "Bunny",
 		image: localImage("maker-pink-bunny.jpg"),
@@ -251,7 +251,7 @@ const storefrontPreviewMetadata: Record<
 	},
 	"cloud-cat": {
 		productType: "Cat",
-		tags: ["cat"],
+		tags: ["cat", "rare", "limited-edition"],
 		supplierName: "Ponyo",
 		size: "Cat",
 		image: localImage("maker-cloud.jpg"),
@@ -273,8 +273,8 @@ const storefrontPreviewMetadata: Record<
 	},
 	"better-days-panda": {
 		productType: "Panda",
-		availabilityStatus: "Unavailable",
-		tags: ["panda", "premium"],
+		availabilityStatus: "Available",
+		tags: ["panda", "premium", "rare"],
 		supplierName: "Ponyo",
 		size: "Panda",
 		image: localImage("ponyo-12.png"),
@@ -382,11 +382,11 @@ const storefrontPreviewStatuses: Record<
 	"mint-dino": "Available",
 	"bluebell-penguin": "Available",
 	"good-things-ahead-kitty": "Waitlist",
-	"better-days-panda": "Unavailable",
+	"better-days-panda": "Available",
 	"biscuit-bow-pup": "Available",
 	"cloud-cat": "Available",
 	"sunny-chick": "Available",
-	"cherry-blossom-bunny": "Waitlist",
+	"cherry-blossom-bunny": "Available",
 	"hoshi-cloud-bear-xl": "Available",
 	"haneul-bunny-xl": "Waitlist",
 	"baluran-elephant-xl": "Unavailable",
@@ -427,12 +427,18 @@ export const storefrontPreviewProducts = sampleProducts.map((product) => ({
 		: "unavailable") as Product["availability"],
 }));
 
-export async function getProducts(query = "", locale = "en"): Promise<Product[]> {
+export async function getProducts(
+	query = "",
+	locale = "en",
+): Promise<Product[]> {
 	if (PONYO_API_BASE_URL) return ponyoApi.listProducts(query, locale);
 	return storefrontPreviewProducts;
 }
 
-export async function getProductById(id: string, locale = "en"): Promise<Product | undefined> {
+export async function getProductById(
+	id: string,
+	locale = "en",
+): Promise<Product | undefined> {
 	if (PONYO_API_BASE_URL) {
 		try {
 			return await ponyoApi.getProduct(id, locale);

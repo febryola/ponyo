@@ -351,6 +351,257 @@
     overflow-wrap: anywhere;
 }
 
+
+/* Ponyo-styled catalog controls shared by every collection and search result page. */
+
+.collection-page .collection-toolbar .sort-filter,
+.domina-catalog-toolbar .sort-filter {
+    gap: 9px;
+    color: #765a50;
+    font-family: var(--font-nunito), sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.sort-select-form .sort-filter select {
+    min-width: 178px;
+    min-height: 42px;
+    padding: 0 42px 0 16px;
+    appearance: none;
+    border: 1.5px solid #e8c8b7;
+    border-radius: 999px;
+    background-color: #fff8f3;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m5 7 5 5 5-5' fill='none' stroke='%23754e40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    box-shadow: 0 3px 10px rgb(74 53 48 / 7%);
+    color: #4a3530;
+    font-family: var(--font-nunito), sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+
+.sort-select-form .sort-filter select:hover,
+.sort-select-form .sort-filter select:focus-visible {
+    border-color: #bd8065;
+    background-color: #fff2e9;
+    box-shadow: 0 0 0 3px rgb(189 128 101 / 17%);
+    outline: none;
+}
+
+.collection-page .all-filters-panel {
+    max-height: min(78vh, 640px);
+    overflow-y: auto;
+}
+
+.collection-page .catalog-filter-form {
+    display: grid;
+    gap: 14px;
+}
+
+.collection-page .catalog-filter-form h2 {
+    margin-bottom: 2px;
+    color: #4a3530;
+    font-family: var(--font-heading), serif;
+    font-size: 22px;
+}
+
+.collection-page .catalog-filter-form>label:not(.catalog-stock-filter),
+.collection-page .catalog-price-fields label {
+    display: grid;
+    gap: 6px;
+    color: #655149;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.collection-page .catalog-filter-form select,
+.collection-page .catalog-filter-form input[type="number"] {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 12px;
+    border: 1.5px solid #ead8cd;
+    border-radius: 12px;
+    background: #fffdfb;
+    color: #4a3530;
+    font: 700 13px var(--font-nunito), sans-serif;
+}
+
+.collection-page .catalog-filter-form fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.collection-page .catalog-filter-form legend {
+    margin-bottom: 7px;
+    color: #655149;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.collection-page .catalog-price-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.collection-page .catalog-filter-form .catalog-stock-filter {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #4a3530;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.collection-page .catalog-stock-filter input {
+    width: 18px;
+    height: 18px;
+    accent-color: #a45e44;
+}
+
+.collection-page .catalog-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.collection-page .catalog-filter-actions button {
+    min-height: 42px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: #4a3530;
+    color: #fff;
+    font: 800 13px var(--font-nunito), sans-serif;
+    cursor: pointer;
+}
+
+.collection-page .catalog-filter-actions button:hover {
+    background: #745044;
+}
+
+.collection-page .catalog-filter-actions a {
+    color: #9c5d42;
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.domina-catalog-toolbar {
+    margin: 18px 0 22px;
+    padding: 14px 0;
+    border-block: 1px solid #ead8cd;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.domina-catalog-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.domina-catalog-filters>label:not(.domina-stock-filter) {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #765a50;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.domina-catalog-filters select,
+.domina-catalog-filters input[type="number"] {
+    width: 120px;
+    min-height: 40px;
+    padding: 0 11px;
+    border: 1.5px solid #e8c8b7;
+    border-radius: 999px;
+    background: #fff8f3;
+    color: #4a3530;
+    font: 700 12px var(--font-nunito), sans-serif;
+}
+
+.domina-catalog-filters .domina-stock-filter {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #4a3530;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.domina-stock-filter input {
+    width: 17px;
+    height: 17px;
+    accent-color: #a45e44;
+}
+
+.domina-catalog-filters>button {
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: #4a3530;
+    color: #fff;
+    font: 800 12px var(--font-nunito), sans-serif;
+    cursor: pointer;
+}
+
+.domina-catalog-count {
+    color: #765a50;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.domina-catalog-toolbar .sort-select-form {
+    margin-left: auto;
+}
+
+@media (max-width: 767px) {
+    .domina-catalog-toolbar {
+        align-items: stretch;
+    }
+    .domina-catalog-filters {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .domina-catalog-filters>label:not(.domina-stock-filter) {
+        min-width: 0;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .domina-catalog-filters select,
+    .domina-catalog-filters input[type="number"] {
+        width: 100%;
+    }
+    .domina-catalog-toolbar .sort-select-form {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 767px) {
+    .sort-select-form .sort-filter select {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding-inline: 12px 34px;
+        font-size: 12px;
+    }
+}
+
 .collection-page .shop-product-card .product-label--availability {
     display: none !important;
 }

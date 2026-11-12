@@ -1,10 +1,11 @@
 import base64
 import binascii
+import re
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 class VariantOut(BaseModel):
@@ -224,6 +225,8 @@ class OrderOut(BaseModel):
 
 
 class CheckoutAddress(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
     firstName: str = Field(min_length=1, max_length=120)
     lastName: str = Field(min_length=1, max_length=120)
     address1: str = Field(min_length=1, max_length=240)
@@ -233,6 +236,36 @@ class CheckoutAddress(BaseModel):
     postalCode: str = Field(min_length=1, max_length=40)
     countryCode: str = Field(min_length=2, max_length=2)
     phone: str = Field(min_length=1, max_length=40)
+
+    @field_validator("countryCode")
+    @classmethod
+    def normalize_country_code(cls, value: str) -> str:
+        value = value.upper()
+        if value not in {"JP", "KR", "US", "GB", "AU", "CA"}:
+            raise ValueError("Shipping is not available for the selected country yet.")
+        return value
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone_format(cls, value: str) -> str:
+        digits = re.sub(r"\D", "", value)
+        if not re.fullmatch(r"\+?[\d\s().-]{7,30}", value) or not 7 <= len(digits) <= 15:
+            raise ValueError("Enter a valid phone number, including its country code when possible.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_postal_code(self):
+        patterns = {
+            "JP": r"\d{3}-?\d{4}",
+            "KR": r"\d{5}",
+            "US": r"\d{5}(?:-\d{4})?",
+            "GB": r"(?:GIR 0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})",
+            "AU": r"\d{4}",
+            "CA": r"[A-Z]\d[A-Z][ -]?\d[A-Z]\d",
+        }
+        if not re.fullmatch(patterns[self.countryCode], self.postalCode, re.IGNORECASE):
+            raise ValueError("Enter a valid postal code for the selected country.")
+        return self
 
 
 class CheckoutItem(BaseModel):

@@ -29,14 +29,14 @@ export function CartPageClient() {
       void refreshCartItems(current, currency).then((result) => {
         if (!active) return;
         if (JSON.stringify(readCart()) !== original) {
-          setCheck({ key: snapshotKey, retry, ready: false, message: "Your cart changed while checking. Please check again." });
+          setCheck({ key: snapshotKey, retry, ready: false, message: "Your cart changed. Please try again." });
           return;
         }
         if (JSON.stringify(result.items) !== original) saveCart(result.items);
         const priceChanged = result.validation?.items.some((line) => line.priceChanged);
-        setCheck({ key: snapshotKey, retry, ready: Boolean(result.validation?.canCheckout), message: priceChanged ? "Prices or currencies changed. Review the current prices below, then check again to accept them." : result.validation?.canCheckout ? "Current prices and stock checked." : "Some items cannot be checked out. Review availability and quantities below." });
-      }).catch((error: unknown) => {
-        if (active) setCheck({ key: snapshotKey, retry, ready: false, message: error instanceof Error ? error.message : "Unable to check current prices and stock." });
+        setCheck({ key: snapshotKey, retry, ready: Boolean(result.validation?.canCheckout), message: priceChanged ? "Some prices have changed. Review your cart before continuing." : result.validation?.canCheckout ? "" : "Some items are unavailable at the selected quantity." });
+      }).catch(() => {
+        if (active) setCheck({ key: snapshotKey, retry, ready: false, message: "We couldn’t update your cart right now. Please try again." });
       });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
@@ -69,7 +69,7 @@ export function CartPageClient() {
             <div className="cart-line-info">
               <span className="cart-line-maker">{item.maker}</span>
               {item.catalogId ? <Link href={`/products/${item.catalogId}`} className="cart-line-name">{item.name}</Link> : <span className="cart-line-name">{item.name}</span>}
-              <span className="cart-line-ready"><i aria-hidden="true" /> {PONYO_API_BASE_URL ? checking ? "Checking availability…" : item.availability === "unavailable" ? "Unavailable for this quantity" : "Availability checked" : "Ready to be loved"}</span>
+              <span className="cart-line-ready"><i aria-hidden="true" /> {PONYO_API_BASE_URL ? checking ? "Confirming availability…" : item.availability === "unavailable" ? "Unavailable for this quantity" : "Ready to order" : "Ready to be loved"}</span>
               {PONYO_API_BASE_URL && item.validationIssue && <p role="alert">{item.validationIssue.includes("product_unavailable") ? "This product is no longer available. Please remove it." : item.validationIssue.includes("insufficient_stock") ? `Only ${item.availableQuantity ?? 0} available. Reduce the quantity or remove this item.` : item.validationIssue.includes("mixed_currency") ? "These items have different source currencies and cannot be checked out together." : "Price or currency updated. Please review the current price."}</p>}
               <strong className="cart-line-unit-price">{formatPrice(item.price, item.currency)} <small>each</small></strong>
               <div className="cart-line-controls" aria-label={`Quantity for ${item.name}`}>
@@ -89,8 +89,8 @@ export function CartPageClient() {
           <div className="cart-summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal, currency)}</strong></div>
           <div className="cart-summary-line"><span>Shipping</span><span className="cart-shipping-value">Calculated at checkout</span></div>
           <p className="cart-summary-tax">Taxes and delivery are confirmed for your Japan address at checkout.</p>
-          {PONYO_API_BASE_URL && <div role={blocked && !checking ? "alert" : "status"}><p>{checking ? "Checking current prices and stock…" : check.message}</p>{!checking && <button type="button" className="cart-continue-link" onClick={() => setRetry((value) => value + 1)}>Check again</button>}</div>}
-          {blocked ? <button type="button" disabled className="shop-button shop-button-orange cart-checkout-button">{checking ? "Checking cart…" : "Review cart before checkout"}</button> : <LocalCheckoutLink className="shop-button shop-button-orange cart-checkout-button">Continue to checkout <b>→</b></LocalCheckoutLink>}
+          {PONYO_API_BASE_URL && !checking && !check.ready && check.message && <div role="alert"><p>{check.message}</p><button type="button" className="cart-continue-link" onClick={() => setRetry((value) => value + 1)}>Try again</button></div>}
+          {blocked ? <button type="button" disabled className="shop-button shop-button-orange cart-checkout-button">{checking ? "Reviewing your cart…" : "Review cart before checkout"}</button> : <LocalCheckoutLink className="shop-button shop-button-orange cart-checkout-button">Continue to checkout <b>→</b></LocalCheckoutLink>}
           <div className="cart-secure-note"><span aria-hidden="true">♧</span><span>Secure checkout · Your payment details stay protected</span></div>
           <Link className="cart-back-to-shop" href="/collections/all">Continue discovering plush <span aria-hidden="true">→</span></Link>
         </aside>

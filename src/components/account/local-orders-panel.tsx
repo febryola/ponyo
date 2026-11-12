@@ -11,6 +11,9 @@ import { OrderActions } from "@/components/account/order-actions";
 
 type DisplayOrder = LocalOrder & { backend?: BackendOrder };
 
+const subscribeToHydration = () => () => {};
+type OrderResult = { key: string; orders?: DisplayOrder[]; receipt?: CheckoutReceipt; error?: string; failed?: boolean; guest?: boolean };
+
 function fromMinor(amount: number, currency: string) {
   return amount / (currency === "JPY" || currency === "IDR" ? 1 : 100);
 }
@@ -58,85 +61,87 @@ function getPreviewOrderId() {
 }
 
 export function LocalOrdersPanel() {
-  const { formatPrice } = useLocalization();
+  const { formatPrice, language, t } = useLocalization();
+  const copy = (key: string, fallback: string, values?: Record<string, string | number>) => t(`orders.${key}`, fallback, values);
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const serialized = useSyncExternalStore(subscribeToLocalOrders, getLocalOrdersSnapshot, () => "[]");
   const orders = useMemo(() => {
-    try { return JSON.parse(serialized) as LocalOrder[]; }
+    try { const parsed = JSON.parse(serialized); return Array.isArray(parsed) ? parsed as LocalOrder[] : []; }
     catch { return []; }
   }, [serialized]);
-  const [backendOrders, setBackendOrders] = useState<DisplayOrder[] | null>(null);
-  const [apiError, setApiError] = useState("");
-  const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [result, setResult] = useState<OrderResult | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const checkoutSessionId = useSyncExternalStore(subscribeToLocation, getCheckoutSessionId, () => null);
   const previewOrderId = useSyncExternalStore(subscribeToLocation, getPreviewOrderId, () => null);
-  const [checkoutReceipt, setCheckoutReceipt] = useState<CheckoutReceipt | null>(null);
+  const requestKey = JSON.stringify([checkoutSessionId, previewOrderId, attempt]);
 
   useEffect(() => {
-    if (previewOrderId) return;
-    if (!PONYO_API_BASE_URL) return;
+    if (!hydrated || previewOrderId || !PONYO_API_BASE_URL || result?.key === requestKey) return;
     let active = true;
     if (checkoutSessionId) {
       ponyoApi.getCheckoutReceipt(checkoutSessionId)
         .then((receipt) => {
           if (!active) return;
-          setCheckoutReceipt(receipt);
           window.sessionStorage.removeItem("ponyo:checkout-idempotency-key");
           window.history.replaceState({}, "", "/orders?checkout=success");
+          setResult({ key: JSON.stringify([null, previewOrderId, attempt]), receipt });
         })
         .catch((error: unknown) => {
-          if (active) setApiError(error instanceof Error ? error.message : "Unable to load your checkout receipt.");
+          if (active) setResult({ key: requestKey, failed: true, error: error instanceof Error ? error.message : undefined });
         });
       return () => { active = false; };
     }
     ponyoApi.getOrders()
-      .then((result) => { if (active) setBackendOrders(result.map(fromBackendOrder)); })
+      .then((orders) => { if (active) setResult({ key: requestKey, orders: orders.map(fromBackendOrder) }); })
       .catch((error: unknown) => {
         if (!active) return;
         if (error instanceof ApiRequestError && error.status === 401) {
-          setNeedsSignIn(true);
-          setBackendOrders([]);
+          setResult({ key: requestKey, guest: true });
           return;
         }
-        if (!(error instanceof ApiNotConfiguredError)) setApiError(error instanceof Error ? error.message : "Unable to load order history.");
-        setBackendOrders([]);
+        setResult({ key: requestKey, failed: true, error: error instanceof Error && !(error instanceof ApiNotConfiguredError) ? error.message : undefined });
       });
     return () => { active = false; };
-  }, [checkoutSessionId, previewOrderId]);
-  const visibleOrders: DisplayOrder[] = previewOrderId ? orders : backendOrders ?? (PONYO_API_BASE_URL ? [] : orders);
+  }, [checkoutSessionId, previewOrderId, requestKey, hydrated, attempt, result?.key]);
+  const current = result?.key === requestKey ? result : null;
+  const loading = !hydrated || Boolean(PONYO_API_BASE_URL && !previewOrderId && !current);
+  const visibleOrders: DisplayOrder[] = previewOrderId || !PONYO_API_BASE_URL ? orders : current?.orders ?? [];
+  const checkoutReceipt = current?.receipt;
   const previewOrder = previewOrderId ? orders.find((order) => order.id === previewOrderId) : undefined;
+  const retry = () => setAttempt((value) => value + 1);
+  const date = (value: string) => new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(new Date(value));
 
   return (
-    <section className="orders-panel" aria-labelledby="orders-heading">
-      <div className="orders-panel-heading">
-        <div><span className="account-auth-eyebrow">YOUR PONYO ACCOUNT</span><h1 id="orders-heading">Order history</h1><p>Keep track of your plush on its way home.</p></div>
-        <Link className="orders-profile-link" href="/account">Account overview <span aria-hidden="true">→</span></Link>
-      </div>
-      {checkoutReceipt && <div className="order-history-card" role="status"><h2>Thanks for your order, {checkoutReceipt.orderNumber}!</h2><p>Payment: {checkoutReceipt.paymentStatus.replaceAll("_", " ")} · Status: {checkoutReceipt.status.replaceAll("_", " ")}</p><p>Total: {formatPrice(fromMinor(checkoutReceipt.totalAmount, checkoutReceipt.currency), checkoutReceipt.currency)}</p></div>}
-      {previewOrder && <div className="order-history-card order-preview-confirmation" role="status"><h2>Sample order {previewOrder.id} is ready to track.</h2><p>This is demo order data. No payment was collected.</p>{previewOrder.trackingNumber && <p><strong>{previewOrder.trackingCarrier ?? "Demo carrier"} · Tracking number:</strong> {previewOrder.trackingNumber}</p>}</div>}
-      {apiError && <p className="api-form-error" role="alert">{apiError}</p>}
-      {needsSignIn ? <div className="orders-signin-card"><span aria-hidden="true">🪼</span><h2>Your orders are tucked away</h2><p>Sign in to the account connected to your Ponyo orders, or create one to get started.</p><AccountAuthForm mode="login" onAuthenticated={() => {
-        setNeedsSignIn(false);
-        setBackendOrders(null);
-        ponyoApi.getOrders().then((result) => setBackendOrders(result.map(fromBackendOrder))).catch((error: unknown) => setApiError(error instanceof Error ? error.message : "Unable to load order history."));
-      }} /></div> : visibleOrders.length ? (
-        <div className="order-history-list">
+    <section className="orders-studio" aria-labelledby="orders-heading" aria-busy={loading}>
+      <header className="orders-studio-heading">
+        <div><span className="orders-eyebrow">{copy("eyebrow", "YOUR PONYO ACCOUNT")}</span><h1 id="orders-heading">{copy("title", "Your orders")}</h1><p>{copy("subtitle", "Little joys, thoughtfully kept track of.")}</p></div>
+        <Link className="orders-button orders-button--quiet" href="/account">{copy("account", "Account overview")} <span aria-hidden="true">↗</span></Link>
+      </header>
+      <div className="orders-section-label"><span>{copy("history", "Order history")}</span><span>{!loading && !current?.guest && !current?.failed && !checkoutReceipt ? copy("count", "{{ count }} orders", { count: visibleOrders.length }) : "PONYO"}</span></div>
+      {loading ? <div className="orders-state orders-loading" role="status"><span className="orders-seal" aria-hidden="true">✦</span><h2>{copy("loading", "Gathering your orders…")}</h2><p>{copy("loading_body", "Just a moment while we check the details.")}</p><div className="orders-skeleton" aria-hidden="true"><i /><i /><i /></div></div>
+      : current?.failed ? <div className="orders-state"><span className="orders-seal" aria-hidden="true">!</span><h2>{copy("error_title", "Your orders couldn’t be loaded")}</h2><p role="alert">{current.error || copy("error_body", "We couldn’t retrieve your order details. Please try again.")}</p><button className="orders-button" type="button" onClick={retry}>{copy("retry", "Try again")}</button><Link className="orders-text-link" href="/pages/contact">{copy("support", "Contact Ponyo support")}</Link></div>
+      : current?.guest ? <div className="orders-guest"><div className="orders-guest-note"><Image src="/ponyo-jellyfish.svg" alt="" width={64} height={64} /><span className="orders-eyebrow">{copy("guest_eyebrow", "A LITTLE SPACE, JUST FOR YOU")}</span><h2>{copy("guest_title", "Your orders are tucked away")}</h2><p>{copy("guest_body", "Sign in to the account connected to your Ponyo orders to see their latest details.")}</p><Link className="orders-text-link" href="/pages/contact">{copy("support", "Contact Ponyo support")} <span aria-hidden="true">↗</span></Link></div><div className="orders-auth-embed"><AccountAuthForm mode="login" presentation="drawer" onAuthenticated={retry} /></div></div>
+      : checkoutReceipt ? <div className="orders-state orders-receipt" role="status"><span className="orders-seal" aria-hidden="true">✓</span><span className="orders-eyebrow">{copy("receipt", "CHECKOUT RECEIPT")}</span><h2>{copy("thanks", "Thank you for your order")}</h2><p className="orders-reference">{checkoutReceipt.orderNumber}</p><dl className="orders-totals"><div><dt>{copy("payment", "Payment status")}</dt><dd>{checkoutReceipt.paymentStatus.replaceAll("_", " ")}</dd></div><div><dt>{copy("status", "Order status")}</dt><dd>{checkoutReceipt.status.replaceAll("_", " ")}</dd></div><div className="orders-grand-total"><dt>{copy("total", "Total")}</dt><dd>{formatPrice(fromMinor(checkoutReceipt.totalAmount, checkoutReceipt.currency), checkoutReceipt.currency)}</dd></div></dl><Link className="orders-button" href="/account">{copy("account", "Account overview")}</Link></div>
+      : visibleOrders.length ? (
+        <div className="orders-list">
+          {previewOrder && <div className="orders-preview-note" role="status"><strong>{copy("sample", "Sample order {{ id }}", { id: previewOrder.id })}</strong><p>{copy("demo", "This is demo order data. No payment was collected.")}</p></div>}
           {visibleOrders.map((order) => (
-            <article className="order-history-card" key={order.id}>
-              <header><div><span>ORDER PLACED</span><strong>{new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(order.createdAt))}</strong></div><div><span>ORDER NUMBER</span><strong>{order.id}</strong></div><div className="order-status"><span>STATUS</span><strong>{order.backend ? order.backend.status.replaceAll("_", " ") : order.status}</strong></div><div className="order-total"><span>TOTAL</span><strong>{formatPrice(order.total, order.currency)}</strong></div></header>
-              {(order.deliveryAddress || order.customerEmail) && <div className="order-delivery-summary"><span>DELIVERY DETAILS</span><p>{order.customerEmail}{order.customerEmail && order.deliveryAddress ? " · " : ""}{order.deliveryAddress}</p></div>}
-              {order.backend?.supplierFulfillmentStatus && <div className="order-delivery-summary"><span>SUPPLIER FULFILLMENT</span><p>{order.backend.supplierFulfillmentStatus.replaceAll("_", " ")}</p></div>}
-              {order.backend?.subtotalAmount !== undefined && <div className="order-delivery-summary"><span>ORDER TOTALS</span><p>Subtotal: {formatPrice(fromMinor(order.backend.subtotalAmount, order.currency), order.currency)} · Discount{order.backend.couponCode ? ` (${order.backend.couponCode})` : ""}: {formatPrice(fromMinor(order.backend.discountAmount ?? 0, order.currency), order.currency)} · Shipping: {formatPrice(fromMinor(order.backend.shippingAmount ?? 0, order.currency), order.currency)} · Tax: {formatPrice(fromMinor(order.backend.taxAmount ?? 0, order.currency), order.currency)}</p></div>}
-              {order.trackingNumber && <div className="order-delivery-summary order-tracking-summary"><span>TRACKING · {order.trackingCarrier ?? "CARRIER"}</span><p>{order.trackingNumber} {!order.backend && <small>Demo tracking reference</small>}</p></div>}
-              <div className="order-history-items">{order.items.map((item) => <div className="order-history-item" key={`${order.id}-${item.id}`}><Image src={item.image} alt={item.imageAlt} width={72} height={72} /><span><strong>{item.name}</strong><small>Qty {item.qty} · {item.maker}</small></span><b>{formatPrice(item.price * item.qty, item.currency)}</b></div>)}</div>
-              {order.backend && <OrderActions order={order.backend} onUpdated={(updated) => setBackendOrders((current) => current?.map((entry) => entry.backend?.id === updated.id ? fromBackendOrder(updated) : entry) ?? null)} />}
+            <article className="orders-card" key={order.id}>
+              <header className="orders-card-heading"><div><span className="orders-eyebrow">{copy("number", "Order number")}</span><h2>{order.id}</h2></div><span className="orders-status">{(order.backend?.status ?? order.status).replaceAll("_", " ")}</span></header>
+              <div className="orders-metadata"><div><span>{copy("placed", "Order placed")}</span><time dateTime={order.createdAt}>{date(order.createdAt)}</time></div><div><span>{copy("payment", "Payment status")}</span><strong>{order.payment.replaceAll("_", " ")}</strong></div><div><span>{copy("total", "Total")}</span><strong>{formatPrice(order.total, order.currency)}</strong></div></div>
+              <div className="orders-card-body"><div className="orders-items"><h3>{copy("items", "Your plush, picked with love")}</h3>{order.items.map((item) => <div className="orders-item" key={`${order.id}-${item.id}`}><Image src={item.image} alt={item.imageAlt} width={192} height={192} sizes="(max-width: 600px) 72px, 96px" /><div><strong>{item.name}</strong><small>{item.maker}</small><span>{copy("qty", "Qty {{ count }}", { count: item.qty })}</span></div><b>{formatPrice(item.price * item.qty, item.currency)}</b></div>)}</div>
+              <aside className="orders-summary"><h3>{copy("summary", "Order summary")}</h3><dl className="orders-totals">{order.backend?.subtotalAmount !== undefined && <><div><dt>{copy("subtotal", "Subtotal")}</dt><dd>{formatPrice(fromMinor(order.backend.subtotalAmount, order.currency), order.currency)}</dd></div><div><dt>{copy("discount", "Discount")}{order.backend.couponCode && <small>{order.backend.couponCode}</small>}</dt><dd>{formatPrice(fromMinor(order.backend.discountAmount ?? 0, order.currency), order.currency)}</dd></div><div><dt>{copy("shipping", "Shipping")}</dt><dd>{formatPrice(fromMinor(order.backend.shippingAmount ?? 0, order.currency), order.currency)}</dd></div><div><dt>{copy("tax", "Tax")}</dt><dd>{formatPrice(fromMinor(order.backend.taxAmount ?? 0, order.currency), order.currency)}</dd></div></>}<div className="orders-grand-total"><dt>{copy("total", "Total")}</dt><dd>{formatPrice(order.total, order.currency)}</dd></div></dl>
+              {(order.deliveryAddress || order.customerEmail) && <div className="orders-detail"><h3>{copy("delivery", "Delivery details")}</h3>{order.customerEmail && <p>{order.customerEmail}</p>}{order.deliveryAddress && <p>{order.deliveryAddress}</p>}</div>}
+              {order.backend?.supplierFulfillmentStatus && <div className="orders-detail"><h3>{copy("supplier", "Supplier fulfillment")}</h3><p>{order.backend.supplierFulfillmentStatus.replaceAll("_", " ")}</p></div>}
+              {order.trackingNumber && <div className="orders-detail"><h3>{copy("tracking", "Tracking number")}</h3>{order.trackingCarrier && <p>{order.trackingCarrier}</p>}<p className="orders-reference">{order.trackingNumber}</p>{!order.backend && <small>{copy("demo_tracking", "Demo tracking reference")}</small>}</div>}</aside></div>
+              {order.backend && <OrderActions order={order.backend} onUpdated={(updated) => setResult((current) => current ? { ...current, orders: current.orders?.map((entry) => entry.backend?.id === updated.id ? fromBackendOrder(updated) : entry) } : null)} />}
             </article>
           ))}
         </div>
-      ) : checkoutSessionId ? null : (
-        <div className="orders-empty-state"><span aria-hidden="true">♡</span><h2>No orders just yet</h2><p>Your order history will appear here after you complete the local checkout preview.</p><Link className="shop-button shop-button-orange" href="/collections/all">Find your forever plush <b>→</b></Link></div>
+      ) : (
+        <div className="orders-state orders-empty"><Image src="/ponyo-jellyfish.svg" alt="" width={72} height={72} /><span className="orders-eyebrow">{copy("empty_eyebrow", "THE START OF SOMETHING SOFT")}</span><h2>{copy("empty_title", "A little joy is waiting for you.")}</h2><p>{copy("empty_body", "No orders yet. Once you place an order, its details will be here, ready whenever you need them.")}</p><Link className="orders-button" href="/collections/all">{copy("browse", "Find your forever plush")} <span aria-hidden="true">→</span></Link><span className="orders-empty-footnote">{copy("empty_note", "Hand-picked companions. A place in your heart.")}</span></div>
       )}
-      {!PONYO_API_BASE_URL && <p className="local-preview-note">Orders in this preview are saved only in this browser.</p>}
-      <span className="sr-only" aria-live="polite">{visibleOrders.length} orders</span>
+      {(!PONYO_API_BASE_URL || previewOrderId) && !loading && <p className="orders-preview-note">{copy("local_note", "Preview orders are saved only in this browser.")}</p>}
     </section>
   );
 }

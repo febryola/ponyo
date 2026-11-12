@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AccountAuthForm } from "@/components/account/account-auth-form";
 import { ponyoApi, PONYO_API_BASE_URL, type CustomerProfile } from "@/services/ponyo-api.client";
 import { useCustomerSession } from "@/components/layout/customer-session-provider";
 
 export function AccountDrawer() {
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [customer, setCustomer] = useState<CustomerProfile | null>(null);
@@ -14,7 +16,7 @@ export function AccountDrawer() {
   const [checkingSession, setCheckingSession] = useState(false);
   const [sessionError, setSessionError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
-  const { setCustomer: setSessionCustomer } = useCustomerSession();
+  const { customer: sessionCustomer, setCustomer: setSessionCustomer } = useCustomerSession();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -25,6 +27,11 @@ export function AccountDrawer() {
 
   useEffect(() => {
     const openAccount = () => {
+      if (sessionCustomer) {
+        setOpen(false);
+        router.push("/account");
+        return;
+      }
       setSessionError("");
       setAuthMode(null);
       setCheckingSession(Boolean(PONYO_API_BASE_URL));
@@ -32,13 +39,19 @@ export function AccountDrawer() {
     };
     window.addEventListener("ponyo:account-open", openAccount);
     return () => window.removeEventListener("ponyo:account-open", openAccount);
-  }, []);
+  }, [router, sessionCustomer]);
 
   useEffect(() => {
     if (!open || !PONYO_API_BASE_URL) return;
     let active = true;
     ponyoApi.getMe()
-      .then((profile) => { if (active) { setCustomer(profile); setSessionCustomer(profile); } })
+      .then((profile) => {
+        if (!active) return;
+        setCustomer(profile);
+        setSessionCustomer(profile);
+        setOpen(false);
+        router.push("/account");
+      })
       .catch(() => {
         if (!active) return;
         // A failed session probe is not useful customer-facing copy; show the
@@ -48,7 +61,7 @@ export function AccountDrawer() {
       })
       .finally(() => { if (active) setCheckingSession(false); });
     return () => { active = false; };
-  }, [open, setSessionCustomer]);
+  }, [open, router, setSessionCustomer]);
 
   async function signOut() {
     setSigningOut(true);
@@ -95,7 +108,7 @@ export function AccountDrawer() {
 
         {authMode && !customer && <section className="account-drawer-auth-panel" aria-label={authMode === "register" ? "Create your account" : "Sign in"}>
           <button type="button" className="account-drawer-back" onClick={() => setAuthMode(null)}>← Account overview</button>
-          <AccountAuthForm key={authMode} mode={authMode} presentation="drawer" showDrawerTabs={false} onAuthenticated={(profile) => { setCustomer(profile); setSessionCustomer(profile); setAuthMode(null); }} onClose={() => setOpen(false)} />
+          <AccountAuthForm key={authMode} mode={authMode} presentation="drawer" showDrawerTabs={false} onAuthenticated={(profile) => { setCustomer(profile); setSessionCustomer(profile); setAuthMode(null); setOpen(false); router.push("/account"); }} onClose={() => setOpen(false)} />
         </section>}
 
         <section className="account-drawer-links" aria-label="Account shortcuts">

@@ -261,6 +261,11 @@ async def confirm_password_reset(payload: PasswordResetConfirm, request: Request
     customer = await db.scalar(select(Customer).where(Customer.id == token_record.customer_id).with_for_update())
     if not customer:
         raise HTTPException(status_code=400, detail="This password reset link is invalid or has expired.")
+    if verify_password(payload.password, customer.password_hash):
+        raise HTTPException(status_code=400, detail={
+            "code": "password_unchanged",
+            "message": "Choose a new password that is different from your current password.",
+        })
     now = datetime.now(timezone.utc)
     claimed = await db.scalar(
         update(PasswordResetToken).where(

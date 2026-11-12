@@ -24,6 +24,7 @@ function harness({
     cancel,
     sync,
     getOrder,
+    confirmDelivery,
     orderFields = {},
 } = {}) {
     let order = {
@@ -44,6 +45,7 @@ function harness({
         history: [],
         sync: [],
         getOrder: [],
+        delivery: [],
     };
     const jsx = (type, props) => ({ type, props });
     const context = {
@@ -51,6 +53,9 @@ function harness({
         Error,
         require(name) {
             if (name === "react/jsx-runtime") return { jsx, jsxs: jsx };
+            if (name === "@/components/layout/localization-provider") return {
+                useLocalization: () => ({ language: "en", t: (_key, fallback, values = {}) => fallback.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => String(values[key])) }),
+            };
             if (name === "react")
                 return {
                     useState(initial) {
@@ -72,6 +77,10 @@ function harness({
             if (name === "@/services/ponyo-api.client")
                 return {
                     ponyoApi: {
+                        confirmShipmentDelivery: async (id, shipmentId) => {
+                            calls.delivery.push({ id, shipmentId });
+                            return confirmDelivery?.();
+                        },
                         syncPaymentStatus: async(id) => {
                             calls.sync.push(id);
                             return sync ? sync() : paymentResult();
@@ -133,6 +142,7 @@ function harness({
         text: () => JSON.stringify(tree),
         alert: () =>
             find(tree, (node) => node.props && node.props.role === "alert"),
+        link: () => find(tree, (node) => node.type === "a"),
     };
 }
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -401,4 +411,43 @@ test("payment amounts honor USD, JPY, IDR and three-decimal minor units without 
         assert.ok(page.text().includes("Captured:"));
         assert.ok(page.text().includes("Refunded:"));
     }
+});
+
+const shipment = {
+    id: "shipment-1", shipmentNumber: "SHP-1", carrier: "Carrier", status: "delivered",
+    trackingNumber: "TRACK-1", trackingUrl: "https://carrier.example/track/1",
+    estimatedDeliveryAt: "2026-11-12T10:00:00Z", customerConfirmedAt: null,
+    items: [{ orderItemId: "line-1", quantity: 2 }],
+    events: [{ occurredAt: "2026-11-12T10:00:00Z", status: "delivered", note: "Carrier update" }],
+};
+test("shipment presentation preserves tracking links, backend events and confirmation eligibility", () => {
+    for (const [status, confirmed, eligible] of [["delivered", null, true], ["in_transit", null, false], ["delivered", "2026-11-12T12:00:00Z", false]]) {
+        const page = harness({ status: "processing", paymentStatus: "paid", orderFields: { items: [{ id: "line-1", name: "Bunny" }], shipments: [{ ...shipment, status, customerConfirmedAt: confirmed }] } });
+        assert.equal(Boolean(page.button("Confirm delivery")), eligible);
+        assert.equal(page.link().props.href, shipment.trackingUrl);
+        assert.equal(page.link().props.target, "_blank");
+        assert.equal(page.link().props.rel, "noopener noreferrer");
+        assert.match(page.text(), /TRACK-1/);
+        assert.match(page.text(), /Carrier update/);
+        assert.match(page.text(), /Bunny × 2/);
+        if (confirmed) assert.match(page.text(), /Delivery confirmed by you/);
+    }
+});
+test("shipment confirmation reloads canonical order and never optimistically confirms delivery", async () => {
+    let finish;
+    const canonical = { id: "order-id", orderNumber: "PNY-1", status: "processing", paymentStatus: "paid", currency: "USD", items: [], shipments: [{ ...shipment, customerConfirmedAt: "2026-11-12T12:00:00Z" }] };
+    const page = harness({ confirmDelivery: () => new Promise((resolve) => { finish = resolve; }), getOrder: async () => canonical, orderFields: { items: [], shipments: [shipment] } });
+    page.button("Confirm delivery").props.onClick();
+    assert.equal(page.calls.updated.length, 0);
+    page.render(); assert.equal(page.button("Confirming delivery…").props.disabled, true);
+    finish(); await settle(); page.render();
+    assert.deepEqual(page.calls.delivery, [{ id: "order-id", shipmentId: "shipment-1" }]);
+    assert.equal(page.calls.updated.at(-1), canonical);
+    assert.equal(page.button("Confirm delivery"), undefined);
+});
+test("shipment confirmation failure retains details and offers retry", async () => {
+    const page = harness({ confirmDelivery: async () => { throw new Error("Carrier unavailable"); }, orderFields: { items: [], shipments: [shipment] } });
+    page.button("Confirm delivery").props.onClick(); await settle(); page.render();
+    assert.equal(page.calls.updated.length, 0); assert.match(page.text(), /Carrier unavailable/);
+    assert.equal(page.button("Confirm delivery").props.disabled, false);
 });

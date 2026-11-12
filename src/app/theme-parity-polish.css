@@ -9813,6 +9813,57 @@ body {
     background: linear-gradient(135deg, #f9f1f8, white);
 }
 
+.account-overview-tile:nth-child(4) {
+    border-color: #ead9a9;
+    background: linear-gradient(135deg, #fff8df, #fff);
+}
+
+.account-overview-tile:nth-child(5) {
+    border-color: #e8dfd1;
+    background: linear-gradient(135deg, #f8f3eb, #fff);
+}
+
+.account-buy-again-tile {
+    padding-bottom: 52px;
+    border-color: #ead9a9;
+    background: linear-gradient(135deg, #fff8df, #fff);
+}
+
+.account-tile-action {
+    min-height: 34px;
+    margin-top: 12px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 999px;
+    background: #654932;
+    color: #fffaf0;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.account-tile-action:disabled {
+    opacity: .65;
+    cursor: wait;
+}
+
+.account-reorder-message {
+    margin: -4px 2px 0;
+    color: #69564a;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.account-reorder-message a {
+    color: #654932;
+    font-weight: 800;
+}
+
+.account-overview-tile:nth-child(n + 4) .account-tile-arrow {
+    color: #80602d;
+}
+
 .account-tile-art {
     position: absolute;
     top: 10px;
@@ -14574,7 +14625,7 @@ body {
         padding: 23px;
     }
     .account-overview-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
     }
     .account-overview-tile {

@@ -11,7 +11,14 @@ vm.runInNewContext(ts.transpileModule(
   readFileSync(new URL("../src/locales/storefront-translations.ts", import.meta.url), "utf8"),
   { compilerOptions: { module: ts.ModuleKind.CommonJS } },
 ).outputText, translationContext);
-const translations = translationContext.exports.storefrontTranslations;
+const authContext = { exports: {} };
+vm.runInNewContext(ts.transpileModule(
+  readFileSync(new URL("../src/locales/auth-translations.ts", import.meta.url), "utf8"),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS } },
+).outputText, authContext);
+const translations = Object.fromEntries(["en", "es", "id", "ja", "ko", "zh-CN"].map((locale) => [locale, {
+  ...translationContext.exports.storefrontTranslations[locale], ...authContext.exports.authTranslations[locale],
+}]));
 const source = ts.transpileModule(
   readFileSync(new URL("../src/components/account/account-auth-form.tsx", import.meta.url), "utf8"),
   { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } },
@@ -270,7 +277,7 @@ for (const locale of ["ja", "ko"]) {
     const tree = harness.render();
     assert.ok(text(tree).includes(translations[locale]["account.auth.pending_verification"]));
     assert.ok(text(tree).includes(translations[locale]["account.auth.verification_failed"]));
-    assert.equal(text(find(tree, (node) => node.props?.role === "alert")), "Delivery failed");
+    assert.equal(text(find(tree, (node) => node.props?.role === "alert")), translations[locale]["account.auth.verification_delivery_failed"]);
     assert.ok(find(tree, (node) => node.type === "button" && text(node) === translations[locale]["account.auth.resend_verification"]));
   });
 }

@@ -28,7 +28,7 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
   const [errorMessage, setErrorMessage] = useState("");
   const [errorCode, setErrorCode] = useState("");
   const { setCustomer } = useCustomerSession();
-  const passwordHasLength = password.length >= 8;
+  const passwordHasLength = password.length >= 8 && password.length <= 128;
   const passwordHasNumber = /\d/.test(password);
   const passwordHasSpecial = /[^\p{L}\p{N}]/u.test(password);
   const isStrongRegistrationPassword = passwordHasLength && passwordHasNumber && passwordHasSpecial;
@@ -40,6 +40,8 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
     setErrorCode("");
     setNotice("");
     setVerificationEmail("");
+    setVerificationSent(false);
+    setShowPassword(false);
     setPassword("");
   }
 
@@ -125,7 +127,7 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
         setVerificationSent(false);
         setPassword("");
         setSubmitted(true);
-        setErrorMessage(error.message);
+        setErrorMessage(t("account.auth.verification_delivery_failed", "Your account was created, but the verification email couldn’t be sent. Please request another email below."));
       } else if (error instanceof Error && "status" in error && error.status === 409) {
         setEmail(email);
         setPassword("");
@@ -141,13 +143,13 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
 
   const title = mode === "register" ? t("account.auth.create_title", "Create your account") : mode === "forgot" ? t("account.auth.reset_title", "Reset your password") : t("account.auth.welcome_back", "Welcome back");
   const subtitle = mode === "register"
-    ? t("account.auth.register_subtitle", "Save your favorites and keep your Ponyo orders close.")
+    ? t("account.auth.register_subtitle", "A little home for your favorites. Create an account to keep them close.")
     : mode === "forgot"
-      ? t("account.auth.reset_subtitle", "We’ll send a one-hour reset link if that email belongs to a Ponyo account.")
-      : t("account.auth.login_subtitle", "Sign in or create an account to see your Ponyo orders.");
+      ? t("account.auth.reset_subtitle", "Enter your email. If it matches a Ponyo account, we’ll send a reset link valid for one hour.")
+      : t("account.auth.login_subtitle", "Your favorite finds and order updates, all in one little place.");
 
   return (
-    <main className={`account-auth-page${isDrawer ? " account-auth-page--drawer" : ""}`}>
+    <main className={`account-auth-page auth-studio${isDrawer ? " account-auth-page--drawer" : ""}`}>
       <section className={`account-auth-card${isDrawer ? " account-auth-card--drawer" : ""}`} aria-labelledby="account-auth-title">
         {!isDrawer && <Link href="/" className="account-auth-brand" aria-label={t("account.auth.home", "Ponyo home")}><span><Image src="/ponyo-jellyfish.svg" alt="" width={30} height={30} /></span><strong>PONYO</strong></Link>}
         <div className="account-auth-heading">
@@ -181,7 +183,7 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
             <button type="button" className="account-auth-submit" onClick={() => changeMode("login")}>{t("account.auth.back_to_sign_in", "Back to sign in")}</button>
           </div>
         ) : (
-          <form className="account-auth-form" onSubmit={handleSubmit}>
+          <form className="account-auth-form" onSubmit={handleSubmit} aria-busy={isSubmitting}>
             {mode === "register" && <label>{t("account.auth.full_name", "Full name")}<input name="name" type="text" autoComplete="name" placeholder={t("account.auth.name_placeholder", "Your name")} required /></label>}
             <label>{t("account.auth.email", "Email address")}<input name="email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
             {mode !== "forgot" && <label>{t("account.auth.password", "Password")}<span className="account-password-field"><input name="password" type={showPassword ? "text" : "password"} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={t("account.auth.password_placeholder", "Enter your password")} minLength={8} maxLength={128} value={password} aria-describedby={mode === "register" ? "account-password-hint" : undefined} aria-invalid={mode === "register" && password.length > 0 && !isStrongRegistrationPassword} onChange={(event) => setPassword(event.target.value)} required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? t("account.auth.hide_password", "Hide password") : t("account.auth.show_password", "Show password")}>{showPassword ? t("account.auth.hide", "Hide") : t("account.auth.show", "Show")}</button></span>{mode === "register" && <ul id="account-password-hint" className="account-password-checklist" aria-label={t("account.auth.password_requirements", "Password requirements")} aria-live="polite"><li className={passwordHasLength ? "is-valid" : ""}><span aria-hidden="true">{passwordHasLength ? "✓" : "○"}</span> {t("account.auth.password_length", "8–128 characters")}</li><li className={passwordHasNumber ? "is-valid" : ""}><span aria-hidden="true">{passwordHasNumber ? "✓" : "○"}</span> {t("account.auth.password_number", "At least one number")}</li><li className={passwordHasSpecial ? "is-valid" : ""}><span aria-hidden="true">{passwordHasSpecial ? "✓" : "○"}</span> {t("account.auth.password_special", "At least one special character")}</li></ul>}</label>}
@@ -206,16 +208,16 @@ export function AccountAuthForm({ mode: initialMode, presentation = "page", show
             <button className="account-auth-submit" type="submit" disabled={isSubmitting || (mode === "register" && !isStrongRegistrationPassword)}>{isSubmitting ? t("account.auth.please_wait", "Please wait…") : mode === "register" ? t("account.auth.create_account", "Create account") : mode === "forgot" ? t("account.auth.send_reset", "Send reset instructions") : t("account.auth.sign_in", "Sign in")}<span aria-hidden="true">→</span></button>
           </form>
         )}
-        <div className="account-auth-divider"><span>{t("account.auth.or", "or")}</span></div>
+        <div className="account-auth-divider" aria-hidden="true" />
         <p className="account-auth-help">{isDrawer ? <><Link href="/orders" onClick={onClose}>{t("account.auth.order_history", "View order history")}</Link><span aria-hidden="true"> · </span><Link href="/pages/contact" onClick={onClose}>{t("account.auth.support", "Contact Ponyo support")}</Link></> : <><Link href="/orders">{t("account.auth.order_history", "View order history")}</Link><span aria-hidden="true"> · </span><Link href="/pages/contact">{t("account.auth.support", "Contact Ponyo support")}</Link></>}</p>
         {!isDrawer && <Link className="account-auth-back" href="/">{t("account.auth.continue_shopping", "← Continue shopping")}</Link>}
       </section>
       {!isDrawer && <aside className="account-auth-aside" aria-label={t("account.auth.benefits", "Ponyo account benefits")}>
         <Image className="account-auth-aside-mascot" src="/ponyo-jellyfish.svg" alt="" width={68} height={68} />
-        <p>{t("account.auth.benefits_eyebrow", "YOUR FAVORITES, ALL IN ONE PLACE")}</p>
-        <h2>{t("account.auth.benefits_title", "More room for the plush you love.")}</h2>
+        <p>{t("account.auth.benefits_eyebrow", "LITTLE FINDS. LASTING JOY.")}</p>
+        <h2>{t("account.auth.benefits_title", "A soft spot for your favorites.")}</h2>
         <ul><li>{t("account.auth.benefit_wishlist", "Keep a wishlist close")}</li><li>{t("account.auth.benefit_orders", "Review your order history")}</li><li>{t("account.auth.benefit_discover", "Find your next forever plush")}</li></ul>
-        <span className="account-auth-aside-note">{t("account.auth.benefits_note", "Thoughtfully found, ready to be loved.")}</span>
+        <span className="account-auth-aside-note">{t("account.auth.benefits_note", "Thoughtfully found. Ready to be loved.")}</span>
       </aside>}
     </main>
   );

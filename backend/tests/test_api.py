@@ -536,6 +536,24 @@ async def test_password_reset_uses_single_use_database_token(test_client, monkey
     assert reset_links and reset_links[0][0] == "reset@example.com"
     token = reset_links[0][1].split("token=", 1)[1]
 
+    async with session_factory() as db:
+        customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == "reset@example.com"))
+        previous_hash = customer.password_hash
+        previous_auth_version = customer.auth_version
+
+    unchanged = await client.post(
+        "/v1/auth/password-reset/confirm", headers={"X-CSRF-Token": csrf},
+        json={"token": token, "password": "valid-password-123"},
+    )
+    assert unchanged.status_code == 400
+    assert unchanged.json()["error"]["code"] == "password_unchanged"
+    assert unchanged.json()["error"]["message"] == "Choose a new password that is different from your current password."
+    async with session_factory() as db:
+        customer = await db.scalar(select(Customer).where(func.lower(Customer.email) == "reset@example.com"))
+        assert customer.password_hash == previous_hash
+        assert customer.auth_version == previous_auth_version
+
+    # A rejected password must not consume the link; retry with a different one.
     reset = await client.post(
         "/v1/auth/password-reset/confirm", headers={"X-CSRF-Token": csrf},
         json={"token": token, "password": "new-valid-password-456"},

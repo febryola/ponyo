@@ -1,4 +1,21 @@
-.page {
+/* Shared colors, typography, controls and responsive layout live in auth-studio. */
+.page { isolation: isolate; }
+.card { min-width: 0; }
+.heading { margin-bottom: 28px; }
+.actions { display: grid; gap: 24px; }
+.primary { width: 100%; }
+.secondary { margin-top: 8px; }
+.success { margin-top: 24px; }
+.resend { padding-top: 22px; border-top: 1px solid #ead9cd; }
+.resend summary { min-height: 44px; color: #963c32; font-size: 13px; font-weight: 750; line-height: 1.7; cursor: pointer; }
+.resend p { margin: 0; color: #786158; font-size: 13px; line-height: 1.8; }
+.form { margin-top: 20px; }
+.loading { display: flex; justify-content: center; gap: 8px; padding: 28px; }
+.loading span { width: 8px; height: 8px; border-radius: 50%; background: #b94338; animation: breathe 1.4s ease-in-out infinite alternate; }
+.loading span:nth-child(2) { animation-delay: .2s; }
+.loading span:nth-child(3) { animation-delay: .4s; }
+@keyframes breathe { from { opacity: .3; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .loading span { animation: none; } }.page {
   min-height: 100svh;
   display: grid;
   place-items: center;

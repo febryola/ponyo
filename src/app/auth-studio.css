@@ -1,0 +1,223 @@
+/* Loaded after the theme. Every rule is opt-in: account dashboards are untouched. */
+.auth-studio.account-auth-page {
+  --auth-ink: #493129;
+  --auth-muted: #786158;
+  --auth-gold: #e7b958;
+  --auth-line: #ead9cd;
+  min-height: 100svh;
+  padding: clamp(24px, 5vw, 72px);
+  display: grid;
+  grid-template-columns: minmax(0, 480px) minmax(0, 390px);
+  gap: clamp(40px, 8vw, 112px);
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 92% 8%, #f6dfa580, transparent 48%), #fff9f0;
+  color: var(--auth-ink);
+  font-family: var(--font-nunito), sans-serif;
+}
+
+.auth-studio .account-auth-card {
+  min-width: 0;
+  max-width: none;
+  padding: clamp(24px, 3.2vw, 44px);
+  border: 1px solid var(--auth-line);
+  border-radius: 24px;
+  background: #fffdf8;
+  box-shadow: 0 12px 40px #623c2410;
+}
+
+.auth-studio .account-auth-brand {
+  gap: 10px;
+  color: var(--auth-ink);
+  font-family: var(--font-nunito), sans-serif;
+  font-size: 19px;
+  letter-spacing: .16em;
+  text-decoration: none;
+}
+
+.auth-studio .account-auth-brand > span {
+  width: 42px;
+  height: 42px;
+  border-color: #e6ce97;
+  background: #fff3d4;
+}
+
+.auth-studio .account-auth-brand img { width: 30px; height: 30px; }
+.auth-studio .account-auth-heading { margin: 30px 0 26px; }
+.auth-studio .account-auth-eyebrow {
+  color: #826126;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .16em;
+  line-height: 1.7;
+}
+
+.auth-studio .account-auth-heading h1 {
+  margin: 10px 0 14px;
+  color: var(--auth-ink);
+  font-family: var(--font-libre-baskerville), Georgia, serif;
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 700;
+  letter-spacing: -.045em;
+  line-height: 1.25;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.auth-studio .account-auth-heading p {
+  margin: 0;
+  color: var(--auth-muted);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.auth-studio .account-auth-tabs {
+  margin: 0 0 26px;
+  padding: 4px;
+  border: 1px solid #eddfd3;
+  border-radius: 12px;
+  background: #f7efe5;
+}
+
+.auth-studio .account-auth-tabs :is(a, button) {
+  min-height: 44px;
+  padding: 10px;
+  color: #72564b;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  text-decoration: none;
+}
+
+.auth-studio .account-auth-tabs .is-active {
+  color: #725127;
+  background: #fffdf8;
+  box-shadow: 0 2px 6px #5730220c;
+}
+
+.auth-studio .account-auth-form { gap: 20px; }
+.auth-studio .account-auth-form > label:not(.account-check-option) {
+  gap: 8px;
+  color: var(--auth-ink);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.auth-studio .account-auth-form input:not([type="checkbox"]) {
+  min-width: 0;
+  height: 52px;
+  padding: 12px 14px;
+  border: 1px solid #d9c6b8;
+  border-radius: 10px;
+  background: #fffefa;
+  color: var(--auth-ink);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.auth-studio input::placeholder { color: #8a7468; opacity: 1; }
+.auth-studio .account-auth-form input:focus { border-color: #a87b32; box-shadow: 0 0 0 3px #c596391c; }
+.auth-studio :is(a, button, input, summary):focus-visible { outline: 3px solid #98702f; outline-offset: 4px; }
+.auth-studio .account-auth-form input[aria-invalid="true"] { border-color: #b33f35; }
+.auth-studio .account-password-field { display: flex; min-width: 0; }
+.auth-studio .account-password-field input { padding-right: 88px !important; }
+.auth-studio .account-password-field button {
+  right: 6px;
+  min-width: 58px;
+  min-height: 44px;
+  padding: 8px;
+  color: #785527;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.auth-studio .account-password-checklist {
+  display: grid;
+  gap: 5px;
+  margin: 3px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.auth-studio .account-password-checklist li { display: flex; gap: 7px; color: var(--auth-muted); font-size: 12px; font-weight: 500; line-height: 1.6; }
+.auth-studio .account-password-checklist li > span { flex-shrink: 0; width: 17px; height: auto; background: transparent; color: inherit; }
+.auth-studio .account-password-checklist li.is-valid,
+.auth-studio .account-password-hint.is-valid { color: #3e6748; }
+.auth-studio .account-password-hint { color: var(--auth-muted); font-size: 12px; font-weight: 500; line-height: 1.6; }
+.auth-studio .account-password-hint.is-invalid { color: #a03730; }
+.auth-studio .account-check-option { align-items: flex-start; color: var(--auth-muted); font-size: 13px; line-height: 1.6; }
+.auth-studio .account-check-option input { flex-shrink: 0; width: 19px; height: 19px; margin-top: 1px; accent-color: #896229; }
+.auth-studio .account-auth-form-options { justify-content: flex-end; margin-top: -6px; }
+.auth-studio :is(.account-auth-form-options, .account-auth-help, .account-auth-error) :is(a, button) { color: #785527; font-size: 13px; text-underline-offset: 4px; }
+.auth-studio .account-auth-submit {
+  min-height: 52px;
+  height: auto;
+  padding: 14px 20px;
+  gap: 12px;
+  border: 1px solid #493129;
+  border-radius: 12px;
+  background: #493129;
+  box-shadow: none;
+  color: #fff9f0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.6;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color .18s ease;
+}
+.auth-studio .account-auth-submit:hover:not(:disabled) { background: #614337; }
+.auth-studio .account-auth-submit:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
+.auth-studio .account-auth-submit--secondary { border-color: #d5bd8a; background: transparent; color: #785527; justify-content: center; }
+.auth-studio .account-auth-submit--secondary:hover:not(:disabled) { background: #fff3d4; }
+.auth-studio .account-auth-divider { margin: 28px 0 18px; background: var(--auth-line); }
+.auth-studio .account-auth-help { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; font-size: 12px; line-height: 1.8; }
+.auth-studio .account-auth-back,
+.auth-studio .account-reset-request-link { color: var(--auth-muted); font-size: 13px; line-height: 1.7; text-align: center; text-underline-offset: 4px; }
+.auth-studio .account-auth-success { padding: 24px 18px; border: 1px solid #e8d9c8; border-radius: 14px; background: #faf3e6; color: var(--auth-ink); }
+.auth-studio .account-auth-success > span { background: #f5e4b7; color: #785527; }
+.auth-studio .account-auth-success strong { display: block; font-family: var(--font-libre-baskerville), Georgia, serif; font-size: 19px; line-height: 1.5; }
+.auth-studio .account-auth-success p { color: var(--auth-muted); font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.auth-studio .account-auth-error { padding: 14px 16px; border: 1px solid #e5b3a5; border-radius: 10px; background: #fff0e9; }
+.auth-studio .api-form-error { margin: 0; color: #992f29; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.auth-studio .account-auth-error :is(a, button) { display: inline-block; margin-top: 8px; }
+.auth-studio .account-auth-form > p[role="status"] { margin: 0; padding: 12px; border-radius: 10px; background: #f2f4e9; color: #3e6748; font-size: 13px; line-height: 1.7; }
+
+.auth-studio.account-auth-page .account-auth-aside {
+  display: flex;
+  min-height: 500px;
+  padding: 40px 30px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 48% 48% 20px 20px / 28% 28% 20px 20px;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 25%, #fffaf0 0 26%, transparent 26.4%), #f3e5c4;
+  color: var(--auth-ink);
+  text-align: center;
+}
+.auth-studio .account-auth-aside-mascot { position: static; width: 112px; height: 112px; margin: 0 0 30px; padding: 0; border: 0; border-radius: 0; background: transparent; transform: rotate(-7deg); object-fit: contain; }
+.auth-studio .account-auth-aside > p { margin: 0 0 14px; color: #826126; font-size: 10px; line-height: 1.7; letter-spacing: .13em; }
+.auth-studio .account-auth-aside h2 { max-width: 310px; color: var(--auth-ink); font-family: var(--font-libre-baskerville), Georgia, serif; font-size: clamp(26px, 2.8vw, 34px); font-weight: 700; line-height: 1.35; letter-spacing: -.04em; text-wrap: balance; }
+.auth-studio .account-auth-aside ul { display: grid; gap: 8px; margin: 24px 0; padding: 0; color: #6a5045; font-size: 13px; line-height: 1.6; list-style: none; }
+.auth-studio .account-auth-aside li::before { content: "✦"; padding-right: 8px; color: #a67b2f; font-size: 10px; }
+.auth-studio .account-auth-aside-note { padding-top: 18px; border-top: 1px solid #dbbda7; color: #72564b; font-size: 12px; line-height: 1.7; }
+
+.auth-studio.account-auth-page--drawer { display: block; min-height: 0; padding: 0; background: transparent; }
+.auth-studio .account-auth-card--drawer { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.auth-studio .account-auth-card--drawer .account-auth-heading { margin: 6px 0 24px; }
+.auth-studio .account-auth-card--drawer .account-auth-heading h1 { font-size: 29px; }
+
+@media (max-width: 800px) {
+  .auth-studio.account-auth-page:not(.account-auth-page--drawer) { grid-template-columns: minmax(0, 480px); gap: 28px; padding: 28px 18px; }
+  .auth-studio.account-auth-page:not(.account-auth-page--drawer) .account-auth-card { padding: 28px 24px; }
+  .auth-studio.account-auth-page .account-auth-aside { min-height: 0; padding: 30px 26px; border-radius: 20px; }
+  .auth-studio .account-auth-aside-mascot { width: 64px; height: 64px; margin-bottom: 16px; }
+  .auth-studio .account-auth-aside h2 { max-width: 340px; font-size: 26px; }
+  .auth-studio .account-auth-aside ul { margin: 18px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-studio .account-auth-submit { transition: none; }
+}

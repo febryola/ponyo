@@ -12,6 +12,8 @@ import "./storefront.css";
 import "./theme-parity.css";
 import "./theme-parity-polish.css";
 import "./collection-theme.css";
+import "./auth-studio.css";
+import "./orders-studio.css";
 
 const bodyFont = Nunito_Sans({ subsets: ["latin"], variable: "--font-nunito", display: "swap" });
 const headingFont = Libre_Baskerville({ subsets: ["latin"], weight: ["700"], variable: "--font-libre-baskerville", display: "swap" });

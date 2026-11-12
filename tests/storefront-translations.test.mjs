@@ -16,6 +16,7 @@ function loadTranslations(path, name) {
 }
 const translations = loadTranslations("src/locales/storefront-translations.ts", "storefrontTranslations");
 const appTranslations = loadTranslations("src/locales/app-translations.ts", "appTranslations");
+const authTranslations = loadTranslations("src/locales/auth-translations.ts", "authTranslations");
 const locales = ["es", "id", "ja", "ko", "zh-CN"];
 const sharedKeys = Object.keys(translations.es).sort();
 const placeholders = (text) => [...text.matchAll(/\{\{\s*\w+\s*\}\}/g)].map(([token]) => token).sort();
@@ -75,6 +76,8 @@ test("active supplemental UI keys have source evidence, including dynamic produc
   for (const key of sharedKeys) {
     // Journal and the eight size labels are wired separately by the page owner.
     if (key.startsWith("journal.") || key.startsWith("home.pages.") || key.startsWith("home.size.")) continue;
+    // The auth redesign uses a simple divider rather than an artificial "or" choice.
+    if (key === "account.auth.or") continue;
     assert.ok(uiText.includes(`"${key}"`), `${key} has no UI source reference`);
   }
   const promoSource = read("src/components/product/product-grid.tsx");
@@ -152,12 +155,12 @@ test("every supplemental auth key is wired with a nonempty English fallback", ()
       wired.add(key.text);
       assert.ok(ts.isStringLiteral(fallback) && fallback.text.trim(), key.text);
       assert.deepEqual(placeholders(fallback.text), expectedPlaceholders[key.text] ?? [], key.text);
-      for (const locale of locales) assert.equal(typeof translations[locale][key.text], "string", `${locale}:${key.text}`);
+      for (const locale of locales) assert.equal(typeof (authTranslations[locale][key.text] ?? translations[locale][key.text]), "string", `${locale}:${key.text}`);
     }
     ts.forEachChild(node, visit);
   }
   visit(source);
-  assert.deepEqual([...wired].sort(), sharedKeys.filter((key) => key.startsWith("account.auth.")));
+  for (const key of sharedKeys.filter((key) => key.startsWith("account.auth.") && key !== "account.auth.or")) assert.ok(wired.has(key), key);
 });
 
 const require = createRequire(import.meta.url);

@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ponyo
+      POSTGRES_USER: ponyo
+      POSTGRES_PASSWORD: ponyo
+    ports:
+      - "5433:5432"
+    volumes:
+      - ponyo-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ponyo -d ponyo"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - path: ./backend/.env.local
+        required: false
+    environment:
+      ENVIRONMENT: local
+      STOREFRONT_BASE_URL: http://localhost:3000
+      FRONTEND_ORIGINS: http://localhost:3000
+      DATABASE_URL: postgresql+asyncpg://ponyo:ponyo@postgres:5432/ponyo
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/health', timeout=5)
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_PONYO_API_BASE_URL: /ponyo-api
+        PONYO_LOCAL_PREVIEW: "true"
+        PONYO_DEV_API_PROXY: "true"
+        PONYO_DEV_API_PROXY_TARGET: http://api:8000
+        PONYO_ALLOW_CLOUDFLARE_QUICK_TUNNEL: "true"
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      PONYO_LOCAL_PREVIEW: "true"
+      PONYO_DEV_API_PROXY: "true"
+      PONYO_DEV_API_PROXY_TARGET: http://api:8000
+      PONYO_API_SERVER_BASE_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: ["tunnel", "--no-autoupdate", "--url", "http://frontend:3000"]
+    restart: unless-stopped
+    depends_on:
+      - frontend
+
+volumes:
+  ponyo-postgres:

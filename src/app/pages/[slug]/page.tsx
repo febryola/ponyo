@@ -52,10 +52,51 @@ function AboutPage() {
 
 function FaqPage() {
   return <div className="store-container faq-page">
-    <header className="faq-page-header"><h1>{faq.title}</h1><p>{faq.sub}</p><nav aria-label={faq.topics}>{faqGroups.map((group) => <a href={`#faq-${group.id}`} key={group.id}>{group.title}</a>)}</nav></header>
-    <div className="faq-page-groups">{faqGroups.map((group) => <section id={`faq-${group.id}`} key={group.id} className="faq-topic"><h2>{group.title}</h2><div>{group.questions.map(([question, answer], index) => <details key={question} open={group.id === "ordering" && index === 0}><summary>{question}<span>+</span></summary><p>{answer}</p></details>)}</div>{group.id === "sizes" && <div className="faq-size-table"><table><caption className="sr-only">Ponyo plush size ranges</caption><tbody>{sizeRows.map(([name, range]) => <tr key={name}><th scope="row">{name}</th><td>{range}</td></tr>)}</tbody></table></div>}</section>)}</div>
+    <header className="faq-page-header">
+      <div className="faq-hero-copy">
+        <span className="faq-eyebrow"><span aria-hidden="true">✦</span> THE PONYO HELP STUDIO</span>
+        <h1>{faq.title}<span className="faq-title-mark" aria-hidden="true">?</span></h1>
+        <p>{faq.sub}</p>
+        <nav aria-label={faq.topics}>{faqGroups.map((group) => <a href={`#faq-${group.id}`} key={group.id}><span className="faq-topic-nav-icon" aria-hidden="true"><FaqIcon name={group.id} /></span>{group.title}<span className="faq-nav-arrow" aria-hidden="true">↗</span></a>)}</nav>
+      </div>
+      <div className="faq-hero-art" aria-hidden="true">
+        <span className="faq-art-orbit faq-art-orbit--one" />
+        <span className="faq-art-orbit faq-art-orbit--two" />
+        <span className="faq-art-spark faq-art-spark--one">✦</span>
+        <span className="faq-art-spark faq-art-spark--two">✧</span>
+        <span className="faq-art-icon"><FaqIcon name="help" /></span>
+        <Image src="/ponyo-jellyfish.svg" alt="" width={102} height={102} priority />
+        <span className="faq-art-caption">A little help,<br />a lot of heart.</span>
+      </div>
+    </header>
+    <div className="faq-service-notes" aria-label="Helpful shopping information">
+      <article><span aria-hidden="true"><FaqIcon name="package" /></span><div><strong>Thoughtful packing</strong><small>Every plush is prepared with care.</small></div></article>
+      <article><span aria-hidden="true"><FaqIcon name="pin" /></span><div><strong>Delivery, your way</strong><small>Options appear for your address at checkout.</small></div></article>
+      <article><span aria-hidden="true"><FaqIcon name="sparkle" /></span><div><strong>Here when you need us</strong><small>Our team is happy to help.</small></div></article>
+    </div>
+    <div className="faq-page-groups">{faqGroups.map((group) => <section id={`faq-${group.id}`} key={group.id} className={`faq-topic faq-topic--${group.id}`}>
+      <div className="faq-topic-heading"><span className="faq-topic-icon" aria-hidden="true"><FaqIcon name={group.id} /></span><div><span className="faq-topic-kicker">PONYO GUIDE · 0{faqGroups.indexOf(group) + 1}</span><h2>{group.title}</h2></div><span className="faq-question-count">{String(group.questions.length).padStart(2, "0")} answers</span></div>
+      {group.id === "shipping" && <div className="shipping-journey" aria-label="How delivery information works">
+        <article><span className="shipping-step-number">01</span><span className="shipping-step-icon" aria-hidden="true"><FaqIcon name="tag" /></span><div><strong>Choose your plush</strong><small>Check the dispatch time on its product page.</small></div></article>
+        <span className="shipping-journey-connector" aria-hidden="true">······›</span>
+        <article><span className="shipping-step-number">02</span><span className="shipping-step-icon" aria-hidden="true"><FaqIcon name="pin" /></span><div><strong>See delivery options</strong><small>Enter your address to see availability and exact cost.</small></div></article>
+        <span className="shipping-journey-connector" aria-hidden="true">······›</span>
+        <article><span className="shipping-step-number">03</span><span className="shipping-step-icon" aria-hidden="true"><FaqIcon name="package" /></span><div><strong>Follow your order</strong><small>We email a dispatch update, with tracking when available.</small></div></article>
+      </div>}
+      <div className="faq-topic-questions">{group.questions.map(([question, answer], index) => <details key={question} open={group.id === "ordering" && index === 0}><summary><span className="faq-question-text">{question}</span><span className="faq-toggle" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg></span></summary><p>{answer}</p></details>)}</div>
+      {group.id === "sizes" && <div className="faq-size-table"><table><caption className="sr-only">Ponyo plush size ranges</caption><tbody>{sizeRows.map(([name, range]) => <tr key={name}><th scope="row">{name}</th><td>{range}</td></tr>)}</tbody></table></div>}
+    </section>)}</div>
     <section className="faq-contact-cta"><h2>{faq.contact_title}</h2><p>{faq.contact_body}</p><Link className="shop-button shop-button-orange" href="/pages/contact">{faq.contact_cta}</Link></section>
   </div>;
+}
+
+function FaqIcon({ name }: { name: string }) {
+  const common = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.65, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (name === "ordering" || name === "package") return <svg {...common}><path d="m3.5 7 8.5-4 8.5 4v10L12 21l-8.5-4V7Z"/><path d="m3.8 7.2 8.2 4 8.2-4M12 11.2V21M8 5l8.2 4"/></svg>;
+  if (name === "shipping" || name === "pin") return <svg {...common}><path d="M3 6.5h11v11H3zM14 10h4l3 3v4h-7z"/><circle cx="7.5" cy="18" r="1.8"/><circle cx="17.5" cy="18" r="1.8"/><path d="M17 10v3h4"/></svg>;
+  if (name === "sizes" || name === "tag") return <svg {...common}><path d="M20 13 13 20l-9-9V4h7l9 9Z"/><circle cx="8" cy="8" r="1.2"/><path d="M13 7v4M11 9h4"/></svg>;
+  if (name === "care" || name === "sparkle") return <svg {...common}><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15ZM5 3l.7 1.8L7.5 5.5l-1.8.7L5 8l-.7-1.8-1.8-.7 1.8-.7L5 3Z"/></svg>;
+  return <svg {...common}><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H7l-4 2v-5.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M9.7 9a2.3 2.3 0 1 1 3.8 1.7c-1 .9-1.5 1.2-1.5 2.3M12 15.8h.01"/></svg>;
 }
 
 function ContactPage() {

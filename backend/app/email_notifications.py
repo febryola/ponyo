@@ -13,6 +13,14 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _smtp_ssl_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    if not settings.smtp_x509_strict:
+        strict_flag = getattr(ssl, "VERIFY_X509_STRICT", 0)
+        context.verify_flags &= ~strict_flag
+    return context
+
+
 def ponyo_branded_email_html(
     *, eyebrow: str, title: str, intro: str, content_html: str = "",
     action_label: str | None = None, action_url: str | None = None, footnote: str | None = None,
@@ -174,7 +182,7 @@ def _send_contact_email(name: str, email: str, request_type: str, message_text: 
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=settings.smtp_timeout_seconds) as smtp:
         smtp.ehlo()
         if settings.smtp_starttls:
-            smtp.starttls(context=ssl.create_default_context())
+            smtp.starttls(context=_smtp_ssl_context())
             smtp.ehlo()
         if settings.smtp_username:
             smtp.login(settings.smtp_username, settings.smtp_password or "")
@@ -232,7 +240,7 @@ def _send_password_reset_email(email: str, reset_url: str) -> None:
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=settings.smtp_timeout_seconds) as smtp:
         smtp.ehlo()
         if settings.smtp_starttls:
-            smtp.starttls(context=ssl.create_default_context())
+            smtp.starttls(context=_smtp_ssl_context())
             smtp.ehlo()
         if settings.smtp_username:
             smtp.login(settings.smtp_username, settings.smtp_password or "")
@@ -268,7 +276,7 @@ def _send_verification_email(email: str, verification_url: str) -> None:
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=settings.smtp_timeout_seconds) as smtp:
         smtp.ehlo()
         if settings.smtp_starttls:
-            smtp.starttls(context=ssl.create_default_context())
+            smtp.starttls(context=_smtp_ssl_context())
             smtp.ehlo()
         if settings.smtp_username:
             smtp.login(settings.smtp_username, settings.smtp_password or "")
@@ -303,7 +311,7 @@ def _send_transactional_email(recipient: str, subject: str, text_body: str, html
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=settings.smtp_timeout_seconds) as smtp:
         smtp.ehlo()
         if settings.smtp_starttls:
-            smtp.starttls(context=ssl.create_default_context())
+            smtp.starttls(context=_smtp_ssl_context())
             smtp.ehlo()
         if settings.smtp_username:
             smtp.login(settings.smtp_username, settings.smtp_password or "")

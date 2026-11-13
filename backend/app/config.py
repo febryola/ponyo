@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_from_email: str | None = None
     smtp_starttls: bool = True
+    smtp_x509_strict: bool = True
     smtp_timeout_seconds: int = 8
 
     @property
@@ -91,6 +92,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_security(self):
+        if self.environment != "local" and not self.smtp_x509_strict:
+            raise ValueError("SMTP_X509_STRICT can be disabled only for local development.")
         if not 1 <= self.supplier_max_attempts <= 10 or not 10 <= self.supplier_retry_base_seconds <= 3600:
             raise ValueError("Supplier retry limits must be 1–10 attempts and 10–3600 base seconds.")
         if not 300 <= self.supplier_confirmation_timeout_seconds <= 604800:

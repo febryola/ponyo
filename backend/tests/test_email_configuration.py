@@ -3,12 +3,13 @@
 import logging
 import os
 import smtplib
+import ssl
 from unittest.mock import AsyncMock
 
 import pytest
 
 from app.config import BACKEND_ENV_FILES, Settings, settings
-from app.email_notifications import send_contact_notification
+from app.email_notifications import _smtp_ssl_context, send_contact_notification
 
 
 @pytest.fixture
@@ -62,6 +63,22 @@ def test_explicit_env_file_opt_out_still_works(isolated_email_settings):
     _, (_, local) = isolated_email_settings
     local.write_text("SMTP_HOST=smtp.example.test\n", encoding="utf-8")
     assert Settings(_env_file=None).smtp_host is None
+
+
+def test_smtp_context_keeps_chain_and_hostname_verification(monkeypatch):
+    strict_flag = getattr(ssl, "VERIFY_X509_STRICT", 0)
+    monkeypatch.setattr(settings, "smtp_x509_strict", False)
+    context = _smtp_ssl_context()
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname is True
+    assert not context.verify_flags & strict_flag
+
+    monkeypatch.setattr(settings, "smtp_x509_strict", True)
+    strict_context = _smtp_ssl_context()
+    assert strict_context.verify_mode == ssl.CERT_REQUIRED
+    assert strict_context.check_hostname is True
+    if strict_flag:
+        assert strict_context.verify_flags & strict_flag
 
 
 @pytest.mark.asyncio

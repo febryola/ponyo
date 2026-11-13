@@ -9,9 +9,22 @@ export function ProductGallery({ title, images }: { title: string; images: Produ
   const dialogRef = useRef<HTMLDialogElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  const [variantImages, setVariantImages] = useState<ProductGalleryImage[] | null>(null);
   const [zoomOpen, setZoomOpen] = useState(false);
-  const media = images.length ? images : [];
+  const media = variantImages ?? images;
   const current = media[active];
+
+  useEffect(() => {
+    const onVariantChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ images?: ProductGalleryImage[] }>).detail;
+      if (!detail?.images?.length) return;
+      setVariantImages(detail.images);
+      setActive(0);
+      trackRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+    };
+    window.addEventListener("ponyo:product-variant-change", onVariantChange);
+    return () => window.removeEventListener("ponyo:product-variant-change", onVariantChange);
+  }, []);
 
   function openAt(index: number) {
     setActive(index);

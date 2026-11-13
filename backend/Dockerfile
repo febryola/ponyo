@@ -1,23 +1,27 @@
-FROM python:3.13-alpine AS builder
+FROM python:3.13-slim AS builder
 
 ENV PIP_NO_CACHE_DIR=1
 WORKDIR /build
-RUN apk upgrade --no-cache \
-    && apk add --no-cache build-base libffi-dev
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends build-essential libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
 COPY pyproject.toml ./
 COPY app ./app
 RUN pip wheel --wheel-dir /wheels .
 
-FROM python:3.13-alpine AS runtime
+FROM python:3.13-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN apk upgrade --no-cache \
-    && apk add --no-cache ca-certificates \
-    && addgroup -S -g 10001 ponyo \
-    && adduser -S -D -H -u 10001 -G ponyo ponyo
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 10001 ponyo \
+    && useradd --system --uid 10001 --gid ponyo --no-create-home --shell /usr/sbin/nologin ponyo
 WORKDIR /app
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl \

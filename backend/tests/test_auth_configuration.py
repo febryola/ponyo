@@ -52,3 +52,8 @@ def test_production_requires_working_mail_configuration(overrides):
 def test_production_rejects_plaintext_smtp():
     with pytest.raises(ValidationError, match="SMTP_STARTTLS"):
         production_settings(smtp_starttls=False)
+
+
+def test_production_rejects_non_strict_smtp_certificate_validation():
+    with pytest.raises(ValidationError, match="SMTP_X509_STRICT"):
+        production_settings(smtp_x509_strict=False)

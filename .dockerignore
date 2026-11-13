@@ -1,0 +1,15 @@
+node_modules
+.next
+.next-mobile-preview
+.git
+.env*
+!.env.example
+.local
+docker-compose.override.yml
+backend
+infra
+supabase
+docs
+tests
+.next-*.log
+*.tsbuildinfo

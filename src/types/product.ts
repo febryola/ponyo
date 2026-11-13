@@ -12,6 +12,8 @@ export type ProductVariant = {
 	sku: string;
 	title: string;
 	options?: Record<string, string>;
+	galleryImages?: { src: string; alt: string }[];
+	previewOnly?: boolean;
 	priceAmount: number;
 	currency: string;
 	compareAtAmount?: number;

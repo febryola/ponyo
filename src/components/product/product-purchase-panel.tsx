@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocalization } from "@/components/layout/localization-provider";
@@ -106,7 +106,12 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
   function selectOption(optionName: string, value: string) {
     const options = Object.fromEntries(optionGroups.map(([name]) => [name, name === optionName ? value : selectedVariant?.options?.[name]]));
     const match = product.variants?.find((variant) => Object.entries(options).every(([name, selected]) => !selected || variant.options?.[name] === selected));
-    if (match) setSelectedVariantId(match.id);
+    if (match) {
+      setSelectedVariantId(match.id);
+      if (match.galleryImages?.length) {
+        window.dispatchEvent(new CustomEvent("ponyo:product-variant-change", { detail: { images: match.galleryImages } }));
+      }
+    }
   }
 
   const waitingStatuses = ["Coming Soon", "Waitlist", "Unavailable"];
@@ -118,6 +123,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       : waitlistEligible
         ? t("product.status.unavailable", "Currently unavailable")
         : t("product.status.available", "Available to order");
+  const previewOnly = Boolean(selectedVariant?.previewOnly);
 
   return (
     <>
@@ -131,15 +137,17 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
           const isSelected = selectedVariant?.options?.[name] === value;
           const hasVariant = productHasVariantOption(name, value);
           const unavailable = hasVariant && !product.variants?.some((variant) => variant.availability !== "unavailable" && variant.options?.[name] === value);
-          return <button key={value} type="button" className={`${isSelected || (!hasVariant && values.length === 1) ? "is-selected" : ""}${unavailable ? " is-unavailable" : ""}`} aria-pressed={isSelected || (!hasVariant && values.length === 1)} disabled={unavailable || !hasVariant && values.length === 1} onClick={() => selectOption(name, value)}>{/color|colour/i.test(name) && <span className="product-color-swatch" aria-hidden="true" data-color={value.toLowerCase()} />}{value}</button>;
+          const colorStyle = /color|colour/i.test(name) ? { "--option-color": colorFill(value) } as CSSProperties : undefined;
+          return <button key={value} type="button" style={colorStyle} className={`${isSelected || (!hasVariant && values.length === 1) ? "is-selected" : ""}${unavailable ? " is-unavailable" : ""}`} aria-pressed={isSelected || (!hasVariant && values.length === 1)} disabled={unavailable || !hasVariant && values.length === 1} onClick={() => selectOption(name, value)}>{/color|colour/i.test(name) && <span className="product-color-swatch" style={{ background: colorFill(value) }} aria-hidden="true" data-color={value.toLowerCase()} />}{value}</button>;
         })}</div></fieldset>)}</div> : <div className="product-option-fields">{product.color && <fieldset className="product-option-group is-color-option"><legend>Color<span>{product.color}</span></legend><div className="product-option-values"><span className="product-option-current"><span className="product-color-swatch" data-color={product.color.toLowerCase()} aria-hidden="true" />{product.color}</span></div></fieldset>}{(product.size || product.sizeTier || product.dimensions) && <fieldset className="product-option-group is-size-option"><legend>Size<span>{product.size ?? [product.sizeTier, product.dimensions].filter(Boolean).join(" · ")}</span></legend><div className="product-option-values"><span className="product-option-current">{product.size ?? [product.sizeTier, product.dimensions].filter(Boolean).join(" · ")}</span></div></fieldset>}</div>}
+        {previewOnly && <p className="product-variant-preview-note" role="status">Sample variant preview only — this color option is not available to purchase.</p>}
   {product.dispatchTime && <p className="product-dispatch">↗ {product.dispatchTime}</p>}
   <div className="product-quantity"><span>{t("product.quantity", "Quantity")}</span><div><button type="button" aria-label={t("product.quantity_decrease", "Decrease quantity")} disabled={quantity <= 1} onClick={() => setQuantity((amount) => Math.max(1, amount - 1))}>−</button><span>{quantity}</span><button type="button" aria-label={t("product.quantity_increase", "Increase quantity")} disabled={quantity >= 99} onClick={() => setQuantity((amount) => Math.min(99, amount + 1))}>＋</button></div></div>
-        {waitlistEligible ? <a className="shop-button product-add-button product-waitlist-cta" href="#product-waitlist" onClick={scrollToWaitlist}>{t("product.action.join_waitlist", "Join waitlist")} <span aria-hidden="true">→</span></a> : <div className="product-purchase-actions"><button className="shop-button product-add-button" type="button" onClick={addToCart}>{t("product.action.add_to_cart", "Add to cart")} <span>· {formatPrice(price, currency)}</span></button><button className="product-buy-now-button" type="button" onClick={buyNow}>{t("product.action.buy_now", "Buy now")} <span aria-hidden="true">→</span></button></div>}
+        {waitlistEligible ? <a className="shop-button product-add-button product-waitlist-cta" href="#product-waitlist" onClick={scrollToWaitlist}>{t("product.action.join_waitlist", "Join waitlist")} <span aria-hidden="true">→</span></a> : <div className="product-purchase-actions"><button className="shop-button product-add-button" type="button" onClick={addToCart} disabled={previewOnly}>{t("product.action.add_to_cart", "Add to cart")} <span>· {formatPrice(price, currency)}</span></button><button className="product-buy-now-button" type="button" onClick={buyNow} disabled={previewOnly}>{t("product.action.buy_now", "Buy now")} <span aria-hidden="true">→</span></button></div>}
         <p className="product-shipping-note">{waitlistEligible ? t("product.waitlist_note", "Join the waitlist and we’ll email you when this plush is available.") : t("product.shipping_note", "Shipping and taxes calculated at checkout.")}</p>
         <div className="product-trust"><span>♡ {t("product.trust.curated", "Thoughtfully selected")}</span><span>✦ {t("product.trust.ready", "Ready to be loved")}</span></div>
       </div>
-      <div className="mobile-sticky-purchase"><Link href="/" className="product-home-shortcut" aria-label="Home"><span aria-hidden="true">⌂</span><small>Home</small></Link>{waitlistEligible ? <a className="shop-button product-add-button product-waitlist-cta" href="#product-waitlist" onClick={scrollToWaitlist}>Join waitlist <span aria-hidden="true">→</span></a> : <button className="shop-button product-add-button" type="button" onClick={addToCart}>Add to cart <span>· {formatPrice(price, currency)}</span></button>}</div>
+      <div className="mobile-sticky-purchase"><Link href="/" className="product-home-shortcut" aria-label="Home"><span aria-hidden="true">⌂</span><small>Home</small></Link>{waitlistEligible ? <a className="shop-button product-add-button product-waitlist-cta" href="#product-waitlist" onClick={scrollToWaitlist}>Join waitlist <span aria-hidden="true">→</span></a> : <button className="shop-button product-add-button" type="button" onClick={addToCart} disabled={previewOnly}>Add to cart <span>· {formatPrice(price, currency)}</span></button>}</div>
       <div className="product-details-accordion">
         <details open><summary>{t("product.details.title", "Product details")}</summary><div><p>{productDescription}</p><dl><div><dt>{t("product.details.sku", "SKU")}</dt><dd>{sku}</dd></div><div><dt>{t("product.details.brand", "Brand")}</dt><dd>{product.supplierName}</dd></div><div><dt>{t("product.details.collection", "Collection")}</dt><dd>{t(`product.categories.${product.categoryName.toLowerCase().replaceAll(" ", "_")}`, product.categoryName)}</dd></div>{product.productType && <div><dt>{t("product.details.type", "Type")}</dt><dd>{product.productType}</dd></div>}{product.sizeTier && <div><dt>{t("product.details.size_tier", "Size tier")}</dt><dd>{product.sizeTier}</dd></div>}{product.size && <div><dt>{t("product.options.size", "Size")}</dt><dd>{product.size}</dd></div>}{product.dimensions && <div><dt>{t("product.details.dimensions", "Dimensions")}</dt><dd>{product.dimensions}</dd></div>}<div><dt>{t("product.details.availability", "Availability")}</dt><dd>{statusLabel}</dd></div>{product.dispatchTime && <div><dt>{t("product.details.dispatch", "Dispatch estimate")}</dt><dd>{product.dispatchTime}</dd></div>}</dl></div></details>
         <details><summary>{t("product.details.care_title", "Materials & care")}</summary><p>{t("product.details.care_body", "Specific material and care details haven’t been provided for this plush yet. Please follow the care label included with your item, or contact Ponyo before ordering if you need more information.")}</p></details>
@@ -147,6 +155,21 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       </div>
     </>
   );
+}
+
+function colorFill(value: string): string {
+  const colors: Record<string, string> = {
+    cream: "#f0e5ce", white: "#fffdf7", pink: "#e9adbd", rose: "#dba3a0",
+    mint: "#99b4a1", green: "#99b4a1", blue: "#93adca", grey: "#92918e",
+    gray: "#92918e", yellow: "#e7c96b", charcoal: "#45413f", black: "#34302e",
+    orange: "#df956d", caramel: "#bb805b", taupe: "#a68e7e",
+  };
+  const parts = value.toLowerCase().split(/\s+and\s+|\s*\/\s*/).map((part) =>
+    colors[part.trim()] ?? Object.entries(colors).find(([name]) => part.includes(name))?.[1] ?? "#d7d0c3",
+  );
+  return parts.length > 1
+    ? `linear-gradient(135deg, ${parts[0]} 0 50%, ${parts[1]} 50% 100%)`
+    : parts[0];
 }
 
 function ShareIcon() {

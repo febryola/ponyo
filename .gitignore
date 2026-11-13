@@ -32,6 +32,8 @@ __pycache__/
 # misc
 .DS_Store
 *.pem
+/.local/
+/docker-compose.override.yml
 
 # debug
 npm-debug.log*

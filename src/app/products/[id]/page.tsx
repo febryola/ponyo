@@ -8,6 +8,7 @@ import { ProductReviews, ProductWaitlistForm } from "@/components/product/produc
 import { ProductPriceHistory } from "@/components/product/product-price-history";
 import { ProductGrid } from "@/components/product/product-grid";
 import { ProductGallery } from "@/components/product/product-gallery";
+import { withProductVariantDemo } from "@/lib/product-variant-demo";
 import { getLocalizedProductById, getLocalizedProducts } from "@/services/localized-products.server";
 import { selectRelatedProducts } from "@/lib/related-products";
 
@@ -30,6 +31,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { product, products } = await getProductPageData(id);
   if (!product) notFound();
   if (product.id !== id) redirect(`/products/${encodeURIComponent(product.id)}`);
+  const displayProduct = process.env.PONYO_VARIANT_DEMO === "true"
+    ? withProductVariantDemo(product)
+    : product;
+  const selectedVariant = displayProduct.variants?.find((variant) => variant.id === displayProduct.variantId)
+    ?? displayProduct.variants?.[0];
+  const productImages = selectedVariant?.galleryImages?.length
+    ? selectedVariant.galleryImages
+    : displayProduct.galleryImages?.length
+      ? displayProduct.galleryImages
+      : [{ src: typeof displayProduct.image === "string" ? displayProduct.image : displayProduct.image.src, alt: displayProduct.imageAlt }];
 
   const related = selectRelatedProducts(products, product);
   const hasWaitlist = product.availability === "unavailable"
@@ -38,8 +49,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   return (
     <SiteFrame className="store-page product-page">
       <section className="product-detail-layout">
-        <ProductGallery title={product.name} images={product.galleryImages?.length ? product.galleryImages : [{ src: typeof product.image === "string" ? product.image : product.image.src, alt: product.imageAlt }]} />
-        <div className="product-detail-copy"><ProductPurchasePanel product={product} /><p className="product-payment-caption">Secure checkout powered by Ponyo.</p><ProductPriceHistory history={product.priceHistory ?? []} currency={product.currency} />{hasWaitlist && <ProductWaitlistForm productId={product.id} productName={product.name} />}</div>
+        <ProductGallery title={product.name} images={productImages} />
+    		<div className="product-detail-copy"><ProductPurchasePanel product={displayProduct} /><p className="product-payment-caption">Secure checkout powered by Ponyo.</p><ProductPriceHistory history={product.priceHistory ?? []} currency={product.currency} />{hasWaitlist && <ProductWaitlistForm productId={product.id} productName={product.name} />}</div>
       </section>
       <section className="product-brand-story" aria-labelledby="product-brand-story-title">
         <span className="product-brand-story-seal" aria-hidden="true">✦</span>

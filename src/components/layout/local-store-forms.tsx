@@ -11,8 +11,10 @@ export function HomeInterestForms() {
   const [alertsJoined, setAlertsJoined] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [requestOutcome, setRequestOutcome] = useState<"preview" | "saved-notified" | "saved-no-email" | null>(null);
-  const [formError, setFormError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [newsletterError, setNewsletterError] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState<string | null>(null);
   const [requestName, setRequestName] = useState<string | null>(null);
   const [requestEmail, setRequestEmail] = useState<string | null>(null);
@@ -23,6 +25,8 @@ export function HomeInterestForms() {
   function submit(type: "newsletter" | "request") {
     return async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      const setSubmitting = type === "newsletter" ? setNewsletterSubmitting : setRequestSubmitting;
+      const setFormError = type === "newsletter" ? setNewsletterError : setRequestError;
       setFormError("");
       const formData = new FormData(event.currentTarget);
       setSubmitting(true);
@@ -63,8 +67,8 @@ export function HomeInterestForms() {
         {alertsJoined ? <p className="local-form-success" role="status">{t("home.forms.drops_success", copy.v2.drops_success)}</p> : (
           <form onSubmit={submit("newsletter")}>
             <label className="sr-only" htmlFor="drops-email">{t("home.forms.email_label", copy.v2.email_label)}</label>
-            <div><input id="drops-email" name="email" type="email" required autoComplete="email" placeholder={t("home.forms.email_placeholder", copy.v2.email_placeholder)} value={newsletterEmail ?? customer?.email ?? ""} onChange={(event) => setNewsletterEmail(event.target.value)} /><button type="submit" disabled={submitting}>{submitting ? t("home.forms.wait", "Please wait…") : t("home.forms.drops_cta", copy.v2.drops_cta)}</button></div>
-            {formError && !alertsJoined && <p className="api-form-error" role="alert">{formError}</p>}
+            <div><input id="drops-email" name="email" type="email" required autoComplete="email" placeholder={t("home.forms.email_placeholder", copy.v2.email_placeholder)} value={newsletterEmail ?? customer?.email ?? ""} onChange={(event) => setNewsletterEmail(event.target.value)} /><button type="submit" disabled={newsletterSubmitting}>{newsletterSubmitting ? t("home.forms.wait", "Please wait…") : t("home.forms.drops_cta", copy.v2.drops_cta)}</button></div>
+            {newsletterError && !alertsJoined && <p className="api-form-error" role="alert">{newsletterError}</p>}
           </form>
         )}
       </div>
@@ -81,8 +85,8 @@ export function HomeInterestForms() {
             </div>
             <label className="sr-only" htmlFor="request-body">{t("home.forms.request_label", copy.v2.request_label)}</label>
             <textarea id="request-body" name="message" required rows={3} placeholder={t("home.forms.request_placeholder", copy.v2.request_placeholder)} />
-            <button type="submit" disabled={submitting}>{submitting ? t("home.forms.wait", "Please wait…") : t("home.forms.request_cta", copy.v2.request_cta)}</button>
-            {formError && !requestSent && <p className="api-form-error" role="alert">{formError}</p>}
+            <button type="submit" disabled={requestSubmitting}>{requestSubmitting ? t("home.forms.wait", "Please wait…") : t("home.forms.request_cta", copy.v2.request_cta)}</button>
+            {requestError && !requestSent && <p className="api-form-error" role="alert">{requestError}</p>}
           </form>
         )}
       </div>

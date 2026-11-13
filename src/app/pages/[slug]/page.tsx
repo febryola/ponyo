@@ -20,6 +20,15 @@ const sizeRows = [
   ["XL", "70 cm +", "/shop?filter.p.m.ponyo.size_tier=XL"],
   ["Domina Giant", "100 cm +", "/shop?filter.p.m.ponyo.size_tier=Giant"],
 ] as const;
+const dominaSortOptions = [
+  { value: "featured", label: "Featured" },
+  { value: "title-ascending", label: "Alphabetically, A–Z" },
+  { value: "title-descending", label: "Alphabetically, Z–A" },
+  { value: "price-ascending", label: "Price, low to high" },
+  { value: "price-descending", label: "Price, high to low" },
+  { value: "created-ascending", label: "Date, old to new" },
+  { value: "created-descending", label: "Date, new to old" },
+];
 
 const faqGroups = [
   { id: "ordering", title: faq.ordering_title, questions: [[faq.ordering_q1, faq.ordering_a1], [faq.ordering_q2, faq.ordering_a2], [faq.ordering_q3, faq.ordering_a3]] },
@@ -142,23 +151,30 @@ const firstQueryValue = (value: string | string[] | undefined) => Array.isArray(
 
 async function DominaPage({ searchParams }: { searchParams: Promise<Query> }) {
   const query = await searchParams;
-  const minimum = Number(firstQueryValue(query.min) ?? 0);
-  const maximum = Number(firstQueryValue(query.max) ?? Number.POSITIVE_INFINITY);
+  const minimumParam = firstQueryValue(query.min)?.trim();
+  const maximumParam = firstQueryValue(query.max)?.trim();
+  const minimumValue = Number(minimumParam);
+  const maximumValue = Number(maximumParam);
+  const minimum = minimumParam && Number.isFinite(minimumValue) ? Math.max(0, minimumValue) : 0;
+  const maximum = maximumParam && Number.isFinite(maximumValue) ? Math.max(0, maximumValue) : Number.POSITIVE_INFINITY;
   const size = firstQueryValue(query.size) ?? "";
   const availability = firstQueryValue(query["filter.v.availability"]) ?? "";
-  const sort = firstQueryValue(query.sort_by) ?? "best-selling";
+  const sort = firstQueryValue(query.sort_by) ?? "featured";
   const allProducts = (await getLocalizedProducts()).filter((product) => product.tags?.includes("domina-xl"));
   const products = allProducts.filter((product) => {
     const productSize = (product.sizeTier ?? product.size ?? "").toLowerCase();
-    const sizeMatches = !size || (size.toLowerCase() === "xl" ? true : productSize.startsWith(size.toLowerCase()));
+    const sizeMatches = !size || productSize.startsWith(size.toLowerCase());
     return product.priceAmount >= minimum && product.priceAmount <= maximum && sizeMatches && (!availability || availability !== "1" || product.availability === "available");
   }).sort((a, b) => {
+    const publishedAtA = Date.parse(a.publishedAt ?? "") || 0;
+    const publishedAtB = Date.parse(b.publishedAt ?? "") || 0;
     if (sort === "price-ascending") return a.priceAmount - b.priceAmount;
     if (sort === "price-descending") return b.priceAmount - a.priceAmount;
     if (sort === "title-descending") return b.name.localeCompare(a.name);
     if (sort === "title-ascending") return a.name.localeCompare(b.name);
-    if (sort === "created-ascending") return Number(a.tags?.includes("new-arrival")) - Number(b.tags?.includes("new-arrival"));
-    return Number(b.tags?.includes("new-arrival")) - Number(a.tags?.includes("new-arrival")) || a.name.localeCompare(b.name);
+    if (sort === "created-ascending") return publishedAtA - publishedAtB;
+    if (sort === "created-descending") return publishedAtB - publishedAtA;
+    return 0;
   });
   const preservedFilters = {
     ...(size ? { size } : {}),
@@ -167,9 +183,27 @@ async function DominaPage({ searchParams }: { searchParams: Promise<Query> }) {
     ...(availability ? { "filter.v.availability": availability } : {}),
   };
   return <div className="domina-page">
-    <section className="domina-page-hero"><div className="domina-page-hero-copy"><span>OVERSIZED PLUSH</span><h1>Domina XL</h1><p>Oversized plush companions that bring comfort, character, and a little wonder into your space.</p><a href="#domina-products">Shop Domina XL →</a></div><Image src="/images/catalog/ponyo-3.png" alt="An oversized bunny plush shown beside a person for scale" fill priority sizes="(max-width: 700px) 100vw, 52vw"/></section>
-    <section className="domina-trust store-container" aria-label="Domina XL details">{[["↕", "See the scale", "Every Domina XL listing shows its full height so you can picture it in your room before it arrives."], ["♡", "Product details", "Sizes from 60 cm to 120 cm, with materials and care listed on each plush."], ["¥", "Compare prices", "Prices are shown in your currency, with duties confirmed before checkout."], ["↗", "Delivery info", "XL plush ship in large-format boxes. Options and estimates depend on your destination."]].map(([icon, title, text]) => <article key={title}><span>{icon}</span><h2>{title}</h2><p>{text}</p></article>)}</section>
-    <section className="store-container domina-products" id="domina-products"><header><p className="eyebrow">Big plush, memorable presence</p><h2>XL Goodies</h2></header><div className="domina-catalog-toolbar"><form className="domina-catalog-filters" action="/pages/domina-xl" method="get"><input type="hidden" name="sort_by" value={sort} /><label>Size<select name="size" defaultValue={size}><option value="">Any size</option>{["Small", "Medium", "Large", "XL"].map((tier) => <option key={tier} value={tier}>{tier}</option>)}</select></label><label>Price from ¥<input type="number" name="min" min="0" defaultValue={minimum || ""} placeholder="0" /></label><label>To ¥<input type="number" name="max" min="0" defaultValue={Number.isFinite(maximum) ? maximum : ""} placeholder="No limit" /></label><label className="domina-stock-filter"><input type="checkbox" name="filter.v.availability" value="1" defaultChecked={availability === "1"} /> In stock</label><button type="submit">Filter <span aria-hidden="true">→</span></button></form><span className="domina-catalog-count">{products.length} {products.length === 1 ? "plush" : "plushies"}</span><SortSelect action="/pages/domina-xl" value={sort} category="" search="" preservedFilters={preservedFilters} /></div><ProductGrid products={products}/>{products.length === 0 && <p className="empty-collection">No plush matches those filters. <Link href="/pages/domina-xl">Clear filters</Link></p>}</section>
+    <section className="domina-page-hero">
+      <div className="domina-page-hero-copy">
+        <span className="domina-hero-kicker"><span aria-hidden="true">✦</span> PONYO SIGNATURE COLLECTION <span aria-hidden="true">✦</span></span>
+        <h1>Domina <em>XL</em></h1>
+        <p>Meet the plush that makes every room feel a little more magical. Big on softness, unmistakably Ponyo.</p>
+        <div className="domina-hero-facts"><span><strong>60–120 cm</strong><small>made for giant hugs</small></span><i aria-hidden="true">✦</i><span><strong>One-of-a-kind</strong><small>your new favorite company</small></span></div>
+        <Link className="domina-hero-cta" href="#domina-products">Meet your giant plush <span aria-hidden="true">↘</span></Link>
+      </div>
+      <div className="domina-hero-seal" role="img" aria-label="Ponyo Signature XL edition"><span>THE PONYO</span><strong>XL</strong><span>SIGNATURE EDITION</span></div>
+      <Image src="/images/catalog/ponyo-3.png" alt="An oversized bunny plush shown beside a person for scale" fill priority sizes="(max-width: 700px) 100vw, 52vw"/>
+    </section>
+    <section className="domina-trust store-container" aria-label="Domina XL details">{[["↕", "See the scale", "Every listing shows its full height, so you can picture it at home."], ["♡", "Product details", "Clear size, materials and care details on every plush."], ["¥", "Compare prices", "Compare prices in your currency before checkout."], ["↗", "Delivery info", "See XL delivery options and estimates for your destination."]].map(([icon, title, text]) => <article key={title}><span>{icon}</span><h2>{title}</h2><p>{text}</p></article>)}</section>
+    <section className="store-container domina-products" id="domina-products">
+      <header className="domina-products-heading">
+        <div><p className="eyebrow">THE PONYO XL EDITION</p><h2>XL Goodies</h2></div>
+        <p>Extra-large plush, chosen for their extra-large place in your heart.</p>
+      </header>
+      <div className="domina-catalog-toolbar"><form className="domina-catalog-filters" action="/pages/domina-xl" method="get"><input type="hidden" name="sort_by" value={sort} /><label>Size<select name="size" defaultValue={size}><option value="">Any size</option>{["Small", "Medium", "Large", "XL", "Giant"].map((tier) => <option key={tier} value={tier}>{tier}</option>)}</select></label><label>Price from ¥<input type="number" name="min" min="0" defaultValue={minimum || ""} placeholder="0" /></label><label>To ¥<input type="number" name="max" min="0" defaultValue={Number.isFinite(maximum) ? maximum : ""} placeholder="No limit" /></label><label className="domina-stock-filter"><input type="checkbox" name="filter.v.availability" value="1" defaultChecked={availability === "1"} /> In stock</label><button type="submit">Filter <span aria-hidden="true">→</span></button></form><span className="domina-catalog-count">{products.length} {products.length === 1 ? "plush" : "plushies"}</span><SortSelect action="/pages/domina-xl" value={sort} category="" search="" preservedFilters={preservedFilters} options={dominaSortOptions} /></div>
+      <ProductGrid products={products}/>
+      {products.length === 0 && <p className="empty-collection">No plush matches those filters. <Link href="/pages/domina-xl">Clear filters</Link></p>}
+    </section>
   </div>;
 }
 

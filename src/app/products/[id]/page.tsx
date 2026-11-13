@@ -49,13 +49,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   return (
     <SiteFrame className="store-page product-page">
       <section className="product-detail-layout">
-        <ProductGallery title={product.name} images={productImages} />
-    		<div className="product-detail-copy"><ProductPurchasePanel product={displayProduct} /><p className="product-payment-caption">Secure checkout powered by Ponyo.</p><ProductPriceHistory history={product.priceHistory ?? []} currency={product.currency} />{hasWaitlist && <ProductWaitlistForm productId={product.id} productName={product.name} />}</div>
-      </section>
-      <section className="product-brand-story" aria-labelledby="product-brand-story-title">
-        <span className="product-brand-story-seal" aria-hidden="true">✦</span>
-        <div className="product-brand-story-copy"><p className="eyebrow">PONYO MARKETPLACE · BRAND SPOTLIGHT</p><h2 id="product-brand-story-title">Meet {product.supplierName}</h2><p><strong>{product.supplierName}</strong> is the brand or maker behind {product.name}. Ponyo brings independent plush brands together in one carefully curated marketplace.</p><Link href="/pages/about">How Ponyo curates its marketplace <span aria-hidden="true">→</span></Link></div>
-        <Link className="product-brand-story-link" href={`/shop?q=${encodeURIComponent(product.supplierName)}`}>More from this brand <span aria-hidden="true">→</span></Link>
+        <div className="product-gallery-column">
+          <ProductGallery title={product.name} images={productImages} />
+          <section className="product-brand-story" aria-labelledby="product-brand-story-title">
+            <span className="product-brand-story-seal" aria-hidden="true">✦</span>
+            <div className="product-brand-story-copy"><p className="eyebrow">PONYO MARKETPLACE · BRAND SPOTLIGHT</p><h2 id="product-brand-story-title">Meet {product.supplierName}</h2><p><strong>{product.supplierName}</strong> is the brand or maker behind {product.name}. Ponyo brings independent plush brands together in one carefully curated marketplace.</p><Link href="/pages/about">How Ponyo curates its marketplace <span aria-hidden="true">→</span></Link></div>
+            <Link className="product-brand-story-link" href={`/shop?q=${encodeURIComponent(product.supplierName)}`}>More from this brand <span aria-hidden="true">→</span></Link>
+          </section>
+          <dl className="product-gallery-facts" aria-label="Product at a glance">
+            {(product.dimensions || product.size || product.sizeTier) && <div><dt>SIZE</dt><dd>{product.dimensions ?? product.size ?? product.sizeTier}</dd></div>}
+            <div><dt>COLLECTION</dt><dd>{product.categoryName}</dd></div>
+            {product.color && <div><dt>COLOR</dt><dd>{product.color}</dd></div>}
+            {product.dispatchTime && <div><dt>DISPATCH</dt><dd>{product.dispatchTime}</dd></div>}
+          </dl>
+          <ProductPriceHistory history={product.priceHistory ?? []} currency={product.currency} />
+        </div>
+        <div className="product-detail-copy"><ProductPurchasePanel product={displayProduct} /><p className="product-payment-caption">Secure checkout powered by Ponyo.</p>{hasWaitlist && <ProductWaitlistForm productId={product.id} productName={product.name} />}</div>
       </section>
       <ProductReviews productId={product.id} />
       {related.length > 0 && <section className="related-products store-container"><div className="section-head"><div><p className="eyebrow">A FEW MORE TO LOVE</p><h2>You may also like</h2></div><Link className="text-link" href={`/shop?category=${product.categoryName.toLowerCase().replaceAll(" ", "-")}`}>See all →</Link></div><ProductGrid products={related} /></section>}

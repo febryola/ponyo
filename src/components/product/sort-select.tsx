@@ -1,4 +1,6 @@
-const sortOptions = [
+type SortOption = { value: string; label: string };
+
+const sortOptions: SortOption[] = [
   { value: "featured", label: "Featured" },
   { value: "relevance", label: "Most relevant" },
   { value: "best-selling", label: "Best selling" },
@@ -10,8 +12,8 @@ const sortOptions = [
   { value: "created-descending", label: "Date, new to old" },
 ];
 
-export function SortSelect({ value, category, search, action = "/shop", preservedFilters = {} }: { value: string; category: string; search: string; action?: string; preservedFilters?: Record<string, string> }) {
-  const selectedOption = sortOptions.find((option) => option.value === value) ?? sortOptions[0];
+export function SortSelect({ value, category, search, action = "/shop", preservedFilters = {}, options = sortOptions }: { value: string; category: string; search: string; action?: string; preservedFilters?: Record<string, string>; options?: SortOption[] }) {
+  const selectedOption = options.find((option) => option.value === value) ?? options[0];
 
   return (
     <form className="sort-select-form" action={action} method="get">
@@ -26,7 +28,7 @@ export function SortSelect({ value, category, search, action = "/shop", preserve
             <svg className="catalog-chevron sort-menu-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </summary>
           <div className="sort-menu-options" role="group" aria-label="Sort products">
-            {sortOptions.map((option) => (
+            {options.map((option) => (
               <button key={option.value} type="submit" name="sort_by" value={option.value} aria-pressed={option.value === value}>
                 <span>{option.label}</span><span className="sort-menu-check" aria-hidden="true">✓</span>
               </button>

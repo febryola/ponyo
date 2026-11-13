@@ -34,7 +34,6 @@ services:
         required: false
     environment:
       ENVIRONMENT: local
-      STOREFRONT_BASE_URL: http://localhost:3000
       FRONTEND_ORIGINS: http://localhost:3000
       DATABASE_URL: postgresql+asyncpg://ponyo:ponyo@postgres:5432/ponyo
       REDIS_URL: redis://redis:6379/0

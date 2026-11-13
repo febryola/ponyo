@@ -7,6 +7,7 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 const componentText = readFileSync(new URL("../src/components/layout/local-store-forms.tsx", import.meta.url), "utf8");
+const englishLocale = JSON.parse(readFileSync(new URL("../src/locales/en.default.json", import.meta.url), "utf8"));
 const compile = (source) => ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
 }).outputText;
@@ -15,13 +16,14 @@ vm.runInNewContext(compile(readFileSync(new URL("../src/locales/contact-translat
 const translations = translationContext.exports.contactTranslations;
 const source = compile(componentText);
 
-function harness({ locale = "en", baseUrl = "/ponyo-api", customer = { firstName: "Ponyo", lastName: "Buyer", email: "buyer@example.com" }, api = async () => ({ emailNotificationSent: false }) } = {}) {
+function harness({ locale = "en", baseUrl = "/ponyo-api", customer = { firstName: "Ponyo", lastName: "Buyer", email: "buyer@example.com" }, api = async () => ({ emailNotificationSent: false }), newsletterApi = async () => {} } = {}) {
   const states = [];
   const refs = [];
   const requests = [];
   const effects = [];
   const frames = new Map();
   const interactions = [];
+  const newsletterRequests = [];
   let nextFrame = 0;
   let effectCursor = 0;
   class Element {
@@ -59,19 +61,22 @@ function harness({ locale = "en", baseUrl = "/ponyo-api", customer = { firstName
           }
         },
       };
-      if (id === "@/locales/en.default.json") return { default: {} };
+      if (id === "@/locales/en.default.json") return { default: englishLocale };
       if (id === "@/components/layout/customer-session-provider") return { useCustomerSession: () => ({ customer }) };
       if (id === "@/components/layout/localization-provider") return { useLocalization: () => ({ t: (key, fallback) => translations[locale]?.[key] ?? fallback }) };
       if (id === "@/services/ponyo-api.client") return {
         PONYO_API_BASE_URL: baseUrl,
-        ponyoApi: { submitContactRequest: async (payload) => { requests.push(payload); return api(payload); } },
+        ponyoApi: {
+          subscribeNewsletter: async (email) => { newsletterRequests.push(email); return newsletterApi(email); },
+          submitContactRequest: async (payload) => { requests.push(payload); return api(payload); },
+        },
       };
       return require(id);
     },
   };
   vm.runInNewContext(source, context);
   return {
-    requests, interactions, activeElement, document,
+    requests, newsletterRequests, interactions, activeElement, document,
     render() {
       cursor = 0; refCursor = 0; effectCursor = 0;
       const tree = context.exports.LocalContactForm();
@@ -84,6 +89,7 @@ function harness({ locale = "en", baseUrl = "/ponyo-api", customer = { firstName
       }
       return tree;
     },
+    renderHome() { cursor = 0; return context.exports.HomeInterestForms(); },
     flushFrame() {
       const pending = [...frames.values()];
       frames.clear();
@@ -116,6 +122,48 @@ const field = (tree, name) => find(tree, (node) => node.props?.name === name);
 const values = { name: "Ponyo Buyer", email: "buyer@example.com", phone: "+81 90 1234 5678", topic: "delivery", message: "Where is my plush?" };
 const event = (overrides = {}) => ({ preventDefault() {}, currentTarget: { ...values, ...overrides, contains: () => true } });
 const submit = (tree, overrides) => find(tree, (node) => node.type === "form").props.onSubmit(event(overrides));
+
+function findAll(node, predicate, matches = []) {
+  if (!node || typeof node !== "object") return matches;
+  if (Array.isArray(node)) {
+    for (const child of node) findAll(child, predicate, matches);
+    return matches;
+  }
+  if (predicate(node)) matches.push(node);
+  findAll(node.props?.children, predicate, matches);
+  return matches;
+}
+
+test("newsletter and plush request forms submit independently", async () => {
+  let resolveNewsletter;
+  const newsletterPending = new Promise((resolve) => { resolveNewsletter = resolve; });
+  const form = harness({ newsletterApi: () => newsletterPending });
+  let tree = form.renderHome();
+  const [newsletterForm, requestForm] = findAll(tree, (node) => node.type === "form");
+  const newsletterSubmit = newsletterForm.props.onSubmit({
+    preventDefault() {}, currentTarget: { email: "alerts@example.com" },
+  });
+
+  tree = form.renderHome();
+  const [busyNewsletterForm, idleRequestForm] = findAll(tree, (node) => node.type === "form");
+  assert.equal(find(busyNewsletterForm, (node) => node.props?.type === "submit").props.disabled, true);
+  assert.equal(find(idleRequestForm, (node) => node.props?.type === "submit").props.disabled, false);
+  assert.deepEqual(form.newsletterRequests, ["alerts@example.com"]);
+  assert.deepEqual(form.requests, []);
+
+  resolveNewsletter();
+  await newsletterSubmit;
+  tree = form.renderHome();
+  const [independentRequestForm] = findAll(tree, (node) => node.type === "form");
+  await independentRequestForm.props.onSubmit({
+    preventDefault() {}, currentTarget: { name: "Ponyo", email: "request@example.com", message: "Looking for a giant bunny." },
+  });
+  assert.equal(form.newsletterRequests.length, 1);
+  assert.equal(form.requests.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(form.requests[0])), {
+    name: "Ponyo", email: "request@example.com", message: "Looking for a giant bunny.", requestType: "Plush request",
+  });
+});
 
 test("contact card has accessible fields, stable topics, limits and decorative icons", () => {
   const tree = harness().render();

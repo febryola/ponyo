@@ -216,6 +216,27 @@ for (const locale of ["en", "es", "id", "ja", "ko", "zh-CN"]) {
   });
 }
 
+test("registration stays disabled until name, email, and a valid password are entered", () => {
+  const harness = formHarness(undefined, "page", { mode: "register" });
+  let tree = harness.render();
+  const submitButton = () => find(tree, (node) => node.type === "button" && node.props.type === "submit");
+  assert.equal(submitButton().props.disabled, true);
+
+  find(tree, (node) => node.props?.name === "name").props.onChange({ target: { value: "   " } });
+  find(tree, (node) => node.props?.name === "email").props.onChange({ target: { value: "buyer@example.com" } });
+  find(tree, (node) => node.props?.name === "password").props.onChange({ target: { value: "Safe-pass123!" } });
+  tree = harness.render();
+  assert.equal(submitButton().props.disabled, true);
+
+  find(tree, (node) => node.props?.name === "name").props.onChange({ target: { value: "Ponyo Buyer" } });
+  tree = harness.render();
+  assert.equal(submitButton().props.disabled, false);
+
+  find(tree, (node) => node.props?.name === "email").props.onChange({ target: { value: "" } });
+  tree = harness.render();
+  assert.equal(submitButton().props.disabled, true);
+});
+
 const frontendErrors = [
   [new ApiNotConfiguredError(), "service_not_connected", "Account service is not connected yet. Please try again later."],
   [new TypeError("Failed to fetch"), "service_unavailable", "The Ponyo service is temporarily unavailable. Please try again in a moment."],

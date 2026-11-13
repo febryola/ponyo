@@ -14,7 +14,10 @@ type CatalogFilterPanelProps = {
 export function CatalogFilterPanel({ categories, category, size, minimum, maximum, availability, preservedQuery, clearHref }: CatalogFilterPanelProps) {
   return (
     <details className="all-filters">
-      <summary><span aria-hidden="true">☷</span> Filters <b aria-hidden="true">⌄</b></summary>
+      <summary>
+        <span className="filter-summary-label"><span aria-hidden="true">☷</span> Filters</span>
+        <svg className="catalog-chevron filter-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </summary>
       <div className="all-filters-panel">
         <form action="/shop" method="get" className="catalog-filter-form">
           {Object.entries(preservedQuery).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}

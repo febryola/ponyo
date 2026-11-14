@@ -1645,6 +1645,7 @@ body:has(.store-header) {
     scrollbar-width: none;
 }
 
+.home-live-shelf .marketplace-rail>.product-card-item,
 .home-live-shelf .marketplace-rail>article,
 .home-live-shelf .marketplace-rail>li {
     min-width: 180px;
@@ -2812,6 +2813,7 @@ body:has(.store-header) {
         margin-left: -8px;
         padding-inline: 8px;
     }
+    .home-live-shelf .marketplace-rail>.product-card-item,
     .home-live-shelf .marketplace-rail>article,
     .home-live-shelf .marketplace-rail>li {
         min-width: 160px;

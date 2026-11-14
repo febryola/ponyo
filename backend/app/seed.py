@@ -21,6 +21,16 @@ PRODUCTS = [
     {"slug": "hoshi-cloud-bear-xl", "name": "Hoshi Cloud Bear XL", "description": "The 90 cm giant version of Hoshi Cloud Bear. An extra-big cuddle buddy from Domina.", "price": 68000, "category": "Giant plush", "type": "XL Plush", "tags": ["bear", "domina-xl"], "size": "XL", "dimensions": "90 cm", "supplier": "Domina", "image": "/images/catalog/maker-bear.jpg", "alt": "Warm cream teddy bear plush with a checkered bow", "stock": 3},
     {"slug": "haneul-bunny-xl", "name": "Haneul Bunny XL", "description": "A giant cream bunny standing 100 cm tall, from Domina.", "price": 74500, "category": "Giant plush", "type": "XL Plush", "tags": ["bunny", "domina-xl"], "size": "XL", "dimensions": "100 cm", "supplier": "Domina", "image": "/images/catalog/maker-bunny.jpg", "alt": "Oversized cream bunny plush shown at room scale", "stock": 3},
     {"slug": "baluran-elephant-xl", "name": "Baluran Elephant XL", "description": "An extra-large 120 cm elephant plush from Domina, the centrepiece of any room.", "price": 89000, "category": "Giant plush", "type": "XL Plush", "tags": ["character", "domina-xl"], "size": "XL", "dimensions": "120 cm", "supplier": "Domina", "image": "/images/catalog/ponyo-6.png", "alt": "An oversized elephant plush", "stock": 3},
+    {"slug": "mochi-cloud", "name": "Mochi Cloud", "description": "A smiling cloud with a crescent moon and dangling raindrops. Demo catalog item; size, price and inventory are illustrative.", "price": 14800, "category": "Characters", "type": "Plush", "tags": ["character", "new-arrival", "demo"], "size": "Small", "dimensions": "22 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/mochi-cloud.png", "alt": "Cream cloud plush with a yellow crescent moon and blue raindrops", "stock": 12},
+    {"slug": "blossom-fawn", "name": "Blossom Fawn", "description": "A rosy little fawn with soft antlers and a flower crown. Demo catalog item; size, price and inventory are illustrative.", "price": 16900, "category": "Characters", "type": "Plush", "tags": ["character", "new-arrival", "demo"], "size": "Small", "dimensions": "24 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/blossom-fawn.png", "alt": "Pink fawn plush with brown antlers and a pastel flower crown", "stock": 10},
+    {"slug": "eucalyptus-koala", "name": "Eucalyptus Koala", "description": "A grey koala holding eucalyptus, finished with a checkered bow. Demo catalog item; size, price and inventory are illustrative.", "price": 21800, "category": "Characters", "type": "Plush", "tags": ["character", "premium", "demo"], "size": "Medium", "dimensions": "32 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/eucalyptus-koala.png", "alt": "Grey koala plush holding eucalyptus with a checkered bow", "stock": 9},
+    {"slug": "apple-corgi", "name": "Apple Corgi", "description": "A caramel-and-cream corgi with a tiny red apple on its head. Demo catalog item; size, price and inventory are illustrative.", "price": 22500, "category": "Puppies", "type": "Plush", "tags": ["dog", "premium", "new-arrival", "demo"], "size": "Medium", "dimensions": "34 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/apple-corgi.png", "alt": "Caramel and cream corgi plush with a red apple on its head", "stock": 11},
+    {"slug": "vanilla-loaf-kitten", "name": "Vanilla Loaf Kitten", "description": "A tiny cream kitten curled into a soft loaf shape with caramel ears. Demo catalog item; size, price and inventory are illustrative.", "price": 13800, "category": "Cats", "type": "Plush", "tags": ["cat", "new-arrival", "demo"], "size": "Small", "dimensions": "18 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/vanilla-loaf-kitten.png", "alt": "Cream loaf-shaped kitten plush with caramel ears and rosy cheeks", "stock": 16},
+    {"slug": "buttercream-lamb", "name": "Buttercream Lamb", "description": "A fluffy buttercream lamb with a blue bow beside its ear. Demo catalog item; size, price and inventory are illustrative.", "price": 23200, "category": "Characters", "type": "Plush", "tags": ["character", "premium", "demo"], "size": "Medium", "dimensions": "33 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/buttercream-lamb.png", "alt": "Fluffy cream lamb plush with a small blue bow", "stock": 8},
+    {"slug": "moonlight-bat", "name": "Moonlight Bat", "description": "A lavender bat with outstretched wings and a golden crescent moon. Demo catalog item; size, price and inventory are illustrative.", "price": 24800, "category": "Characters", "type": "Plush", "tags": ["character", "premium", "new-arrival", "demo"], "size": "Medium", "dimensions": "30 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/moonlight-bat.png", "alt": "Purple bat plush with open wings and a golden crescent moon", "stock": 7},
+    {"slug": "starlight-kitty", "name": "Starlight Kitty", "description": "A midnight-black kitty scattered with golden stars and a crescent moon. Demo catalog item; size, price and inventory are illustrative.", "price": 23900, "category": "Cats", "type": "Plush", "tags": ["cat", "premium", "demo"], "size": "Medium", "dimensions": "31 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/starlight-kitty.png", "alt": "Black cat plush decorated with golden stars and a crescent moon", "stock": 8},
+    {"slug": "clover-turtle", "name": "Clover Turtle", "description": "A smiling green turtle with a soft shell and little pastel flowers. Demo catalog item; size, price and inventory are illustrative.", "price": 17900, "category": "Characters", "type": "Plush", "tags": ["character", "new-arrival", "demo"], "size": "Small", "dimensions": "23 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/clover-turtle.png", "alt": "Soft green turtle plush with a darker shell and pastel flowers", "stock": 14},
+    {"slug": "pebble-otter", "name": "Pebble Otter", "description": "A pocket-sized grey otter holding a little golden star. Demo catalog item; size, price and inventory are illustrative.", "price": 12800, "category": "Characters", "type": "Plush", "tags": ["character", "new-arrival", "demo"], "size": "Small", "dimensions": "16 cm", "supplier": "Ponyo demo collection", "image": "/images/catalog/lineup/pebble-otter.png", "alt": "Small grey otter plush holding a golden star", "stock": 18},
 ]
 
 PRODUCT_COLORS = {
@@ -34,6 +44,16 @@ PRODUCT_COLORS = {
     "hoshi-cloud-bear-xl": "Cream",
     "haneul-bunny-xl": "Cream",
     "baluran-elephant-xl": "Grey",
+    "mochi-cloud": "Cream",
+    "blossom-fawn": "Pink",
+    "eucalyptus-koala": "Grey",
+    "apple-corgi": "Caramel and cream",
+    "vanilla-loaf-kitten": "Cream and caramel",
+    "buttercream-lamb": "Cream",
+    "moonlight-bat": "Lavender",
+    "starlight-kitty": "Black and gold",
+    "clover-turtle": "Green",
+    "pebble-otter": "Grey",
 }
 
 PRODUCT_STATUSES = {
@@ -47,6 +67,16 @@ PRODUCT_STATUSES = {
     "hoshi-cloud-bear-xl": "Available",
     "haneul-bunny-xl": "Waitlist",
     "baluran-elephant-xl": "Unavailable",
+    "mochi-cloud": "Available",
+    "blossom-fawn": "Available",
+    "eucalyptus-koala": "Available",
+    "apple-corgi": "Available",
+    "vanilla-loaf-kitten": "Available",
+    "buttercream-lamb": "Available",
+    "moonlight-bat": "Available",
+    "starlight-kitty": "Available",
+    "clover-turtle": "Available",
+    "pebble-otter": "Available",
 }
 
 

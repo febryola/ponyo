@@ -13,6 +13,10 @@ import "./theme-parity-polish.css";
 import "./collection-theme.css";
 import "./auth-studio.css";
 import "./orders-studio.css";
+import "./product-card-actions.css";
+import "./home-size-spotlight.css";
+import "./footer-experience.css";
+import "./domina-responsive.css";
 
 const bodyFont = Nunito_Sans({ subsets: ["latin"], variable: "--font-nunito", display: "swap" });
 const headingFont = Libre_Baskerville({ subsets: ["latin"], weight: ["700"], variable: "--font-libre-baskerville", display: "swap" });

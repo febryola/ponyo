@@ -4,6 +4,7 @@ import { SiteFrame } from "@/components/layout/site-frame";
 import { HomeCarousel } from "@/components/home/home-carousel";
 import { HomeSparkleRain } from "@/components/home/home-sparkle-rain";
 import { AnimalTabs } from "@/components/home/animal-tabs";
+import { JellyfishArtwork } from "@/components/home/jellyfish-artwork";
 import { HomeStatCount } from "@/components/home/home-stat-count";
 import { HomeInterestForms } from "@/components/layout/local-store-forms";
 import { ProductShelf } from "@/components/product/product-shelf";
@@ -39,6 +40,17 @@ const categories = [
   { title: "More plush", href: "/collections/all", image: images.chick },
 ];
 
+const sizeGuideJellyfish = [
+  { className: "size-guide-hero-jellyfish--left", tone: "blue", direction: 1, delay: "-1.2s", duration: "7.2s" },
+  { className: "size-guide-hero-jellyfish--right", tone: "gold", direction: -1, delay: "-3.8s", duration: "8.4s" },
+  { className: "size-guide-hero-jellyfish--upper-left", tone: "silver", direction: 1, delay: "-4.9s", duration: "6.5s" },
+  { className: "size-guide-hero-jellyfish--upper-right", tone: "blue", direction: -1, delay: "-2.1s", duration: "9.1s" },
+  { className: "size-guide-hero-jellyfish--middle-left", tone: "silver", direction: 1, delay: "-5.7s", duration: "8.8s" },
+  { className: "size-guide-hero-jellyfish--middle-right", tone: "gold", direction: -1, delay: "-3.2s", duration: "7.7s" },
+  { className: "size-guide-hero-jellyfish--lower-left", tone: "blue", direction: 1, delay: "-6.3s", duration: "9.6s" },
+  { className: "size-guide-hero-jellyfish--lower-right", tone: "silver", direction: -1, delay: "-.6s", duration: "6.9s" },
+] as const;
+
 function byTag(products: Product[], tag: string, limit = 4) {
   return products.filter((product) => product.tags?.includes(tag)).slice(0, limit);
 }
@@ -62,6 +74,7 @@ export default async function Home() {
   const premium = byTag(products, "premium", 12);
   const domina = byTag(products, "domina-xl", 6);
   const arrivals = byTag(products, "new-arrival", 10);
+  const comingSoon = products.filter((product) => product.availabilityStatus === "Coming Soon");
   const rarePreview = rare.slice(0, 3);
   const rareSpotlight = rarePreview[0];
   const rareSupporting = rarePreview.slice(1);
@@ -120,7 +133,7 @@ export default async function Home() {
       </section>
 
       {rareSpotlight && <section className="rare-spotlight store-container" id="rare-finds">
-        <header><div><h2><LocalizedText translationKey="home.rare.title" fallback="Rare Finds" /></h2><p><LocalizedText translationKey="home.rare.body" fallback="Retired, discontinued, and limited-edition plush that is hard to find anywhere else." /></p></div><Link href="/collections/rare-finds"><LocalizedText translationKey="home.see_all" fallback="See all →" /></Link></header>
+        <header><div><h2><LocalizedText translationKey="home.rare.title" fallback="Rare Finds" /></h2><p><LocalizedText translationKey="home.rare.body" fallback="Retired, discontinued, and limited-edition plush that is hard to find anywhere else." /></p></div><Link href="/collections/rare-finds"><LocalizedText translationKey="home.see_all" fallback="See all →" /></Link><span className="home-campaign-jellyfish home-campaign-jellyfish--silver" aria-hidden="true"><JellyfishArtwork id="rare-jumbo-silver" tone="silver" direction={-1} /></span></header>
         <div className="rare-spotlight-grid">
           <Link className="rare-featured-product" href={`/products/${rareSpotlight.id}`}><Image src={rareSpotlight.image} alt={rareSpotlight.imageAlt} fill sizes="(max-width: 1024px) 100vw, 52vw" /><span className="rare-spotlight-shade"/><span className="rare-spotlight-badge">✦ <LocalizedText translationKey="home.rare.spotlight" fallback="Spotlight" /></span><span className="rare-featured-copy"><strong><LocalizedText translationKey={`product.names.${rareSpotlight.slug}`} fallback={rareSpotlight.name} /></strong>{rareSpotlight.size && <small>{rareSpotlight.size}</small>}<b><LocalizedPrice amount={rareSpotlight.priceAmount} sourceCurrency={rareSpotlight.currency} /> <i><LocalizedText translationKey="home.rare.view_plush" fallback="View plush →" /></i></b></span></Link>
           <div className={`rare-supporting-grid${rareSupporting.length === 1 ? " is-single" : ""}`}>{rareSupporting.map((product) => <Link href={`/products/${product.id}`} key={product.id}><span className="rare-supporting-image"><Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 700px) 44vw, 24vw"/></span><span className="rare-supporting-badge">{product.tags?.includes("rare") && <LocalizedText translationKey="home.rare.new_badge" fallback="✦ Rare · New" />}</span><strong><LocalizedText translationKey={`product.names.${product.slug}`} fallback={product.name} /></strong><small>{product.size ?? product.sizeTier ?? product.productType ?? product.categoryName}</small><b><LocalizedPrice amount={product.priceAmount} sourceCurrency={product.currency} /></b></Link>)}</div>
@@ -128,6 +141,7 @@ export default async function Home() {
       </section>}
 
       <ProductShelf className="home-live-shelf" id="new-arrivals" eyebrow="Just landed" title="Just landed" description="The newest plush on Ponyo. Swipe to see them all." products={arrivals} href="/collections/new-arrivals" linkLabel="See all →" rail compact />
+      {comingSoon.length > 0 && <ProductShelf className="home-live-shelf coming-soon-shelf" id="coming-soon" eyebrow="A little preview" title="Coming soon" description="Meet the next plush friends on their way to Ponyo. Ask us to let you know when they arrive." products={comingSoon} href="/collections/all" linkLabel="Explore all plush →" decoration={<span className="home-campaign-jellyfish home-campaign-jellyfish--gold" aria-hidden="true"><JellyfishArtwork id="coming-soon-gold" tone="gold" direction={-1} /></span>} />}
       <ProductShelf className="home-live-shelf" id="more-plush" eyebrow="Trending now" title="More plush to discover" description="A fresh mix from across the Ponyo catalog." products={allTrending} href="/collections/all" linkLabel="See all →" />
       <AnimalTabs products={products} />
 
@@ -137,13 +151,28 @@ export default async function Home() {
       </section>
 
       <section className="size-guide store-container" id="sizes">
-        <header><h2><LocalizedText translationKey="home.size.title" fallback="How big is big?" /></h2><p><LocalizedText translationKey="home.size.sub" fallback="From pocket pals to room-filling giants. Tap a size to shop it." /></p></header>
-        <div className="size-guide-tiles">
-          {[
-            { className: "size-guide-jellyfish", delay: "0s" },
-            { className: "size-guide-jellyfish size-guide-jellyfish--friend", delay: "-1.1s" },
-            { className: "size-guide-jellyfish size-guide-jellyfish--tiny", delay: "-2.2s" },
-          ].map((jellyfish) => <span key={jellyfish.className} className={jellyfish.className} style={{ animationDelay: jellyfish.delay }} aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M12 29C12 16 20 7 32 7s20 9 20 22c0 5-4 8-8 8H20c-4 0-8-3-8-8Z"/><circle cx="26" cy="24" r="2.5"/><circle cx="38" cy="24" r="2.5"/><path d="M22 30c2 2 4 2 6 0M19 39c0 5-2 7-2 11m10-11c0 5 2 7 0 12m8-12c0 5-1 7 1 12m7-12c0 5 2 7 1 11"/></svg></span>)}
+        <header>
+          <div className="domina-quote-marquee" aria-label="Domina XL: Big hugs, big joy. Plush icons up to 120 centimeters.">
+            <div className="domina-quote-track" aria-hidden="true">
+              <span>DOMINA XL <i>✦</i> BIG HUGS, BIG JOY <i>✦</i> UP TO 120 CM <i>✦</i> <LocalizedText translationKey="home.size.domina_quote" fallback="A little more room for wonder" /></span>
+              <span>DOMINA XL <i>✦</i> BIG HUGS, BIG JOY <i>✦</i> UP TO 120 CM <i>✦</i> <LocalizedText translationKey="home.size.domina_quote" fallback="A little more room for wonder" /></span>
+            </div>
+          </div>
+          <Link className="size-guide-promo" href="/pages/domina-xl">
+            <span className="size-guide-promo-mark" aria-hidden="true">✦</span>
+            <span className="size-guide-promo-copy"><strong><LocalizedText translationKey="home.size.domina_promo_title" fallback="Meet Domina XL Goodies" /></strong><small><LocalizedText translationKey="home.size.domina_promo_body" fallback="Ponyo’s oversized plush icons · up to 120 cm" /></small></span>
+            <span className="size-guide-promo-link"><LocalizedText translationKey="home.size.domina_promo_link" fallback="Explore" /> <span aria-hidden="true">→</span></span>
+          </Link>
+          {sizeGuideJellyfish.map((jellyfish) => <span key={jellyfish.className} className={`size-guide-hero-jellyfish ${jellyfish.className}`} style={{ animationDelay: jellyfish.delay, animationDuration: jellyfish.duration }} aria-hidden="true"><JellyfishArtwork id={jellyfish.className.replaceAll(" ", "-")} tone={jellyfish.tone} direction={jellyfish.direction} /></span>)}
+          <span className="size-guide-eyebrow"><LocalizedText translationKey="home.size.eyebrow" fallback="THE PONYO SIZE GUIDE" /></span>
+          <h2><LocalizedText translationKey="home.size.title" fallback="How big is big?" /></h2>
+          <p><LocalizedText translationKey="home.size.sub" fallback="From pocket pals to room-filling giants. Tap a size to shop it." /></p>
+        </header>
+          <div className="size-guide-tiles">
+          <div className="size-guide-light" aria-hidden="true" />
+          <div className="size-guide-mobile-jellyfish" aria-hidden="true">
+            {sizeGuideJellyfish.slice(0, 3).map((jellyfish, index) => <span key={jellyfish.tone} className={`size-guide-hero-jellyfish size-guide-mobile-jellyfish--${index + 1}`} style={{ animationDelay: jellyfish.delay, animationDuration: jellyfish.duration }}><JellyfishArtwork id={`size-guide-mobile-${jellyfish.tone}`} tone={jellyfish.tone} direction={jellyfish.direction} /></span>)}
+          </div>
           {[
             { name: "Small", range: "Under 25 cm", rangeKey: "under_25", image: images.chick, size: "Small" },
             { name: "Medium", range: "25–45 cm", rangeKey: "range_medium", image: images.bear, size: "Medium" },

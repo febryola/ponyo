@@ -7,6 +7,7 @@ import { LocalizedText } from "@/components/layout/localization-provider";
 import { PartnerInquiryForm } from "@/components/layout/partner-inquiry-form";
 import { ProductGrid } from "@/components/product/product-grid";
 import { SortSelect } from "@/components/product/sort-select";
+import { JellyfishArtwork } from "@/components/home/jellyfish-artwork";
 import { getLocalizedProducts } from "@/services/localized-products.server";
 import locale from "@/locales/en.default.json";
 
@@ -192,15 +193,32 @@ async function DominaPage({ searchParams }: { searchParams: Promise<Query> }) {
         <Link className="domina-hero-cta" href="#domina-products">Meet your giant plush <span aria-hidden="true">↘</span></Link>
       </div>
       <div className="domina-hero-seal" role="img" aria-label="Ponyo Signature XL edition"><span>THE PONYO</span><strong>XL</strong><span>SIGNATURE EDITION</span></div>
-      <Image src="/images/catalog/ponyo-3.png" alt="An oversized bunny plush shown beside a person for scale" fill priority sizes="(max-width: 700px) 100vw, 52vw"/>
+      <div className="domina-hero-media"><Image src="/images/catalog/ponyo-3.png" alt="An oversized bunny plush shown beside a person for scale" fill priority sizes="(max-width: 767px) 100vw, 60vw" /></div>
+      <span className="domina-jellyfish domina-jellyfish--hero" aria-hidden="true"><JellyfishArtwork id="domina-hero-silver" tone="silver" direction={1} /></span>
     </section>
     <section className="domina-trust store-container" aria-label="Domina XL details">{[["↕", "See the scale", "Every listing shows its full height, so you can picture it at home."], ["♡", "Product details", "Clear size, materials and care details on every plush."], ["¥", "Compare prices", "Compare prices in your currency before checkout."], ["↗", "Delivery info", "See XL delivery options and estimates for your destination."]].map(([icon, title, text]) => <article key={title}><span>{icon}</span><h2>{title}</h2><p>{text}</p></article>)}</section>
     <section className="store-container domina-products" id="domina-products">
       <header className="domina-products-heading">
+        <svg className="domina-cloud-frame" viewBox="0 0 800 300" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M65 290C28 290 8 268 8 231C8 199 22 179 43 170C27 122 67 83 115 99C118 43 177 20 221 52C251 5 321 3 359 46C408 14 466 22 491 61C539 22 605 42 619 91C672 62 728 94 729 144C772 142 792 175 792 217C792 264 768 290 725 290Z" fill="#fffdf8" stroke="#ddc17b" strokeWidth="1.5" vectorEffect="non-scaling-stroke" /></svg>
         <div><p className="eyebrow">THE PONYO XL EDITION</p><h2>XL Goodies</h2></div>
         <p>Extra-large plush, chosen for their extra-large place in your heart.</p>
+        <span className="domina-jellyfish domina-jellyfish--gold" aria-hidden="true"><JellyfishArtwork id="domina-catalog-gold" tone="gold" direction={-1} /></span>
+        <span className="domina-jellyfish domina-jellyfish--silver" aria-hidden="true"><JellyfishArtwork id="domina-catalog-silver" tone="silver" direction={1} /></span>
       </header>
-      <div className="domina-catalog-toolbar"><form className="domina-catalog-filters" action="/pages/domina-xl" method="get"><input type="hidden" name="sort_by" value={sort} /><label>Size<select name="size" defaultValue={size}><option value="">Any size</option>{["Small", "Medium", "Large", "XL", "Giant"].map((tier) => <option key={tier} value={tier}>{tier}</option>)}</select></label><label>Price from ¥<input type="number" name="min" min="0" defaultValue={minimum || ""} placeholder="0" /></label><label>To ¥<input type="number" name="max" min="0" defaultValue={Number.isFinite(maximum) ? maximum : ""} placeholder="No limit" /></label><label className="domina-stock-filter"><input type="checkbox" name="filter.v.availability" value="1" defaultChecked={availability === "1"} /> In stock</label><button type="submit">Filter <span aria-hidden="true">→</span></button></form><span className="domina-catalog-count">{products.length} {products.length === 1 ? "plush" : "plushies"}</span><SortSelect action="/pages/domina-xl" value={sort} category="" search="" preservedFilters={preservedFilters} options={dominaSortOptions} /></div>
+      <div className="domina-catalog-toolbar">
+        <form className="domina-catalog-filters" action="/pages/domina-xl" method="get" aria-label="Filter XL plush">
+          <input type="hidden" name="sort_by" value={sort} />
+          <label className="domina-size-filter">Size<select name="size" defaultValue={size}><option value="">Any size</option>{["Small", "Medium", "Large", "XL", "Giant"].map((tier) => <option key={tier} value={tier}>{tier}</option>)}</select></label>
+          <label>Price from ¥<input type="number" name="min" min="0" inputMode="numeric" defaultValue={minimum || ""} placeholder="0" /></label>
+          <label>To ¥<input type="number" name="max" min="0" inputMode="numeric" defaultValue={Number.isFinite(maximum) ? maximum : ""} placeholder="No limit" /></label>
+          <label className="domina-stock-filter"><input type="checkbox" name="filter.v.availability" value="1" defaultChecked={availability === "1"} /> In stock only</label>
+          <button type="submit">Show results <span aria-hidden="true">→</span></button>
+        </form>
+        <div className="domina-catalog-results">
+          <span className="domina-catalog-count" role="status">{products.length} {products.length === 1 ? "plush" : "plushies"}</span>
+          <SortSelect action="/pages/domina-xl" value={sort} category="" search="" preservedFilters={preservedFilters} options={dominaSortOptions} />
+        </div>
+      </div>
       <ProductGrid products={products}/>
       {products.length === 0 && <p className="empty-collection">No plush matches those filters. <Link href="/pages/domina-xl">Clear filters</Link></p>}
     </section>

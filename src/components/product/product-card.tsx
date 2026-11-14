@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { saveWishlist, useWishlistHandles } from "@/lib/wishlist";
 import { useLocalization } from "@/components/layout/localization-provider";
+import { ProductCardAction } from "@/components/product/product-card-action";
 import type { Product } from "@/types/product";
 
 
@@ -45,31 +46,34 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
   ])];
 
   return (
-    <article className={`shop-product-card${compact ? " is-compact" : ""}`}>
-      <div className="shop-product-image">
-        <Link href={`/products/${product.id}`} aria-label={t("product.action.view", `View ${productName}`, { title: productName })}>
-          <Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 600px) 46vw, (max-width: 1000px) 30vw, 23vw" />
-        </Link>
-        <div className="product-labels">
-          {labels.map((label) => <span key={label} className={`product-label ${label.toLowerCase().replaceAll(" ", "-")}${label === statusLabel ? " product-label--availability" : ""}`}>{label}</span>)}
+    <div className="product-card-item">
+      <article className={`shop-product-card${compact ? " is-compact" : ""}`}>
+        <div className="shop-product-image">
+          <Link href={`/products/${product.id}`} aria-label={t("product.action.view", `View ${productName}`, { title: productName })}>
+            <Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 600px) 46vw, (max-width: 1000px) 30vw, 23vw" />
+          </Link>
+          <div className="product-labels">
+            {labels.map((label) => <span key={label} className={`product-label ${label.toLowerCase().replaceAll(" ", "-")}${label === statusLabel ? " product-label--availability" : ""}`}>{label}</span>)}
+          </div>
+          <button type="button" className={`wishlist-toggle${isWishlisted ? " is-saved" : ""}`} aria-label={`${isWishlisted ? "Remove from" : "Save to"} wishlist: ${product.name}`} aria-pressed={isWishlisted} onClick={toggleWishlist}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5-8.8 11-8.8 11s-8.8-6-8.8-11A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.8 2.5Z" fill={isWishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
+          </button>
         </div>
-        <button type="button" className={`wishlist-toggle${isWishlisted ? " is-saved" : ""}`} aria-label={`${isWishlisted ? "Remove from" : "Save to"} wishlist: ${product.name}`} aria-pressed={isWishlisted} onClick={toggleWishlist}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5-8.8 11-8.8 11s-8.8-6-8.8-11A4.6 4.6 0 0 1 12 6.3a4.6 4.6 0 0 1 8.8 2.5Z" fill={isWishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
-        </button>
-      </div>
-      <div className="shop-product-info">
-        <Link href={`/products/${product.id}`} className="shop-product-title">{productName}</Link>
-        <div className="shop-product-meta"><span>{categoryLabel}</span></div>
-        {statusLabel && <p className="shop-product-availability">{statusLabel}</p>}
-        <div className="shop-product-bottom">
-          <strong className="shop-product-prices">
-            <span className="shop-product-current-price">{formatPrice(product.priceAmount, product.currency)}</span>
-            {product.compareAtAmount && product.compareAtAmount > product.priceAmount ? <del>{formatPrice(product.compareAtAmount, product.currency)}</del> : null}
-          </strong>
-          <Link href={`/products/${product.id}`} aria-label={`View ${product.name}`} className="product-card-arrow">→</Link>
+        <div className="shop-product-info">
+          <Link href={`/products/${product.id}`} className="shop-product-title">{productName}</Link>
+          <div className="shop-product-meta"><span>{categoryLabel}</span></div>
+          {statusLabel && <p className="shop-product-availability">{statusLabel}</p>}
+          <div className="shop-product-bottom">
+            <strong className="shop-product-prices">
+              <span className="shop-product-current-price">{formatPrice(product.priceAmount, product.currency)}</span>
+              {product.compareAtAmount && product.compareAtAmount > product.priceAmount ? <del>{formatPrice(product.compareAtAmount, product.currency)}</del> : null}
+            </strong>
+            <Link href={`/products/${product.id}`} aria-label={`View ${product.name}`} className="product-card-arrow">→</Link>
+          </div>
+          {product.dispatchTime && <p className="shop-product-dispatch">{product.dispatchTime}</p>}
         </div>
-        {product.dispatchTime && <p className="shop-product-dispatch">{product.dispatchTime}</p>}
-      </div>
-    </article>
+      </article>
+      <ProductCardAction product={product} productName={productName} />
+    </div>
   );
 }

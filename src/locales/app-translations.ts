@@ -77,6 +77,11 @@ export const appTranslations: AppTranslations = {
 		"home.shelf.trending_eyebrow": "Sedang populer",
 		"home.shelf.trending_title": "Temukan plush lainnya",
 		"home.shelf.trending_sub": "Pilihan menarik dari seluruh koleksi Ponyo.",
+		"home.shelf.coming_soon_eyebrow": "SEGERA HADIR",
+		"home.shelf.coming_soon_title": "Segera Hadir",
+		"home.shelf.coming_soon_sub":
+			"Kenalan dengan teman plush yang akan segera hadir di Ponyo. Aktifkan pengingat agar kamu jadi yang pertama tahu.",
+		"home.shelf.coming_soon_link": "Jelajahi semua plush →",
 		"home.animal.title": "Belanja berdasarkan hewan",
 		"home.animal.sub":
 			"Beruang, kelinci, kucing, dan banyak teman lucu lainnya.",
@@ -279,6 +284,7 @@ export const appTranslations: AppTranslations = {
 		"product.action.save": "Simpan ke wishlist",
 		"product.action.remove_saved": "Hapus dari wishlist",
 		"product.action.join_waitlist": "Gabung daftar tunggu",
+		"product.action.notify_me": "Beri tahu saya",
 		"product.action.add_to_cart": "Tambah ke keranjang",
 		"product.action.buy_now": "Beli sekarang",
 		"product.share.copied": "Tautan produk disalin.",
@@ -292,6 +298,18 @@ export const appTranslations: AppTranslations = {
 		"product.dispatch": "Dikirim dalam 1–3 hari kerja",
 		"product.waitlist_note":
 			"Gabung daftar tunggu dan kami akan mengabari saat plush ini tersedia.",
+		"product.waitlist.eyebrow": "KABAR SPESIAL",
+		"product.waitlist.title": "Jadi yang pertama tahu",
+		"product.waitlist.card_body":
+			"Tinggalkan emailmu dan kami akan memberi kabar saat {{ product }} tersedia.",
+		"product.waitlist.email": "Alamat email",
+		"product.waitlist.privacy":
+			"Emailmu hanya digunakan untuk memberi tahu ketersediaan produk ini.",
+		"product.waitlist.saving": "Menyimpan…",
+		"product.waitlist.joined": "Kamu sudah terdaftar",
+		"product.waitlist.success":
+			"Berhasil! Kami akan memberi kabar saat plush ini tersedia.",
+		"product.waitlist.error": "Permintaan belum tersimpan. Silakan coba lagi.",
 		"product.shipping_note": "Ongkos kirim dan pajak dihitung saat checkout.",
 		"product.trust.curated": "Dipilih dengan cermat",
 		"product.trust.ready": "Siap disayang",
@@ -427,6 +445,11 @@ export const appTranslations: AppTranslations = {
 		"home.shelf.trending_eyebrow": "人気アイテム",
 		"home.shelf.trending_title": "もっとぬいぐるみを見る",
 		"home.shelf.trending_sub": "Ponyoのコレクションからおすすめを紹介。",
+		"home.shelf.coming_soon_eyebrow": "まもなく登場",
+		"home.shelf.coming_soon_title": "もうすぐ登場",
+		"home.shelf.coming_soon_sub":
+			"Ponyoにやってくる新しいぬいぐるみをチェック。入荷通知でいち早くお知らせします。",
+		"home.shelf.coming_soon_link": "すべてのぬいぐるみを見る →",
 		"home.animal.title": "動物から探す",
 		"home.animal.sub": "くま、うさぎ、ねこなど、かわいい仲間が勢ぞろい。",
 		"home.lifestyle.title": "ぬいぐるみには、それぞれの物語がある。",
@@ -549,8 +572,21 @@ export const appTranslations: AppTranslations = {
 		"product.action.save": "お気に入りに保存",
 		"product.action.remove_saved": "お気に入りから削除",
 		"product.action.join_waitlist": "再入荷通知に登録",
+		"product.action.notify_me": "入荷通知を受け取る",
 		"product.action.add_to_cart": "カートに追加",
 		"product.action.buy_now": "今すぐ購入",
+		"product.waitlist.eyebrow": "入荷のお知らせ",
+		"product.waitlist.title": "いち早くお知らせします",
+		"product.waitlist.card_body":
+			"{{ product }}の販売開始をメールでお知らせします。",
+		"product.waitlist.email": "メールアドレス",
+		"product.waitlist.privacy":
+			"この商品の入荷通知のみにメールアドレスを使用します。",
+		"product.waitlist.saving": "登録中…",
+		"product.waitlist.joined": "通知に登録済み",
+		"product.waitlist.success":
+			"登録しました。販売開始時にメールでお知らせします。",
+		"product.waitlist.error": "登録できませんでした。もう一度お試しください。",
 		"product.quantity": "数量",
 		"product.options.color": "色",
 		"product.options.size": "サイズ",
@@ -771,6 +807,11 @@ export const appTranslations: AppTranslations = {
 		"home.shelf.trending_eyebrow": "인기 상품",
 		"home.shelf.trending_title": "더 많은 인형 둘러보기",
 		"home.shelf.trending_sub": "Ponyo 컬렉션에서 엄선한 인형을 만나 보세요.",
+		"home.shelf.coming_soon_eyebrow": "곧 만나요",
+		"home.shelf.coming_soon_title": "곧 출시 예정",
+		"home.shelf.coming_soon_sub":
+			"Ponyo에 곧 찾아올 새로운 친구들을 만나 보세요. 알림을 신청하면 가장 먼저 알려드려요.",
+		"home.shelf.coming_soon_link": "모든 인형 둘러보기 →",
 		"home.animal.title": "동물별로 보기",
 		"home.animal.sub": "곰, 토끼, 고양이 등 귀여운 친구들이 기다려요.",
 		"home.lifestyle.title":
@@ -894,8 +935,21 @@ export const appTranslations: AppTranslations = {
 		"product.action.save": "위시리스트에 저장",
 		"product.action.remove_saved": "위시리스트에서 삭제",
 		"product.action.join_waitlist": "입고 알림 신청",
+		"product.action.notify_me": "알림 받기",
 		"product.action.add_to_cart": "장바구니에 담기",
 		"product.action.buy_now": "바로 구매하기",
+		"product.waitlist.eyebrow": "입고 소식",
+		"product.waitlist.title": "가장 먼저 소식을 받아보세요",
+		"product.waitlist.card_body":
+			"{{ product }} 상품이 준비되면 이메일로 알려드릴게요.",
+		"product.waitlist.email": "이메일 주소",
+		"product.waitlist.privacy":
+			"이 상품의 입고 알림을 위해서만 이메일을 사용합니다.",
+		"product.waitlist.saving": "저장 중…",
+		"product.waitlist.joined": "알림 신청 완료",
+		"product.waitlist.success":
+			"신청이 완료됐어요! 상품이 준비되면 알려드릴게요.",
+		"product.waitlist.error": "저장하지 못했어요. 다시 시도해 주세요.",
 		"product.quantity": "수량",
 		"product.options.color": "색상",
 		"product.options.size": "크기",
@@ -1441,6 +1495,11 @@ export const appTranslations: AppTranslations = {
 		"home.shelf.trending_title": "Descubre más peluches",
 		"home.shelf.trending_sub":
 			"Una selección especial de toda la colección Ponyo.",
+		"home.shelf.coming_soon_eyebrow": "MUY PRONTO",
+		"home.shelf.coming_soon_title": "Próximamente",
+		"home.shelf.coming_soon_sub":
+			"Conoce a los próximos amigos de Ponyo. Avísame cuando lleguen y serás de las primeras personas en saberlo.",
+		"home.shelf.coming_soon_link": "Explorar todos los peluches →",
 		"home.animal.title": "Comprar por animal",
 		"home.animal.sub": "Osos, conejos, gatos y muchos amigos adorables.",
 		"home.lifestyle.title":
@@ -1568,8 +1627,21 @@ export const appTranslations: AppTranslations = {
 		"product.action.save": "Guardar en favoritos",
 		"product.action.remove_saved": "Quitar de favoritos",
 		"product.action.join_waitlist": "Unirme a la lista de espera",
+		"product.action.notify_me": "Avísame",
 		"product.action.add_to_cart": "Añadir al carrito",
 		"product.action.buy_now": "Comprar ahora",
+		"product.waitlist.eyebrow": "UN AVISO ESPECIAL",
+		"product.waitlist.title": "Sé de las primeras personas en saberlo",
+		"product.waitlist.card_body":
+			"Te avisaremos por correo cuando {{ product }} esté disponible.",
+		"product.waitlist.email": "Correo electrónico",
+		"product.waitlist.privacy":
+			"Usaremos tu correo únicamente para avisarte sobre este producto.",
+		"product.waitlist.saving": "Guardando…",
+		"product.waitlist.joined": "Ya estás en la lista",
+		"product.waitlist.success": "¡Listo! Te avisaremos cuando esté disponible.",
+		"product.waitlist.error":
+			"No se pudo guardar tu solicitud. Inténtalo de nuevo.",
 		"product.quantity": "Cantidad",
 		"product.options.color": "Color",
 		"product.options.size": "Tamaño",

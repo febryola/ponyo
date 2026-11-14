@@ -7,6 +7,7 @@ type Particle = {
   y: number;
   radius: number;
   isStar: boolean;
+  isStreak: boolean;
   color: string;
   speed: number;
   sway: number;
@@ -35,19 +36,21 @@ export function HomeSparkleRain() {
     let previousTime = 0;
     let lastDrawTime = 0;
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    const particleCount = isMobile ? 8 : 16;
+    const particleCount = isMobile ? 86 : 148;
     const frameInterval = isMobile ? 1000 / 30 : 1000 / 45;
 
     const makeParticle = (fromTop: boolean): Particle => {
-      const isStar = Math.random() < 0.45;
+      const isStreak = Math.random() < 0.075;
+      const isStar = !isStreak && Math.random() < 0.38;
       return {
         x: Math.random() * width,
         y: fromTop ? -20 - Math.random() * height * 0.3 : Math.random() * height,
-        radius: isStar ? 4 + Math.random() * 5 : 1.6 + Math.random() * 2.6,
+        radius: isStreak ? 5 + Math.random() * 8 : isStar ? 2.4 + Math.random() * 3.8 : 1.1 + Math.random() * 2.4,
         isStar,
+        isStreak,
         color: colors[Math.floor(Math.random() * colors.length)],
-        speed: 18 + Math.random() * 34,
-        sway: 10 + Math.random() * 22,
+        speed: isStreak ? 38 + Math.random() * 35 : 16 + Math.random() * 38,
+        sway: 8 + Math.random() * 25,
         phase: Math.random() * Math.PI * 2,
         spin: (Math.random() - 0.5) * 1.6,
         angle: Math.random() * Math.PI,
@@ -73,9 +76,23 @@ export function HomeSparkleRain() {
       context.globalAlpha = particle.alpha;
       context.fillStyle = particle.color;
 
-      if (particle.isStar) {
+      if (particle.isStreak) {
+        context.rotate(particle.angle + Math.PI / 4);
+        context.globalAlpha *= 0.75;
+        context.strokeStyle = particle.color;
+        context.lineWidth = Math.max(1, particle.radius * 0.22);
+        context.lineCap = "round";
+        context.shadowColor = particle.color;
+        context.shadowBlur = particle.radius * 1.6;
+        context.beginPath();
+        context.moveTo(-particle.radius * 2.8, 0);
+        context.lineTo(particle.radius * 2.8, 0);
+        context.stroke();
+      } else if (particle.isStar) {
         context.rotate(particle.angle);
-        context.globalAlpha *= 0.6 + 0.4 * Math.sin(time * particle.twinkle + particle.phase);
+        context.globalAlpha *= 0.5 + 0.5 * Math.sin(time * particle.twinkle + particle.phase);
+        context.shadowColor = particle.color;
+        context.shadowBlur = particle.radius * 1.3;
         context.beginPath();
         for (let point = 0; point < 8; point += 1) {
           const angle = point * Math.PI / 4 - Math.PI / 2;

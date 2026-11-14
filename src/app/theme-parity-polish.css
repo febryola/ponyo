@@ -7545,6 +7545,7 @@ body {
     top: 8px;
     right: 8px;
     display: grid;
+    pointer-events: auto;
     place-items: center;
     background: #fffaf2ed;
     font-size: 0;
@@ -16088,6 +16089,282 @@ body:has(.smart-header.is-mobile-pinned) .page-jellyfish-accent {
     overflow-wrap: anywhere;
 }
 
+.product-waitlist-layout {
+    width: 100%;
+    min-width: 0;
+    margin-top: 21px;
+    position: relative;
+}
+
+.product-waitlist-layout>.product-waitlist {
+    margin-top: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.product-waitlist-side-art {
+    width: min(50vw, 680px);
+    position: absolute;
+    z-index: 0;
+    top: 7%;
+    right: calc(100% + clamp(46px, 5vw, 78px));
+    bottom: 6%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 1vw, 14px);
+    overflow: visible;
+    isolation: isolate;
+    pointer-events: none;
+}
+
+.product-waitlist-side-art::before {
+    position: absolute;
+    z-index: -1;
+    inset: 14% 0 0;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #ffe5a633 0, #f8e6bf1c 42%, transparent 72%);
+    content: "";
+    filter: blur(26px);
+    animation: waitlist-lantern-glow 7s ease-in-out infinite alternate;
+}
+
+.product-waitlist-side-copy {
+    width: 100%;
+    position: relative;
+    z-index: 3;
+    padding: 0 12px;
+    color: #604337;
+    text-align: center;
+}
+
+.product-waitlist-side-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: #a17b3d;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .2em;
+    text-shadow: 0 1px 0 #fff;
+}
+
+.product-waitlist-side-kicker span {
+    color: #d3a849;
+    font-size: 13px;
+}
+
+.product-waitlist-side-copy h3 {
+    margin: 8px 0 4px;
+    color: #563a32;
+    font-family: var(--font-heading), Georgia, serif;
+    font-size: clamp(22px, 2vw, 30px);
+    font-weight: 700;
+    line-height: 1.24;
+    text-shadow: 0 2px 0 #fffaf0, 0 5px 16px #b89a5720;
+}
+
+.product-waitlist-side-copy p {
+    margin: 0;
+    color: #8a7263;
+    font-family: var(--font-body), Arial, sans-serif;
+    font-size: 12px;
+    letter-spacing: .015em;
+}
+
+.product-waitlist-side-panorama {
+    width: 100%;
+    aspect-ratio: 1010 / 287;
+    position: relative;
+    overflow: visible;
+    isolation: isolate;
+}
+
+.product-waitlist-side-constellation {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    overflow: visible;
+    color: #b88a3f;
+    opacity: .8;
+    filter: drop-shadow(0 1px 5px #d5ad5d5c);
+}
+
+.product-waitlist-starfall {
+    stroke: currentColor;
+    stroke-width: 1.15;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.product-waitlist-starfall {
+    opacity: .72;
+    stroke-dasharray: 2 8;
+    animation: waitlist-starfall 5.2s ease-in-out infinite;
+}
+
+.product-waitlist-constellation-star,
+.product-waitlist-constellation-dot {
+    fill: #e6c77e;
+    stroke: #b88a3f;
+    stroke-width: .5;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: waitlist-sparkle 3.6s ease-in-out infinite;
+}
+
+.product-waitlist-constellation-dot:nth-of-type(even) {
+    animation-delay: -1.7s;
+}
+
+.product-waitlist-lineup {
+    display: none;
+    height: auto;
+    aspect-ratio: 1010 / 287;
+    margin: 18px -23px -23px;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-top: 1px solid #e5c777;
+    background: radial-gradient(ellipse at 50% 70%, #f9d98438 0, transparent 62%), linear-gradient(180deg, #fffdfa, #fff8ee);
+}
+
+.product-waitlist-lineup::before,
+.product-waitlist-lineup::after,
+.product-waitlist-lineup-glow {
+    position: absolute;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+}
+
+.product-waitlist-lineup::before {
+    z-index: 1;
+    background: linear-gradient(180deg, #fffdfa 0%, #fffdfa50 8%, transparent 28%);
+}
+
+.product-waitlist-lineup::after {
+    z-index: 2;
+    background: radial-gradient(ellipse at 50% 70%, #f9d98440, transparent 62%);
+    animation: waitlist-lantern-glow 4.8s ease-in-out infinite alternate;
+}
+
+.product-waitlist-lineup-glow {
+    z-index: 0;
+    inset: 20% 12% -25%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #ffd97772 0, #f8d99430 40%, transparent 72%);
+    filter: blur(18px);
+    animation: waitlist-lantern-glow 5.4s ease-in-out infinite alternate-reverse;
+}
+
+.product-waitlist-side-panorama .product-waitlist-lineup-glow {
+    inset: 14% 12% -22%;
+}
+
+.product-waitlist-lineup img,
+.product-waitlist-side-panorama img {
+    z-index: 1;
+    object-fit: contain;
+    object-position: center bottom;
+    filter: drop-shadow(0 6px 9px #70452020);
+    animation: waitlist-friends-float 5.2s ease-in-out infinite;
+}
+
+.product-waitlist-lineup-spark {
+    position: absolute;
+    z-index: 3;
+    color: #d3a849;
+    font-size: 15px;
+    text-shadow: 0 0 12px #f7d985c9;
+    animation: waitlist-sparkle 2.8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.product-waitlist-lineup-spark--one {
+    top: 31%;
+    left: 16%;
+}
+
+.product-waitlist-lineup-spark--two {
+    top: 20%;
+    right: 18%;
+    animation-delay: -1.3s;
+}
+
+@keyframes waitlist-friends-float {
+    0%,
+    100% {
+        transform: translateY(3px);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes waitlist-lantern-glow {
+    from {
+        opacity: .48;
+        transform: scale(.94);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes waitlist-sparkle {
+    0%,
+    100% {
+        opacity: .42;
+        transform: scale(.78) rotate(-12deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.12) rotate(12deg);
+    }
+}
+
+@keyframes waitlist-starfall {
+    0%,
+    100% {
+        opacity: .22;
+        stroke-dashoffset: 0;
+    }
+    50% {
+        opacity: .88;
+        stroke-dashoffset: -10;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .product-waitlist-lineup img,
+    .product-waitlist-side-panorama img,
+    .product-waitlist-lineup::after,
+    .product-waitlist-lineup-glow,
+    .product-waitlist-lineup-spark,
+    .product-waitlist-side-constellation path,
+    .product-waitlist-side-constellation circle {
+        animation: none;
+    }
+    .product-waitlist-side-art::before,
+    .product-waitlist-side-panorama .product-waitlist-lineup-glow {
+        animation: none;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .product-waitlist-lineup {
+        display: block;
+    }
+    .product-waitlist-side-art {
+        display: none;
+    }
+}
+
 @media (max-width: 767px) {
     html,
     body {
@@ -16306,6 +16583,21 @@ body:has(.smart-header.is-mobile-pinned) .page-jellyfish-accent {
     .product-waitlist {
         padding: 17px 14px;
         border-radius: 17px;
+    }
+    .product-waitlist-lineup {
+        width: 100vw;
+        height: clamp(116px, 34vw, 138px);
+        margin: 16px calc(50% - 50vw) -17px;
+        display: block;
+        aspect-ratio: auto;
+        border-top: 0;
+    }
+    .product-waitlist-lineup img {
+        object-fit: contain;
+        object-position: center bottom;
+    }
+    .product-waitlist-side-art {
+        display: none;
     }
     .product-review-card>header {
         flex-wrap: wrap;
@@ -16880,6 +17172,11 @@ body:has(.smart-header.is-mobile-pinned) .page-jellyfish-accent {
 }
 
 @media (max-width: 767px) {
+    body:has(.product-page) .store-footer .footer-inner,
+    .product-page~.store-footer .footer-inner,
+    .store-main.product-page~.store-footer .footer-inner {
+        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    }
     #product-waitlist {
         scroll-margin-top: 18px;
         scroll-margin-bottom: 96px;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type CatalogFilterPanelProps = {
   categories: Array<{ title: string; slug: string }>;
@@ -16,12 +16,13 @@ type CatalogFilterPanelProps = {
 
 export function CatalogFilterPanel({ categories, category, size, minimum, maximum, availability, preservedQuery, clearHref }: CatalogFilterPanelProps) {
   const detailsRef = useRef<HTMLDetailsElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     function dismissOutside(event: PointerEvent) {
       const details = detailsRef.current;
       if (details && details.open && event.target instanceof Node && !details.contains(event.target)) {
-        details.open = false;
+        setIsOpen(false);
       }
     }
     document.addEventListener("pointerdown", dismissOutside);
@@ -29,20 +30,17 @@ export function CatalogFilterPanel({ categories, category, size, minimum, maximu
   }, []);
 
   return (
-    <details ref={detailsRef} className="all-filters" onToggle={(event) => {
-      const details = event.currentTarget;
-      const activeElement = document.activeElement;
-      if (!details.open && activeElement instanceof HTMLElement && details.querySelector(".all-filters-panel")?.contains(activeElement)) {
-        activeElement.blur();
-      }
-    }} onKeyDown={(event) => {
+    <details ref={detailsRef} className="all-filters" open={isOpen} onKeyDown={(event) => {
       if (event.key === "Escape" && event.currentTarget.open) {
         event.preventDefault();
-        event.currentTarget.open = false;
+        setIsOpen(false);
         event.currentTarget.querySelector("summary")?.focus({ preventScroll: true });
       }
     }}>
-      <summary>
+      <summary aria-expanded={isOpen} onClick={(event) => {
+        event.preventDefault();
+        setIsOpen((open) => !open);
+      }}>
         <span className="filter-summary-label"><span aria-hidden="true">☷</span> Filters</span>
         <svg className="catalog-chevron filter-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </summary>

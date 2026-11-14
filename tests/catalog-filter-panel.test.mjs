@@ -27,6 +27,10 @@ test("closed catalog filters explicitly remove the panel from layout", () => {
 		css.slice(touch),
 		/input\[type="number"\]\s*\{\s*font-size: 16px;/,
 	);
+	assert.match(
+		css,
+		/\.store-main\.collection-page\s*\{\s*padding-bottom: calc\(84px \+ env\(safe-area-inset-bottom\)\);/,
+	);
 });
 
 test("catalog filters dismiss outside and with Escape without navigation", () => {
@@ -41,10 +45,16 @@ test("catalog filters dismiss outside and with Escape without navigation", () =>
 		/document\.removeEventListener\("pointerdown", dismissOutside\)/,
 	);
 	assert.match(source, /!details\.contains\(event\.target\)/);
-	assert.match(source, /activeElement\.blur\(\)/);
 	assert.match(source, /event\.key === "Escape"/);
 	assert.match(source, /focus\(\{ preventScroll: true \}\)/);
 	assert.match(source, /<form action="\/shop" method="get"/);
+	assert.match(source, /open=\{isOpen\}/);
+	assert.match(source, /setIsOpen\(\(open\) => !open\)/);
+	assert.match(source, /aria-expanded=\{isOpen\}/);
+	assert.match(
+		source,
+		/if \(details && details\.open && event\.target instanceof Node && !details\.contains\(event\.target\)\)\s*\{\s*setIsOpen\(false\)/,
+	);
 });
 
 test("homepage campaigns have one silver jumbo and one gold decorative jellyfish", () => {

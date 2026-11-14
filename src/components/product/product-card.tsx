@@ -48,10 +48,9 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
   return (
     <div className="product-card-item">
       <article className={`shop-product-card${compact ? " is-compact" : ""}`}>
+        <Link className="shop-product-card-link" href={`/products/${product.id}`} aria-label={t("product.action.view", `View ${productName}`, { title: productName })} />
         <div className="shop-product-image">
-          <Link href={`/products/${product.id}`} aria-label={t("product.action.view", `View ${productName}`, { title: productName })}>
-            <Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 600px) 46vw, (max-width: 1000px) 30vw, 23vw" />
-          </Link>
+          <Image src={product.image} alt={product.imageAlt} fill sizes="(max-width: 600px) 46vw, (max-width: 1000px) 30vw, 23vw" />
           <div className="product-labels">
             {labels.map((label) => <span key={label} className={`product-label ${label.toLowerCase().replaceAll(" ", "-")}${label === statusLabel ? " product-label--availability" : ""}`}>{label}</span>)}
           </div>
@@ -60,7 +59,7 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
           </button>
         </div>
         <div className="shop-product-info">
-          <Link href={`/products/${product.id}`} className="shop-product-title">{productName}</Link>
+          <span className="shop-product-title">{productName}</span>
           <div className="shop-product-meta"><span>{categoryLabel}</span></div>
           {statusLabel && <p className="shop-product-availability">{statusLabel}</p>}
           <div className="shop-product-bottom">
@@ -68,7 +67,7 @@ export function ProductCard({ product, badge, compact = false }: { product: Prod
               <span className="shop-product-current-price">{formatPrice(product.priceAmount, product.currency)}</span>
               {product.compareAtAmount && product.compareAtAmount > product.priceAmount ? <del>{formatPrice(product.compareAtAmount, product.currency)}</del> : null}
             </strong>
-            <Link href={`/products/${product.id}`} aria-label={`View ${product.name}`} className="product-card-arrow">→</Link>
+            <span className="product-card-arrow" aria-hidden="true">→</span>
           </div>
           {product.dispatchTime && <p className="shop-product-dispatch">{product.dispatchTime}</p>}
         </div>

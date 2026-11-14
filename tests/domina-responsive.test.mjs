@@ -62,7 +62,6 @@ test("Domina mobile controls have shrinkable tracks and a stacked catalog headin
 test("sorting supports repeated trigger, outside pointer, focus dismissal and Escape", () => {
 	const source = read("../src/components/product/sort-select.tsx");
 	assert.ok(source.startsWith('"use client";'));
-	assert.match(source, /menu\.open = !menu\.open/);
 	assert.match(source, /event\.preventDefault\(\)/);
 	for (const event of ["pointerdown", "focusin"]) {
 		assert.ok(
@@ -77,11 +76,15 @@ test("sorting supports repeated trigger, outside pointer, focus dismissal and Es
 	assert.match(source, /!menu\.contains\(event\.target\)/);
 	assert.match(source, /event\.key === "Escape"/);
 	assert.match(source, /focus\(\{ preventScroll: true \}\)/);
+	assert.match(source, /onSubmit=\{\(\) => \{\s*setIsOpen\(false\)/);
+	assert.match(source, /type="submit" name="sort_by" value=\{option.value\}/);
+	assert.match(source, /open=\{isOpen\}/);
+	assert.match(source, /setIsOpen\(\(open\) => !open\)/);
+	assert.match(source, /aria-expanded=\{isOpen\}/);
 	assert.match(
 		source,
-		/onSubmit=\{\(\) => \{\s*if \(menuRef.current\) menuRef.current.open = false/,
+		/if \(menu && menu\.open && event\.target instanceof Node && !menu\.contains\(event\.target\)\)\s*\{\s*setIsOpen\(false\)/,
 	);
-	assert.match(source, /type="submit" name="sort_by" value=\{option.value\}/);
 	assert.match(
 		read("../src/app/collection-theme.css"),
 		/\.sort-menu:not\(\[open\]\)\s*>\s*\.sort-menu-options\s*\{\s*display: none;/,

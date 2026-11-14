@@ -99,10 +99,10 @@ test("normal and sale cards give long currency values independent wrapping eleme
 			},
 		});
 		const card = tree.props.children[0];
-		const image = card.props.children[0];
+		const image = card.props.children[1];
 		assert.ok(image.props.children[1].props.children.length >= 3);
 		assert.equal(image.props.children[2].props.className, "wishlist-toggle");
-		const bottom = card.props.children[1].props.children[3];
+		const bottom = card.props.children[2].props.children[3];
 		const prices = bottom.props.children[0];
 		assert.equal(prices.props.className, "shop-product-prices");
 		assert.equal(
@@ -134,14 +134,31 @@ test("product cards place a large action below the image and above product detai
 		},
 	});
 	const card = tree.props.children[0];
-	const image = card.props.children[0];
+	const cardLink = card.props.children[0];
+	const image = card.props.children[1];
+	const info = card.props.children[2];
 	const action = tree.props.children[1];
-	const info = card.props.children[1];
 	assert.equal(action.type, "ProductCardAction");
 	assert.equal(action.props.product.id, "current");
 	assert.equal(action.props.productName, "Bear");
 	assert.equal(info.props.children.length, 5);
 	assert.equal(image.props.children.length, 3);
+	assert.equal(cardLink.type, "a");
+	assert.equal(cardLink.props.className, "shop-product-card-link");
+	assert.equal(cardLink.props.href, "/products/current");
+	assert.ok(cardLink.props["aria-label"]);
+	assert.equal(image.props.children[0].type, "img");
+	assert.equal(info.props.children[0].type, "span");
+	const storefrontCss = read("../src/app/storefront.css");
+	assert.match(
+		storefrontCss,
+		/\.shop-product-card-link\s*\{[^}]*position: absolute;[^}]*z-index: 1;[^}]*inset: 0;/,
+	);
+	assert.match(
+		storefrontCss,
+		/\.shop-product-info\s*\{[^}]*pointer-events: none;/,
+	);
+	assert.match(storefrontCss, /\.wishlist-toggle\s*\{[^}]*z-index: 2;/);
 	assert.equal(tree.props.className, "product-card-item");
 	assert.ok(
 		!info.props.children.some(
@@ -164,6 +181,10 @@ test("product cards place a large action below the image and above product detai
 	assert.match(actionSource, /<rect x="3\.5" y="5\.5" width="17" height="13"/);
 	assert.match(actionSource, /strokeWidth="1\.7" strokeLinejoin="round"/);
 	const css = read("../src/app/theme-parity-polish.css");
+	assert.match(
+		css,
+		/body:has\(\.product-page\) \.store-footer \.footer-inner,\s*\.product-page~\.store-footer \.footer-inner,\s*\.store-main\.product-page~\.store-footer \.footer-inner\s*\{\s*padding-bottom: calc\(76px \+ env\(safe-area-inset-bottom\)\);/,
+	);
 	const actionCss = read("../src/app/product-card-actions.css");
 	assert.match(
 		actionCss,
@@ -240,6 +261,82 @@ test("product cards place a large action below the image and above product detai
 		spotlightCss,
 		/size-guide-tile--xl strong[\s\S]*font-size: 16px/,
 	);
+});
+
+test("product waitlist shows the lantern-lit waiting-list character panorama", () => {
+	const community = read("../src/components/product/product-community.tsx");
+	const css = read("../src/app/theme-parity-polish.css");
+	assert.match(
+		community,
+		/className="product-waitlist-lineup" aria-hidden="true"/,
+	);
+	assert.match(
+		community,
+		/className="product-waitlist-layout">\s*<section className="product-waitlist"[\s\S]*?<\/section>\s*<div className="product-waitlist-side-art"[\s\S]*className="product-waitlist-side-copy"[\s\S]*A little magic/,
+	);
+	assert.match(
+		community,
+		/className="product-waitlist-side-constellation" viewBox="0 0 600 180"[\s\S]*product-waitlist-starfall/,
+	);
+	assert.doesNotMatch(community, /product-waitlist-side-arrow/);
+	assert.match(
+		community,
+		/src="\/images\/waiting-list-transparent\.png" alt="" fill loading="eager" unoptimized/,
+	);
+	assert.match(
+		css,
+		/\.product-waitlist-lineup\s*\{[^}]*aspect-ratio: 1010 \/ 287;[^}]*background: radial-gradient\(ellipse at 50% 70%, #f9d98438/,
+	);
+	assert.match(
+		css,
+		/\.product-waitlist-side-art\s*\{[^}]*width: min\(50vw, 680px\);[^}]*right: calc\(100% \+ clamp\(46px, 5vw, 78px\)\)/,
+	);
+	assert.match(
+		css,
+		/\.product-waitlist-starfall\s*\{[^}]*animation: waitlist-starfall/,
+	);
+	assert.match(css, /\.product-waitlist-side-copy\s*\{[^}]*text-align: center;/);
+	assert.doesNotMatch(css, /waitlist-constellation-drift|product-waitlist-side-arrow/);
+	assert.match(
+		css,
+		/@media \(min-width: 768px\) and \(max-width: 1023px\)\s*\{\s*\.product-waitlist-lineup\s*\{\s*display: block;/,
+	);
+	const mobileWaitlistCss = css.slice(
+		css.indexOf(
+			"@media (max-width: 767px)",
+			css.indexOf("@keyframes waitlist-sparkle"),
+		),
+	);
+	assert.match(
+		mobileWaitlistCss,
+		/\.product-waitlist-lineup\s*\{[^}]*width: 100vw;[^}]*height: clamp\(116px, 34vw, 138px\)/,
+	);
+	assert.match(
+		mobileWaitlistCss,
+		/\.product-waitlist-lineup\s*\{[^}]*border-top: 0;/,
+	);
+	assert.match(
+		mobileWaitlistCss,
+		/\.product-waitlist-lineup img\s*\{[^}]*object-fit: contain;[^}]*object-position: center bottom;/,
+	);
+	assert.match(
+		mobileWaitlistCss,
+		/\.product-waitlist-lineup\s*\{[^}]*border-top: 0;/,
+	);
+	assert.match(
+		mobileWaitlistCss,
+		/\.product-waitlist-side-art\s*\{\s*display: none;/,
+	);
+	assert.match(
+		css,
+		/\.product-waitlist-lineup-glow\s*\{[^}]*filter: blur\(18px\);[^}]*animation: waitlist-lantern-glow/,
+	);
+	assert.match(css, /@keyframes waitlist-friends-float/);
+	assert.match(
+		css,
+		/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.product-waitlist-lineup img,[^}]*animation: none;/,
+	);
+	assert.ok(read("../public/images/waiting-list-transparent.png"));
 });
 
 test("home exposes only Coming Soon catalog products in its dedicated notify shelf", () => {

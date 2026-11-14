@@ -153,6 +153,9 @@
 }
 
 @media (max-width: 767px) {
+    .store-main.collection-page {
+        padding-bottom: calc(84px + env(safe-area-inset-bottom));
+    }
     .collection-page .collection-heading {
         width: calc(100% - 32px);
         min-height: 0;

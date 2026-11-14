@@ -184,7 +184,8 @@ export function ProductWaitlistForm({ productId, productName }: { productId: str
     }
   }
 
-  return <section className="product-waitlist" id="product-waitlist" aria-labelledby="product-waitlist-title" tabIndex={-1}>
+  return <div className="product-waitlist-layout">
+  <section className="product-waitlist" id="product-waitlist" aria-labelledby="product-waitlist-title" tabIndex={-1}>
     <div className="product-waitlist-art" aria-hidden="true"><span>✦</span><span>♡</span></div>
     <p className="eyebrow">A LITTLE HEADS-UP</p>
     <h2 id="product-waitlist-title">Join the waitlist</h2>
@@ -197,5 +198,32 @@ export function ProductWaitlistForm({ productId, productName }: { productId: str
       <button className="product-review-submit" type="submit" disabled={saving || checkingAccount}>{checkingAccount ? "Checking your account…" : saving ? "Saving your spot…" : "Notify me when it’s here"}<span aria-hidden="true">→</span></button>
     </form>
     {checkingAccount && <small>Your Ponyo details will fill in automatically. You can edit them.</small>}
-  </section>;
+    <div className="product-waitlist-lineup" aria-hidden="true">
+      <span className="product-waitlist-lineup-glow" />
+      <span className="product-waitlist-lineup-spark product-waitlist-lineup-spark--one">✦</span>
+      <span className="product-waitlist-lineup-spark product-waitlist-lineup-spark--two">✧</span>
+      <Image src="/images/waiting-list-transparent.png" alt="" fill loading="eager" unoptimized sizes="(max-width: 767px) 100vw, 560px" />
+    </div>
+  </section>
+  <div className="product-waitlist-side-art" aria-hidden="true">
+    <div className="product-waitlist-side-copy">
+      <span className="product-waitlist-side-kicker"><span aria-hidden="true">✦</span> PONYO WAITLIST LOUNGE <span aria-hidden="true">✦</span></span>
+      <h3>A little magic<br />is on its way</h3>
+      <p>Every good thing is worth waiting for.</p>
+    </div>
+    <div className="product-waitlist-side-panorama">
+      <span className="product-waitlist-lineup-glow" />
+      <span className="product-waitlist-lineup-spark product-waitlist-lineup-spark--one">✦</span>
+      <span className="product-waitlist-lineup-spark product-waitlist-lineup-spark--two">✧</span>
+      <svg className="product-waitlist-side-constellation" viewBox="0 0 600 180" fill="none" focusable="false">
+        <path className="product-waitlist-starfall" d="m72 20-15 23m130-42-11 19m212-17-14 23m147-7-13 19m-32 84-11 16m-347-7-9 14" />
+        <path className="product-waitlist-constellation-star" d="m139 55 3 8 8 3-8 3-3 8-3-8-8-3 8-3 3-8Zm254 52 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Zm127-57 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Zm-386 58 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
+        <circle className="product-waitlist-constellation-dot" cx="222" cy="20" r="2" />
+        <circle className="product-waitlist-constellation-dot" cx="337" cy="145" r="2.5" />
+        <circle className="product-waitlist-constellation-dot" cx="489" cy="113" r="1.7" />
+      </svg>
+      <Image src="/images/waiting-list-transparent.png" alt="" fill loading="eager" unoptimized sizes="(max-width: 767px) 100vw, 680px" />
+    </div>
+  </div>
+  </div>;
 }

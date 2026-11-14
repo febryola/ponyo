@@ -295,8 +295,14 @@ test("product waitlist shows the lantern-lit waiting-list character panorama", (
 		css,
 		/\.product-waitlist-starfall\s*\{[^}]*animation: waitlist-starfall/,
 	);
-	assert.match(css, /\.product-waitlist-side-copy\s*\{[^}]*text-align: center;/);
-	assert.doesNotMatch(css, /waitlist-constellation-drift|product-waitlist-side-arrow/);
+	assert.match(
+		css,
+		/\.product-waitlist-side-copy\s*\{[^}]*text-align: center;/,
+	);
+	assert.doesNotMatch(
+		css,
+		/waitlist-constellation-drift|product-waitlist-side-arrow/,
+	);
 	assert.match(
 		css,
 		/@media \(min-width: 768px\) and \(max-width: 1023px\)\s*\{\s*\.product-waitlist-lineup\s*\{\s*display: block;/,

@@ -2373,7 +2373,7 @@ body {
     display: none;
 }
 
-.faq-topic summary span {
+.faq-topic summary .faq-toggle {
     width: 28px;
     height: 28px;
     flex: 0 0 auto;
@@ -2385,7 +2385,7 @@ body {
     transition: transform .2s ease;
 }
 
-.faq-topic details[open] summary span {
+.faq-topic details[open] summary .faq-toggle {
     transform: rotate(45deg);
 }
 
@@ -10788,8 +10788,9 @@ body {
     .faq-page-header {
         min-height: auto;
         padding: 28px 22px 24px;
-        grid-template-columns: minmax(0, 1fr) 112px;
-        gap: 8px;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 0;
         border-radius: 25px;
     }
     .faq-page-header h1 {
@@ -10812,6 +10813,7 @@ body {
         line-height: 1.65;
     }
     .faq-page-header nav {
+        width: 100%;
         margin-top: 18px;
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -10820,15 +10822,17 @@ body {
     }
     .faq-page-header nav a {
         min-width: 0;
-        min-height: 35px;
+        min-height: 40px;
         padding: 5px 8px;
         gap: 6px;
         font-size: 10px;
-        white-space: nowrap;
+        line-height: 1.2;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
     .faq-page-header nav a:last-child {
         grid-column: 1 / -1;
-        justify-self: start;
+        justify-self: stretch;
     }
     .faq-topic-nav-icon {
         width: 20px;
@@ -10843,12 +10847,12 @@ body {
         margin-left: auto;
     }
     .faq-hero-art {
-        min-height: 150px;
+        min-height: 100px;
         align-self: start;
     }
     .faq-hero-art img {
-        width: 70px;
-        height: 70px;
+        width: 54px;
+        height: 54px;
     }
     .faq-art-orbit--one {
         width: 118px;
@@ -10880,11 +10884,7 @@ body {
         font-size: 19px;
     }
     .faq-art-caption {
-        right: -3px;
-        bottom: -5px;
-        padding: 6px 8px;
-        border-radius: 10px;
-        font-size: 9px;
+        display: none;
     }
     .faq-service-notes {
         margin-top: 18px;
@@ -10903,10 +10903,10 @@ body {
         border-radius: 12px;
     }
     .faq-service-notes strong {
-        font-size: 12px;
+        font-size: 13px;
     }
     .faq-service-notes small {
-        font-size: 10px;
+        font-size: 11px;
     }
     .faq-page-groups {
         margin-top: 22px;
@@ -10916,9 +10916,28 @@ body {
         padding: 16px 13px;
         border-radius: 20px;
     }
-    .faq-topic>.faq-topic-heading {
+    .faq-topic>div.faq-topic-heading:first-of-type {
         margin-bottom: 13px;
-        gap: 10px;
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: center;
+        gap: 5px 10px;
+    }
+    .faq-topic-heading .faq-topic-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+    .faq-topic-heading>div {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+    }
+    .faq-topic-heading .faq-question-count {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: start;
+        margin-left: 0;
     }
     .faq-topic-icon {
         width: 42px;
@@ -10946,10 +10965,15 @@ body {
         border-radius: 13px;
     }
     .faq-topic summary {
-        min-height: 54px;
+        min-height: 58px;
         padding: 11px 11px 11px 13px;
         gap: 10px;
-        font-size: 12px;
+        font-size: 14px;
+        line-height: 1.45;
+    }
+    .faq-topic summary .faq-question-text {
+        min-width: 0;
+        transform: none;
     }
     .faq-topic summary .faq-toggle {
         width: 27px;
@@ -10962,7 +10986,7 @@ body {
     }
     .faq-topic details p {
         padding: 0 14px 15px;
-        font-size: 12px;
+        font-size: 14px;
         line-height: 1.7;
     }
     .shipping-journey {
@@ -10986,23 +11010,40 @@ body {
         left: 10px;
     }
     .shipping-journey article strong {
-        font-size: 11px;
+        font-size: 13px;
     }
     .shipping-journey article small {
         margin-top: 2px;
-        font-size: 10px;
+        font-size: 12px;
+        line-height: 1.5;
     }
     .shipping-step-number {
         top: 10px;
         right: 10px;
     }
     .shipping-journey-connector {
-        height: 9px;
-        padding-left: 21px;
-        transform: rotate(90deg);
-        transform-origin: left center;
-        font-size: 10px;
-        line-height: 8px;
+        width: 1px;
+        height: 13px;
+        margin-left: 25px;
+        padding: 0;
+        position: relative;
+        justify-self: start;
+        transform: none;
+        background: repeating-linear-gradient(to bottom, #98b3a8 0 2px, transparent 2px 4px);
+        color: transparent;
+        font-size: 0;
+        line-height: 0;
+    }
+    .shipping-journey-connector::after {
+        width: 5px;
+        height: 5px;
+        position: absolute;
+        bottom: 0;
+        left: -2px;
+        border-right: 1px solid #98b3a8;
+        border-bottom: 1px solid #98b3a8;
+        content: "";
+        transform: rotate(45deg);
     }
     .faq-contact-cta {
         margin-top: 24px;
@@ -11014,10 +11055,9 @@ body {
 @media (max-width: 390px) {
     .faq-page-header {
         padding: 24px 16px 19px;
-        grid-template-columns: minmax(0, 1fr) 86px;
     }
     .faq-hero-art {
-        min-height: 127px;
+        min-height: 88px;
     }
     .faq-hero-art img {
         width: 58px;
